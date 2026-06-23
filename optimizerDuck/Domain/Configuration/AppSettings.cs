@@ -28,9 +28,9 @@ public sealed class AppSettings
     public sealed class AppOptions
     {
         /// <summary>
-        ///     The UI language code (e.g., "en-US").
+        ///     The UI language code.
         /// </summary>
-        public string Language { get; set; } = "en-US";
+        public string Language { get; set; } = "pt-BR";
 
         /// <summary>
         ///     The UI theme (e.g., "Dark").

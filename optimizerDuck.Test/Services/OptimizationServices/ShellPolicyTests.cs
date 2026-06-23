@@ -1,4 +1,5 @@
 using optimizerDuck.Domain.Optimizations.Models.Services;
+using optimizerDuck.Resources.Languages;
 using optimizerDuck.Services.Optimization.Providers;
 
 namespace optimizerDuck.Test.Services.OptimizationServices;
@@ -80,7 +81,7 @@ public class ShellPolicyTests
         };
 
         var error = ShellPolicy.Default.ErrorFactory(result);
-        Assert.Contains("timed out", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(Translations.Service_Shell_Error_TimedOut, error);
     }
 
     [Fact]
@@ -251,6 +252,6 @@ public class ShellPolicyTests
         };
 
         var error = ShellPolicy.Default.ErrorFactory(result);
-        Assert.Contains("timed out", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(Translations.Service_Shell_Error_TimedOut, error);
     }
 }

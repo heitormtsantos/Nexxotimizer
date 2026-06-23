@@ -6,16 +6,20 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <UseWPF>true</UseWPF>
-        <Authors>fatDuck</Authors>
+        <Authors>Nexxsensi</Authors>
         <ApplicationIcon>Logo.ico</ApplicationIcon>
-        <Company>fatDuck</Company>
-        <FileVersion>2.24.2</FileVersion>
-        <Version>2.24.2</Version>
-        <Product>optimizerDuck</Product>
-        <Copyright>Copyright fatDuck 2026</Copyright>
-        <AssemblyTitle>optimizerDuck</AssemblyTitle>
-        <AssemblyDescription>Free, open-source Windows optimization tool for performance, privacy, and simplicity.</AssemblyDescription>
-        <NeutralLanguage>en-US</NeutralLanguage>
+        <Company>Nexxsensi</Company>
+        <FileVersion>1.0.0</FileVersion>
+        <Version>1.0.0</Version>
+        <InformationalVersion>1.0.0</InformationalVersion>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+        <Product>Nexxsensi Otimizer</Product>
+        <Copyright>Copyright Nexxsensi 2026</Copyright>
+        <AssemblyTitle>Nexxsensi Otimizer</AssemblyTitle>
+        <AssemblyDescription>Otimizador gamer para Windows com foco em Free Fire, emuladores, desempenho e estabilidade.</AssemblyDescription>
+        <NeutralLanguage>pt-BR</NeutralLanguage>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <DebugType>none</DebugType>
         <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
 
@@ -60,6 +64,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <EmbeddedResource Remove="Resources\Languages\Translations.*.resx" />
         <EmbeddedResource Update="Resources\Languages\Translations.resx">
             <Generator>ResXFileCodeGenerator</Generator>
             <LastGenOutput>Translations.Designer.cs</LastGenOutput>
@@ -68,6 +73,7 @@
 
     <ItemGroup>
         <EmbeddedResource Include="Resources\Embedded\Icons\blank.ico" />
+        <EmbeddedResource Include="Resources\Embedded\PowerPlans\NexxsensiGamer.pow" />
         <EmbeddedResource Include="Resources\Embedded\PowerPlans\optimizerDuck.pow" />
     </ItemGroup>
 
@@ -76,6 +82,7 @@
         <Resource Include="Resources\Images\GitHubLogoBlack.png" />
         <Resource Include="Resources\Images\GitHubLogoWhite.png" />
         <Resource Include="Resources\Images\DiscordLogo.png" />
+        <Resource Include="Resources\Images\NexxsensiLogo.png" />
     </ItemGroup>
 
     <ItemGroup>

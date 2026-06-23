@@ -14,7 +14,7 @@ namespace optimizerDuck.Domain.Optimizations.Categories;
 [OptimizationCategory(typeof(SecurityAndPrivacyOptimizerPage))]
 public class SecurityAndPrivacy : IOptimizationCategory
 {
-    public string Name => Loc.Instance[$"Optimizer.{nameof(SecurityAndPrivacy)}"];
+    public string Name => "Seguranca e Privacidade";
     public OptimizationCategoryOrder Order { get; init; } =
         OptimizationCategoryOrder.SecurityAndPrivacy;
     public ObservableCollection<IOptimization> Optimizations { get; init; } = [];
@@ -634,6 +634,134 @@ public class SecurityAndPrivacy : IOptimizationCategory
             );
 
             context.Logger.LogInformation("Disabled Windows Copilot");
+            return Task.FromResult(CompleteFromScope());
+        }
+    }
+
+    [Optimization(
+        Id = "9A84B704-AB3F-40F5-9C5D-49277F52B27A",
+        Risk = OptimizationRisk.Moderate,
+        Tags = OptimizationTags.Privacy
+            | OptimizationTags.System
+            | OptimizationTags.Performance
+            | OptimizationTags.Windows11Only
+    )]
+    public class ApplyWin11DebloatGamerPreset : BaseOptimization
+    {
+        public override Task<ApplyResult> ApplyAsync(
+            IProgress<ProcessingProgress> progress,
+            OptimizationContext context
+        )
+        {
+            RegistryService.Write(
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\Search",
+                    "BingSearchEnabled",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\Search",
+                    "CortanaConsent",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+                    "DisableWebSearch",
+                    1
+                ),
+                new RegistryItem(
+                    @"HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+                    "ConnectedSearchUseWeb",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer",
+                    "DisableSearchBoxSuggestions",
+                    1
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                    "ShowCopilotButton",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot",
+                    "TurnOffWindowsCopilot",
+                    1
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Policies\Microsoft\Windows\WindowsCopilot",
+                    "TurnOffWindowsCopilot",
+                    1
+                ),
+                new RegistryItem(
+                    @"HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI",
+                    "DisableAIDataAnalysis",
+                    1
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                    "TaskbarDa",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                    "TaskbarMn",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKLM\SOFTWARE\Policies\Microsoft\Dsh",
+                    "AllowNewsAndInterests",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
+                    "SubscribedContent-338389Enabled",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
+                    "SubscribedContent-353694Enabled",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager",
+                    "SubscribedContent-353696Enabled",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\GameBar",
+                    "AllowAutoGameMode",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\GameBar",
+                    "AutoGameModeEnabled",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR",
+                    "AppCaptureEnabled",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKCU\System\GameConfigStore",
+                    "GameDVR_Enabled",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR",
+                    "AllowGameDVR",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+                    "HideFileExt",
+                    0
+                )
+            );
+
+            context.Logger.LogInformation("Applied Windows 11 gamer debloat preset");
             return Task.FromResult(CompleteFromScope());
         }
     }

@@ -19,7 +19,6 @@
     mc:Ignorable="d">
     <Page.Resources>
         <converters:ThemeToGitHubIconConverter x:Key="ThemeToGitHubIconConverter" />
-        <converters:ThemeToIndexConverter x:Key="ThemeToIndexConverter" />
     </Page.Resources>
 
     <ScrollViewer>
@@ -28,47 +27,6 @@
 
             <StackPanel Style="{StaticResource SettingsSectionStyle}">
                 <ui:TextBlock Style="{StaticResource SectionHeaderStyle}" Text="{ext:Loc Settings.Appearance.Header}" />
-                <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Globe24}">
-                    <ui:CardControl.Header>
-                        <StackPanel>
-                            <ui:TextBlock
-                                Margin="0"
-                                FontTypography="BodyStrong"
-                                Text="{ext:Loc Settings.Appearance.LanguageSelector.Title}"
-                                TextWrapping="Wrap" />
-                            <ui:TextBlock
-                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                Text="{ext:Loc Settings.Appearance.LanguageSelector.Description}"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-                    </ui:CardControl.Header>
-                    <ComboBox
-                        DisplayMemberPath="DisplayName"
-                        ItemsSource="{Binding ViewModel.Languages}"
-                        SelectedValue="{Binding ViewModel.SelectedCultureName, Mode=TwoWay}"
-                        SelectedValuePath="Culture.Name" />
-                </ui:CardControl>
-                <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Color24}">
-                    <ui:CardControl.Header>
-                        <StackPanel>
-                            <ui:TextBlock
-                                Margin="0"
-                                FontTypography="BodyStrong"
-                                Text="{ext:Loc Settings.Appearance.ThemeSelector.Title}"
-                                TextWrapping="Wrap" />
-                            <ui:TextBlock
-                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                Text="{ext:Loc Settings.Appearance.ThemeSelector.Description}"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-                    </ui:CardControl.Header>
-                    <ComboBox SelectedIndex="{Binding ViewModel.CurrentApplicationTheme, Converter={StaticResource ThemeToIndexConverter}, Mode=TwoWay}">
-                        <ComboBoxItem Content="{ext:Loc Settings.Appearance.ThemeSelector.Light}" />
-                        <ComboBoxItem Content="{ext:Loc Settings.Appearance.ThemeSelector.Dark}" />
-                        <ComboBoxItem Content="{ext:Loc Settings.Appearance.ThemeSelector.HighContrast}" />
-                    </ComboBox>
-                </ui:CardControl>
-
                 <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon PhoneVerticalScroll24}">
                     <ui:CardControl.Header>
                         <StackPanel>
@@ -257,7 +215,10 @@
                         Padding="16,14"
                         IsExpanded="True">
                         <ui:CardExpander.Icon>
-                            <ui:ImageIcon Height="25" Source="pack://application:,,,/optimizerDuck;component/Resources/Images/Duck.png" />
+                            <ui:SymbolIcon
+                                FontSize="24"
+                                Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                                Symbol="Rocket24" />
                         </ui:CardExpander.Icon>
 
                         <ui:CardExpander.Header>
@@ -266,7 +227,7 @@
                                     <ui:TextBlock
                                         FontTypography="BodyStrong"
                                         Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                        Text="optimizerDuck"
+                                        Text="Nexxsensi Otimizer"
                                         TextWrapping="Wrap" />
                                     <ui:TextBlock
                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"

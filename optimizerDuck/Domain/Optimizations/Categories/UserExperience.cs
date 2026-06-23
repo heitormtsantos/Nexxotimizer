@@ -14,7 +14,7 @@ namespace optimizerDuck.Domain.Optimizations.Categories;
 [OptimizationCategory(typeof(UserExperienceOptimizerPage))]
 public class UserExperience : IOptimizationCategory
 {
-    public string Name => Loc.Instance[$"Optimizer.{nameof(UserExperience)}"];
+    public string Name => "Experiencia";
     public OptimizationCategoryOrder Order { get; init; } =
         OptimizationCategoryOrder.UserExperience;
     public ObservableCollection<IOptimization> Optimizations { get; init; } = [];

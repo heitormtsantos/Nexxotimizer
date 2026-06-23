@@ -203,24 +203,6 @@
             Text="{ext:Loc OptimizationDetailsDialog.Other}" />
 
         <ui:CardAction
-            Margin="0,0,0,8"
-            Command="{Binding ViewSourceOnGitHubCommand}"
-            Cursor="Hand"
-            Icon="{ui:SymbolIcon Code24}">
-            <StackPanel>
-                <ui:TextBlock
-                    FontTypography="BodyStrong"
-                    Text="{ext:Loc OptimizationDetailsDialog.Other.ViewSource.Title}"
-                    TextWrapping="Wrap" />
-                <ui:TextBlock
-                    Appearance="Secondary"
-                    FontTypography="Body"
-                    Text="{ext:Loc OptimizationDetailsDialog.Other.ViewSource.Description}"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-        </ui:CardAction>
-
-        <ui:CardAction
             Margin="0,0,0,4"
             Command="{Binding OpenRevertFileCommand}"
             Icon="{ui:SymbolIcon FolderOpen24}"

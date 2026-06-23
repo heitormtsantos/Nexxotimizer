@@ -15,7 +15,7 @@ namespace optimizerDuck.Domain.Optimizations.Categories;
 [OptimizationCategory(typeof(PerformanceOptimizerPage))]
 public class Performance : IOptimizationCategory
 {
-    public string Name => Loc.Instance[$"Optimizer.{nameof(Performance)}"];
+    public string Name => "Desempenho";
     public OptimizationCategoryOrder Order { get; init; } = OptimizationCategoryOrder.Performance;
     public ObservableCollection<IOptimization> Optimizations { get; init; } = [];
 
@@ -211,6 +211,117 @@ public class Performance : IOptimizationCategory
 
             context.Logger.LogInformation("Optimized keyboard repeat settings");
             return Task.FromResult(CompleteFromScope());
+        }
+    }
+
+    [Optimization(
+        Id = "DCA57CA7-BA27-4A4D-AE1B-3F8B58DDFD6E",
+        Risk = OptimizationRisk.Moderate,
+        Tags = OptimizationTags.Latency | OptimizationTags.System | OptimizationTags.Performance
+    )]
+    public class OptimizeMouseAndKeyboardQueues : BaseOptimization
+    {
+        public override Task<ApplyResult> ApplyAsync(
+            IProgress<ProcessingProgress> progress,
+            OptimizationContext context
+        )
+        {
+            RegistryService.Write(
+                new RegistryItem(
+                    @"HKLM\SYSTEM\CurrentControlSet\Services\mouclass\Parameters",
+                    "MouseDataQueueSize",
+                    40
+                ),
+                new RegistryItem(
+                    @"HKLM\SYSTEM\CurrentControlSet\Services\kbdclass\Parameters",
+                    "KeyboardDataQueueSize",
+                    40
+                ),
+                new RegistryItem(@"HKCU\Control Panel\Accessibility\MouseKeys", "Flags", "0")
+            );
+
+            context.Logger.LogInformation("Optimized mouse and keyboard queue sizes");
+            return Task.FromResult(CompleteFromScope());
+        }
+    }
+
+    [Optimization(
+        Id = "E1794E77-1C79-42F1-A5A6-F4124B8D5C12",
+        Risk = OptimizationRisk.Moderate,
+        Tags = OptimizationTags.Disk | OptimizationTags.Ram | OptimizationTags.Performance
+    )]
+    public class OptimizeStorageAndMemoryBehavior : BaseOptimization
+    {
+        public override async Task<ApplyResult> ApplyAsync(
+            IProgress<ProcessingProgress> progress,
+            OptimizationContext context
+        )
+        {
+            RegistryService.Write(
+                new RegistryItem(
+                    @"HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters",
+                    "EnablePrefetch",
+                    0
+                ),
+                new RegistryItem(
+                    @"HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters",
+                    "EnableSuperfetch",
+                    0
+                )
+            );
+
+            await ShellService.CMDAsync(
+                "fsutil behavior set memoryusage 2",
+                "fsutil behavior set memoryusage 1"
+            );
+            await ShellService.CMDAsync(
+                "fsutil behavior set disabledeletenotify 0",
+                "fsutil behavior set disabledeletenotify 0"
+            );
+
+            context.Logger.LogInformation("Optimized storage TRIM and memory behavior");
+            return CompleteFromScope();
+        }
+    }
+
+    [Optimization(
+        Id = "F6B0D8D9-4A9E-4A08-AB8E-0C5D802313C8",
+        Risk = OptimizationRisk.Risky,
+        Tags = OptimizationTags.System | OptimizationTags.Performance | OptimizationTags.Latency
+    )]
+    public class OptimizeBootTimers : BaseOptimization
+    {
+        public override async Task<ApplyResult> ApplyAsync(
+            IProgress<ProcessingProgress> progress,
+            OptimizationContext context
+        )
+        {
+            await ShellService.CMDAsync(
+                "bcdedit /set useplatformtick yes",
+                "bcdedit /deletevalue useplatformtick"
+            );
+            await ShellService.CMDAsync(
+                "bcdedit /set disabledynamictick yes",
+                "bcdedit /deletevalue disabledynamictick"
+            );
+            await ShellService.CMDAsync(
+                "bcdedit /deletevalue useplatformclock",
+                "bcdedit /deletevalue useplatformclock",
+                ShellPolicy.From(result =>
+                    result.ExitCode == 0
+                    || result.Stderr.Contains(
+                        "elemento de dados",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                    || result.Stderr.Contains(
+                        "data element",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+            );
+
+            context.Logger.LogInformation("Optimized Windows boot timer configuration with bcdedit");
+            return CompleteFromScope();
         }
     }
 

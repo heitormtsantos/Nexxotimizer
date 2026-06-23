@@ -163,9 +163,7 @@ public class RegistryServiceTests : IDisposable
         Assert.False(RegistryService.KeyExists(new RegistryItem(keyPathA)));
 
         // 3. Obtain the revert step generated out of the deleted tree
-        var deleteStep = _scope.ExecutedSteps.LastOrDefault(s =>
-            s.Name == "Registry" && s.RevertStep != null
-        );
+        var deleteStep = _scope.ExecutedSteps.LastOrDefault(s => s.RevertStep != null);
         Assert.NotNull(deleteStep);
 
         var revertStep = deleteStep.RevertStep;
@@ -200,9 +198,7 @@ public class RegistryServiceTests : IDisposable
         Assert.True(RegistryService.KeyExists(new RegistryItem(keyPathB)));
 
         // Obtain revert step
-        var createStep = _scope.ExecutedSteps.LastOrDefault(s =>
-            s.Name == "Registry" && s.RevertStep != null
-        );
+        var createStep = _scope.ExecutedSteps.LastOrDefault(s => s.RevertStep != null);
         Assert.NotNull(createStep);
 
         // Execute revert

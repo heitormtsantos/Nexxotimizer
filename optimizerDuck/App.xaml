@@ -14,6 +14,46 @@
                 <ResourceDictionary Source="pack://application:,,,/UI/Styles/ToolTipOverride.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
+            <SolidColorBrush x:Key="ApplicationBackgroundBrush" Color="#05070D" />
+            <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="#05070D" />
+            <SolidColorBrush x:Key="LayerOnAcrylicFillColorDefaultBrush" Color="#05070D" />
+            <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush" Color="#05070D" />
+            <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#070A12" />
+            <SolidColorBrush x:Key="SolidBackgroundFillColorTertiaryBrush" Color="#0E1320" />
+
+            <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#0E1320" />
+            <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#111827" />
+            <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#1D2433" />
+            <SolidColorBrush x:Key="ControlFillColorDefaultBrush" Color="#111827" />
+            <SolidColorBrush x:Key="ControlFillColorSecondaryBrush" Color="#151B2A" />
+            <SolidColorBrush x:Key="ControlFillColorTertiaryBrush" Color="#1D2433" />
+            <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="#273244" />
+
+            <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#9CA3AF" />
+            <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="#5B6475" />
+            <SolidColorBrush x:Key="TextFillColorDisabledBrush" Color="#4A5262" />
+
+            <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#8B3DFF" />
+            <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#A855F7" />
+            <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#B066FF" />
+            <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#B066FF" />
+            <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#A855F7" />
+
+            <SolidColorBrush x:Key="SystemFillColorSuccessBrush" Color="#22E58A" />
+            <SolidColorBrush x:Key="SystemFillColorCautionBrush" Color="#A855F7" />
+            <SolidColorBrush x:Key="SystemFillColorCriticalBrush" Color="#FF3B6B" />
+            <SolidColorBrush x:Key="SystemFillColorNeutralBrush" Color="#9CA3AF" />
+
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#05070D" />
+            <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="#1D2433" />
+            <SolidColorBrush x:Key="NavigationViewItemBackground" Color="Transparent" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#151B2A" />
+            <SolidColorBrush x:Key="NavigationViewItemBackgroundPressed" Color="#1D2433" />
+            <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#9CA3AF" />
+            <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="#8B3DFF" />
+            <SolidColorBrush x:Key="LeftNavigationViewSeparatorBrush" Color="#1D2433" />
+
             <Style TargetType="Image">
                 <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality" />
                 <Setter Property="SnapsToDevicePixels" Value="True" />

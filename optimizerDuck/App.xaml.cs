@@ -235,8 +235,8 @@ public partial class App : Application
         Dispatcher.Invoke(() =>
         {
             System.Windows.MessageBox.Show(
-                $"Failed to start optimizerDuck.{Environment.NewLine}{Environment.NewLine}{ex.Message}",
-                "optimizerDuck",
+                $"Falha ao iniciar {Shared.AppDisplayName}.{Environment.NewLine}{Environment.NewLine}{ex.Message}",
+                Shared.AppDisplayName,
                 System.Windows.MessageBoxButton.OK,
                 MessageBoxImage.Error
             );
@@ -253,7 +253,7 @@ public partial class App : Application
         Directory.CreateDirectory(Shared.AssetsDirectory);
         Directory.CreateDirectory(Shared.RevertDirectory);
 
-        var logPath = Path.Combine(Shared.RootDirectory, "optimizerDuck.log");
+        var logPath = Path.Combine(Shared.RootDirectory, "NexxsensiOtimizer.log");
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Verbose()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
@@ -290,6 +290,9 @@ public partial class App : Application
                     // Pages
                     services.AddSingleton<DashboardViewModel>();
                     services.AddSingleton<DashboardPage>();
+
+                    services.AddSingleton<FreeFireViewModel>();
+                    services.AddSingleton<FreeFirePage>();
 
                     services.AddSingleton<OptimizeViewModel>();
                     services.AddSingleton<OptimizePage>();
@@ -352,12 +355,18 @@ public partial class App : Application
         WmiHelper.Initialize();
 
         var appSettings = appOptionsMonitor.CurrentValue;
+        const string fixedCultureName = "pt-BR";
+        var fixedCulture = new CultureInfo(fixedCultureName);
+        CultureInfo.DefaultThreadCurrentCulture = fixedCulture;
+        CultureInfo.DefaultThreadCurrentUICulture = fixedCulture;
+        CultureInfo.CurrentCulture = fixedCulture;
+        CultureInfo.CurrentUICulture = fixedCulture;
 
         SmoothScrollBehavior.GlobalEnabled = appSettings.Optimize.SmoothScrolling;
 
         await Dispatcher.InvokeAsync(() =>
         {
-            Loc.Instance.ChangeCulture(new CultureInfo(appSettings.App.Language));
+            Loc.Instance.ChangeCulture(fixedCulture);
         });
 
         _logger = _host.Services.GetRequiredService<ILogger<App>>();
@@ -366,26 +375,21 @@ public partial class App : Application
             Shared.RawLogo,
             Shared.FileVersion
         );
-        _logger.LogInformation("Loaded language: {Language}", appSettings.App.Language);
+        _logger.LogInformation("Loaded language: {Language}", fixedCultureName);
 
         var optimizationRegistry = _host.Services.GetRequiredService<OptimizationRegistry>();
 
         await Dispatcher.InvokeAsync(() =>
         {
             ApplicationAccentColorManager.Apply(
-                systemAccent: Color.FromRgb(216, 155, 29),
-                primaryAccent: Color.FromRgb(235, 193, 94),
-                secondaryAccent: Color.FromRgb(255, 247, 200),
-                tertiaryAccent: Color.FromRgb(255, 243, 131)
+                systemAccent: Color.FromRgb(139, 61, 255),
+                primaryAccent: Color.FromRgb(168, 85, 247),
+                secondaryAccent: Color.FromRgb(176, 102, 255),
+                tertiaryAccent: Color.FromRgb(34, 229, 138)
             );
 
             ApplicationThemeManager.Apply(
-                appSettings.App.Theme switch
-                {
-                    ApplicationTheme.Dark => ApplicationTheme.Dark,
-                    ApplicationTheme.HighContrast => ApplicationTheme.HighContrast,
-                    _ => ApplicationTheme.Light,
-                },
+                ApplicationTheme.Dark,
                 updateAccent: false
             );
 

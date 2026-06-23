@@ -1,14 +1,10 @@
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Globalization;
-using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using optimizerDuck.Common.Helpers;
 using optimizerDuck.Domain.Configuration;
-using optimizerDuck.Domain.UI;
 using optimizerDuck.Resources.Languages;
 using optimizerDuck.Services.Configuration;
 using optimizerDuck.Services.Optimization;
@@ -18,7 +14,6 @@ using optimizerDuck.UI.Behaviors;
 using Wpf.Ui;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
-using Wpf.Ui.Extensions;
 
 namespace optimizerDuck.UI.ViewModels.Pages;
 
@@ -38,9 +33,6 @@ public partial class SettingsViewModel(
     private bool _removeProvisioned;
 
     [ObservableProperty]
-    private string _selectedCultureName = string.Empty;
-
-    [ObservableProperty]
     private int _shellTimeoutMs;
 
     [ObservableProperty]
@@ -50,25 +42,9 @@ public partial class SettingsViewModel(
     private bool _smoothScrolling;
     public string Version { get; } = Shared.FileVersion;
 
-    public ObservableCollection<LanguageOption> Languages { get; } =
-    [
-        new() { DisplayName = "English", Culture = new CultureInfo("en-US") },
-        new() { DisplayName = "Français", Culture = new CultureInfo("fr-FR") },
-        new() { DisplayName = "Tiếng Việt", Culture = new CultureInfo("vi-VN") },
-        new() { DisplayName = "正體中文", Culture = new CultureInfo("zh-TW") },
-        new() { DisplayName = "简体中文", Culture = new CultureInfo("zh-CN") },
-        new() { DisplayName = "Русский", Culture = new CultureInfo("ru-RU") },
-        new() { DisplayName = "한국어", Culture = new CultureInfo("ko-KR") },
-        new() { DisplayName = "日本語", Culture = new CultureInfo("ja-JP") },
-        new() { DisplayName = "Polski", Culture = new CultureInfo("pl-PL") },
-        new() { DisplayName = "Español", Culture = new CultureInfo("es-ES") },
-        new() { DisplayName = "Português (BR)", Culture = new CultureInfo("pt-BR") },
-        new() { DisplayName = "Türkçe", Culture = new CultureInfo("tr-TR") },
-    ];
 
     protected override Task InitializeOnceAsync()
     {
-        SelectedCultureName = appOptionsMonitor.CurrentValue.App.Language;
         ShellTimeoutMs = appOptionsMonitor.CurrentValue.Optimize.ShellTimeoutMs;
         ShowSnackbarNotificationAfterAppliedSuccessfully = appOptionsMonitor
             .CurrentValue
@@ -77,18 +53,9 @@ public partial class SettingsViewModel(
         SmoothScrolling = appOptionsMonitor.CurrentValue.Optimize.SmoothScrolling;
         SmoothScrollBehavior.GlobalEnabled = SmoothScrolling;
         RemoveProvisioned = appOptionsMonitor.CurrentValue.Bloatware.RemoveProvisioned;
-        CurrentApplicationTheme = ApplicationThemeManager.GetAppTheme();
-
-        ApplicationThemeManager.Changed += OnThemeChanged;
+        CurrentApplicationTheme = ApplicationTheme.Dark;
 
         return Task.CompletedTask;
-    }
-
-    private void OnThemeChanged(ApplicationTheme currentApplicationTheme, Color systemAccent)
-    {
-        // Update the theme if it has been changed elsewhere than in the settings.
-        if (CurrentApplicationTheme != currentApplicationTheme)
-            CurrentApplicationTheme = currentApplicationTheme;
     }
 
     #region Helpers
@@ -355,60 +322,6 @@ public partial class SettingsViewModel(
 
     #region Property Changed
 
-    partial void OnSelectedCultureNameChanged(string value)
-    {
-        if (!IsInitialized)
-            return;
-        if (string.IsNullOrEmpty(value))
-            return;
-
-        var oldValue = appOptionsMonitor.CurrentValue.App.Language;
-        _ = SaveConfigAsync(
-            async () =>
-            {
-                await configManager.SetAsync(x => x.App.Language, value);
-            },
-            async () =>
-            {
-                SelectedCultureName = oldValue;
-            }
-        );
-
-        if (value == Loc.CurrentCulture.Name)
-            return;
-        _ = contentDialogService
-            .ShowAlertAsync(
-                Translations.Settings_LanguageChanged_Title,
-                Translations.Settings_LanguageChanged_Description,
-                Translations.Button_Ok,
-                CancellationToken.None
-            )
-            .ContinueWith(
-                t => logger.LogError(t.Exception, "Failed to show language changed dialog"),
-                TaskContinuationOptions.OnlyOnFaulted
-            );
-    }
-
-    partial void OnCurrentApplicationThemeChanged(
-        ApplicationTheme oldValue,
-        ApplicationTheme newValue
-    )
-    {
-        if (!IsInitialized)
-            return;
-        ApplicationThemeManager.Apply(newValue, updateAccent: false);
-
-        _ = SaveConfigAsync(
-            async () =>
-            {
-                await configManager.SetAsync(x => x.App.Theme, newValue);
-            },
-            async () =>
-            {
-                CurrentApplicationTheme = oldValue;
-            }
-        );
-    }
 
     partial void OnShellTimeoutMsChanged(int value)
     {

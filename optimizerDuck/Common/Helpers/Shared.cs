@@ -6,29 +6,22 @@ namespace optimizerDuck.Common.Helpers;
 public static class Shared
 {
     public const string RawLogo = """
-                      _   _           _              _____             _
-                     | | (_)         (_)            |  __ \           | |
-           ___  _ __ | |_ _ _ __ ___  _ _______ _ __| |  | |_   _  ___| | __
-          / _ \| '_ \| __| | '_ ` _ \| |_  / _ \ '__| |  | | | | |/ __| |/ /
-         | (_) | |_) | |_| | | | | | | |/ /  __/ |  | |__| | |_| | (__|   <
-          \___/| .__/ \__|_|_| |_| |_|_/___\___|_|  |_____/ \__,_|\___|_|\_\
-               | |
-               |_|
+        NEXXSENSI OTIMIZER
+        Free Fire Booster for Windows
         """;
 
+    public const string AppDisplayName = "Nexxsensi Otimizer";
     public const string DiscordInviteURL = "https://discord.gg/tDUBDCYw9Q";
-    public const string WebsiteURL = "https://optimizerduck.vercel.app/";
-    public const string GitHubRepoURL = "https://github.com/itsfatduck/optimizerDuck";
-    public const string CommunityURL = "https://optimizerduck.vercel.app/docs/community";
-    public const string ContributeURL = "https://optimizerduck.vercel.app/docs/contribute/overview";
+    public const string WebsiteURL = "https://nexxsensi.com/";
+    public const string GitHubRepoURL = "https://nexxsensi.com/";
+    public const string CommunityURL = "https://nexxsensi.com/";
+    public const string ContributeURL = "https://nexxsensi.com/";
 
-    public const string AcknowledgementsURL =
-        "https://github.com/itsfatduck/optimizerDuck/blob/master/THIRD-PARTY-NOTICES.md";
+    public const string AcknowledgementsURL = "https://nexxsensi.com/";
 
-    public const string RestorePointName = "optimizerDuck Restore Point";
+    public const string RestorePointName = "Nexxsensi Otimizer Restore Point";
 
-    public const string PowerPlanUrl =
-        "https://github.com/itsfatduck/optimizerDuck/raw/refs/heads/master/optimizerDuck.Resources/optimizerDuck.pow";
+    public const string PowerPlanUrl = "https://nexxsensi.com/";
 
     public const string PowerPlanGUID = "8ae61178-2c55-43f2-afb2-f83725823657";
 
@@ -154,7 +147,7 @@ public static class Shared
     public static string RootDirectory =>
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "optimizerDuck"
+            "NexxsensiOtimizer"
         );
 
     public static string ResourcesDirectory => Path.Combine(RootDirectory, "Resources");

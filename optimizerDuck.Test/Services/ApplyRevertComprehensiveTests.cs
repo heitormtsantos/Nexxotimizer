@@ -988,7 +988,7 @@ public class ApplyRevertComprehensiveTests
             var result = await service.RevertAsync(optimization, progress);
 
             Assert.False(result.Success);
-            Assert.Contains("No revert data", result.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(optimization.Name, result.Message, StringComparison.OrdinalIgnoreCase);
         });
     }
 

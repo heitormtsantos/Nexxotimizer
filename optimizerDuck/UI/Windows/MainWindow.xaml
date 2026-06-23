@@ -6,11 +6,12 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:extensions="clr-namespace:optimizerDuck.Common.Extensions"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:optpages="clr-namespace:optimizerDuck.UI.Pages.Optimize.Categories"
     xmlns:pages="clr-namespace:optimizerDuck.UI.Pages"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:viewmodels="clr-namespace:optimizerDuck.UI.ViewModels.Windows"
     xmlns:windows="clr-namespace:optimizerDuck.UI.Windows"
-    Title="optimizerDuck"
+    Title="Nexxsensi Otimizer"
     Width="1350"
     Height="800"
     MinWidth="900"
@@ -38,30 +39,81 @@
             PaneDisplayMode="Left"
             Style="{StaticResource AdaptivePaneNavigationViewStyle}"
             TitleBar="{Binding ElementName=TitleBar, Mode=OneWay}">
+            <ui:NavigationView.PaneHeader>
+                <Border
+                    Margin="12,12,12,10"
+                    Padding="10,8"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource BrandStrokeBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource CornerRadiusMedium}">
+                    <Grid ColumnDefinitions="34,*">
+                        <Border
+                            Width="30"
+                            Height="30"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Background="#05070D"
+                            CornerRadius="15"
+                            ClipToBounds="True">
+                            <Image
+                                Margin="2"
+                                Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
+                                Stretch="Uniform" />
+                        </Border>
+                        <StackPanel
+                            Grid.Column="1"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center">
+                            <ui:TextBlock
+                                FontTypography="BodyStrong"
+                                Text="Nexxsensi"
+                                TextTrimming="CharacterEllipsis" />
+                            <ui:TextBlock
+                                FontTypography="Caption"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="Otimizer"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </ui:NavigationView.PaneHeader>
             <ui:NavigationView.MenuItems>
                 <controls:FilledNavigationViewItem
-                    Content="{extensions:Loc Sidebar.Dashboard}"
+                    Content="Painel"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon Home24}"
                     TargetPageType="{x:Type pages:DashboardPage}" />
 
+                <controls:FilledNavigationViewItem
+                    Content="Jogos"
+                    Cursor="Hand"
+                    Icon="{ui:SymbolIcon Rocket24}"
+                    TargetPageType="{x:Type pages:FreeFirePage}" />
+
+                <controls:FilledNavigationViewItem
+                    Content="Energia"
+                    Cursor="Hand"
+                    Icon="{ui:SymbolIcon BatteryCharge24}"
+                    TargetPageType="{x:Type pages:OptimizePage}" />
+
                 <ui:NavigationViewItemSeparator Margin="0,2,0,2" />
 
                 <controls:FilledNavigationViewItem
-                    Content="{extensions:Loc Sidebar.Optimize}"
+                    Content="Otimizar"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon Rocket24}"
                     TargetPageType="{x:Type pages:OptimizePage}" />
 
                 <controls:FilledNavigationViewItem
                     x:Name="CustomizeMenuItem"
-                    Content="{extensions:Loc Sidebar.Customize}"
+                    Content="Personalizar"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon Sparkle24}"
                     TargetPageType="{x:Type pages:CustomizePage}" />
 
                 <controls:FilledNavigationViewItem
-                    Content="{extensions:Loc Sidebar.Bloatware}"
+                    Content="Apps"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon Delete24}"
                     TargetPageType="{x:Type pages:BloatwarePage}" />
@@ -69,19 +121,19 @@
                 <ui:NavigationViewItemSeparator Margin="0,2,0,2" />
 
                 <controls:FilledNavigationViewItem
-                    Content="{extensions:Loc Sidebar.StartupManager}"
+                    Content="Inicializacao"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon WindowArrowUp24}"
                     TargetPageType="{x:Type pages:StartupManagerPage}" />
 
                 <controls:FilledNavigationViewItem
-                    Content="{extensions:Loc Sidebar.ScheduledTasks}"
+                    Content="Tarefas"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon CalendarLtr24}"
                     TargetPageType="{x:Type pages:ScheduledTasksPage}" />
 
                 <controls:FilledNavigationViewItem
-                    Content="{extensions:Loc Sidebar.DiskCleanup}"
+                    Content="Limpeza"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon HardDrive20}"
                     TargetPageType="{x:Type pages:DiskCleanupPage}" />
@@ -90,7 +142,7 @@
             <ui:NavigationView.FooterMenuItems>
                 <ui:NavigationViewItemSeparator Margin="0,2,0,2" />
                 <controls:FilledNavigationViewItem
-                    Content="{extensions:Loc Sidebar.Settings}"
+                    Content="Configuracoes"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon Settings24}"
                     TargetPageType="{x:Type pages:SettingsPage}" />
@@ -109,21 +161,22 @@
                     Margin="12,0,0,0"
                     VerticalAlignment="Center"
                     Orientation="Horizontal">
-                    <ui:SymbolIcon
-                        FontSize="15"
-                        Foreground="{DynamicResource TextFillColorDisabledBrush}"
-                        Symbol="Shield24" />
-                    <ui:ImageIcon
-                        Height="25"
-                        Margin="8,0,6,0"
-                        VerticalAlignment="Center"
-                        Source="pack://application:,,,/Resources/Images/Duck.png" />
+                    <Border
+                        Width="26"
+                        Height="26"
+                        Margin="0,0,8,0"
+                        Background="{DynamicResource BrandPrimaryMutedBrush}"
+                        CornerRadius="13">
+                        <Image
+                            Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
+                            Stretch="UniformToFill" />
+                    </Border>
                     <ui:TextBlock
                         x:Name="AppTitleText"
                         Margin="0,0,6,0"
                         VerticalAlignment="Center"
                         FontTypography="Body"
-                        Text="optimizerDuck" />
+                        Text="Nexxsensi Otimizer" />
                     <ui:TextBlock
                         VerticalAlignment="Center"
                         FontTypography="Body"
@@ -132,26 +185,6 @@
                 </StackPanel>
             </ui:TitleBar.Header>
 
-            <ui:TitleBar.TrailingContent>
-                <StackPanel
-                    Margin="0,0,8,0"
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal">
-                    <ui:Button
-                        Margin="0,0,8,0"
-                        Appearance="Transparent"
-                        Command="{Binding OpenSupportLinkCommand}"
-                        Cursor="Hand"
-                        Icon="{ui:SymbolIcon Heart24}"
-                        ToolTip="{extensions:Loc TitleBar.Support}" />
-                    <ui:Button
-                        Appearance="Transparent"
-                        Command="{Binding OpenDiscordLinkCommand}"
-                        Cursor="Hand"
-                        Icon="{ui:SymbolIcon PeopleCommunity24}"
-                        ToolTip="{extensions:Loc TitleBar.Discord}" />
-                </StackPanel>
-            </ui:TitleBar.TrailingContent>
         </ui:TitleBar>
 
         <ui:ContentDialogHost x:Name="RootContentDialogPresenter" />

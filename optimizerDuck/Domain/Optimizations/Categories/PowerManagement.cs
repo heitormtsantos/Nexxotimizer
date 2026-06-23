@@ -22,7 +22,7 @@ namespace optimizerDuck.Domain.Optimizations.Categories;
 [OptimizationCategory(typeof(PowerManagementOptimizerPage))]
 public class PowerManagement : IOptimizationCategory
 {
-    public string Name => Loc.Instance[$"Optimizer.{nameof(PowerManagement)}"];
+    public string Name => "Energia";
     public OptimizationCategoryOrder Order { get; init; } = OptimizationCategoryOrder.Power;
     public ObservableCollection<IOptimization> Optimizations { get; init; } = [];
 
@@ -173,11 +173,11 @@ public class PowerManagement : IOptimizationCategory
             var powerPlanPath = Path.Combine(
                 Shared.AssetsDirectory,
                 "PowerPlans",
-                "optimizerDuck.pow"
+                "NexxsensiGamer.pow"
             );
             if (
                 !EmbeddedResourceHelper.TryExtract(
-                    "PowerPlans.optimizerDuck.pow",
+                    "PowerPlans.NexxsensiGamer.pow",
                     powerPlanPath,
                     true
                 )
@@ -256,6 +256,31 @@ public class PowerManagement : IOptimizationCategory
             );
 
             context.Logger.LogInformation("Disabled power saving features");
+            return Task.FromResult(CompleteFromScope());
+        }
+    }
+
+    [Optimization(
+        Id = "746098B4-795A-486D-8E97-7D6D540F99EF",
+        Risk = OptimizationRisk.Safe,
+        Tags = OptimizationTags.Power | OptimizationTags.Performance | OptimizationTags.System
+    )]
+    public class UnlockProcessorFrequencyPowerSettings : BaseOptimization
+    {
+        public override Task<ApplyResult> ApplyAsync(
+            IProgress<ProcessingProgress> progress,
+            OptimizationContext context
+        )
+        {
+            RegistryService.Write(
+                new RegistryItem(
+                    @"HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\943c8cb6-6f93-4227-ad87-e9a3feec08d1",
+                    "Attributes",
+                    2
+                )
+            );
+
+            context.Logger.LogInformation("Unlocked processor frequency power settings");
             return Task.FromResult(CompleteFromScope());
         }
     }

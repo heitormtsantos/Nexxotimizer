@@ -1,0 +1,304 @@
+<Page
+    x:Class="optimizerDuck.UI.Pages.FreeFirePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="clr-namespace:optimizerDuck.UI.Pages"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="Jogos"
+    d:DataContext="{d:DesignInstance pages:FreeFirePage}"
+    d:DesignHeight="760"
+    d:DesignWidth="1000"
+    ui:Design.Background="Black"
+    ui:Design.Foreground="White"
+    Style="{StaticResource PageRootStyle}"
+    mc:Ignorable="d">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <Border Style="{StaticResource GamerHeroCardStyle}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Border
+                        Width="112"
+                        Height="112"
+                        Margin="0,0,22,0"
+                        Background="#080C16"
+                        BorderBrush="{DynamicResource BrandPrimaryBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <Image
+                            Margin="8"
+                            Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
+                            Stretch="Uniform" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1">
+                        <ui:TextBlock
+                            FontTypography="Caption"
+                            Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                            Text="NEXXSENSI OTIMIZER / JOGOS" />
+
+                        <ui:TextBlock
+                            Margin="0,8,0,0"
+                            FontTypography="Title"
+                            Text="Central gamer para emulador" />
+                        <ui:TextBlock
+                            MaxWidth="700"
+                            Margin="0,6,0,0"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="Detecta o emulador aberto, aplica prioridade alta, limpa arquivos temporarios e mostra os pontos que mais impactam estabilidade, RAM e energia antes da partida."
+                            TextWrapping="Wrap" />
+
+                        <UniformGrid
+                            MaxWidth="700"
+                            Margin="0,18,0,0"
+                            Columns="3">
+                            <Border Margin="0,0,10,0" Style="{StaticResource GamerMetricCardStyle}">
+                                <StackPanel>
+                                    <ui:TextBlock
+                                        FontTypography="Caption"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Text="Sessao" />
+                                    <ui:TextBlock FontTypography="BodyStrong" Text="Prioridade alta" />
+                                </StackPanel>
+                            </Border>
+                            <Border Margin="0,0,10,0" Style="{StaticResource GamerMetricCardStyle}">
+                                <StackPanel>
+                                    <ui:TextBlock
+                                        FontTypography="Caption"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Text="Deteccao" />
+                                    <ui:TextBlock
+                                        FontTypography="BodyStrong"
+                                        Foreground="{DynamicResource BrandSuccessBrush}"
+                                        Text="Somente aberto" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource GamerMetricCardStyle}">
+                                <StackPanel>
+                                    <ui:TextBlock
+                                        FontTypography="Caption"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Text="Risco" />
+                                    <ui:TextBlock FontTypography="BodyStrong" Text="Sem alterar jogo" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <ui:Button
+                            MinWidth="176"
+                            Appearance="Primary"
+                            Command="{Binding ViewModel.ApplySessionBoostCommand}"
+                            Content="Boost gamer"
+                            Cursor="Hand"
+                            Foreground="{DynamicResource AccentButtonForeground}"
+                            Icon="{ui:SymbolIcon Rocket24}" />
+                        <ui:Button
+                            MinWidth="176"
+                            Margin="0,10,0,0"
+                            Appearance="Secondary"
+                            Command="{Binding ViewModel.InstallEmulatorCommand}"
+                            Content="Instalar emulador"
+                            Cursor="Hand"
+                            Icon="{ui:SymbolIcon ArrowDownload24}" />
+                        <ui:Button
+                            MinWidth="176"
+                            Margin="0,10,0,0"
+                            Appearance="Secondary"
+                            Command="{Binding ViewModel.RefreshCommand}"
+                            Content="Atualizar leitura"
+                            Cursor="Hand"
+                            Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Style="{StaticResource CardSurfaceStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Width="56"
+                            Height="56"
+                            Margin="0,0,16,0"
+                            Background="{DynamicResource BrandPrimaryMutedBrush}"
+                            CornerRadius="28">
+                            <ui:SymbolIcon
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="28"
+                                Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                                Symbol="Rocket24" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1">
+                            <ui:TextBlock FontTypography="BodyStrong" Text="Status do boost" />
+                            <ui:TextBlock
+                                Margin="0,4,0,0"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="{Binding ViewModel.BoostStatus}"
+                                TextWrapping="Wrap" />
+                            <ui:TextBlock
+                                Margin="0,12,0,0"
+                                FontTypography="Caption"
+                                Foreground="{DynamicResource BrandSuccessBrush}"
+                                Text="{Binding ViewModel.RecommendedAction}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource CardSurfaceStyle}">
+                    <StackPanel>
+                        <ui:TextBlock FontTypography="BodyStrong" Text="Atalhos" />
+                        <ui:Button
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Stretch"
+                            Appearance="Secondary"
+                            Command="{Binding ViewModel.OpenGameSettingsCommand}"
+                            Content="Config. de jogos do Windows"
+                            Cursor="Hand"
+                            Icon="{ui:SymbolIcon Settings24}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <UniformGrid
+                Margin="0,0,0,20"
+                Columns="3">
+                <Border Margin="0,0,12,0" Style="{StaticResource CardSurfaceStyle}">
+                    <StackPanel>
+                        <ui:SymbolIcon
+                            Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                            Symbol="BatteryCharge24" />
+                        <ui:TextBlock
+                            Margin="0,8,0,0"
+                            FontTypography="BodyStrong"
+                            Text="Plano de energia" />
+                        <ui:TextBlock
+                            Margin="0,4,0,0"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="{Binding ViewModel.PowerPlan}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border Margin="0,0,12,0" Style="{StaticResource CardSurfaceStyle}">
+                    <StackPanel>
+                        <ui:SymbolIcon
+                            Foreground="{DynamicResource BrandSuccessBrush}"
+                            Symbol="Memory16" />
+                        <ui:TextBlock
+                            Margin="0,8,0,0"
+                            FontTypography="BodyStrong"
+                            Text="Memoria disponivel" />
+                        <ui:TextBlock
+                            Margin="0,4,0,0"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="{Binding ViewModel.RamStatus}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardSurfaceStyle}">
+                    <StackPanel>
+                        <ui:SymbolIcon
+                            Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                            Symbol="DeveloperBoard24" />
+                        <ui:TextBlock
+                            Margin="0,8,0,0"
+                            FontTypography="BodyStrong"
+                            Text="Virtualizacao" />
+                        <ui:TextBlock
+                            Margin="0,4,0,0"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="{Binding ViewModel.VirtualizationStatus}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <ui:TextBlock
+                Margin="0,0,0,8"
+                FontTypography="BodyStrong"
+                Text="Emulador aberto no momento" />
+            <ui:TextBlock
+                Margin="0,0,0,10"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="A lista abaixo mostra apenas emuladores em execucao. Se estiver vazia, instale ou abra o emulador e clique em Atualizar leitura."
+                TextWrapping="Wrap" />
+
+            <ItemsControl ItemsSource="{Binding ViewModel.Emulators}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource ListRowStyle}">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <Border
+                                    Width="40"
+                                    Height="40"
+                                    Margin="0,0,14,0"
+                                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                    CornerRadius="20">
+                                    <ui:SymbolIcon
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                                        Symbol="Apps24" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:TextBlock FontTypography="BodyStrong" Text="{Binding DisplayName}" />
+                                        <Border
+                                            Margin="8,0,0,0"
+                                            Padding="6,2"
+                                            Background="{DynamicResource BrandPrimaryMutedBrush}"
+                                            CornerRadius="{StaticResource CornerRadiusSmall}">
+                                            <ui:TextBlock
+                                                FontTypography="Caption"
+                                                Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                                                Text="{Binding Status}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <ui:TextBlock
+                                        Margin="0,4,0,0"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Text="{Binding Detail}"
+                                        TextWrapping="Wrap" />
+                                    <ui:TextBlock
+                                        Margin="0,4,0,0"
+                                        FontTypography="Caption"
+                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                        Text="{Binding ProcessNames}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <ui:Button
+                                    Grid.Column="2"
+                                    Appearance="Secondary"
+                                    Command="{Binding DataContext.ViewModel.OpenProcessLocationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    CommandParameter="{Binding}"
+                                    Content="Abrir local"
+                                    Cursor="Hand"
+                                    Icon="{ui:SymbolIcon FolderOpen24}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

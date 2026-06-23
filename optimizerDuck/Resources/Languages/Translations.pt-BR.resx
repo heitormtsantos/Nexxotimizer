@@ -1,7 +1,65 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<root xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  
-  <xsd:schema id="root">
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+        Microsoft ResX Schema 
+        
+        Version 2.0
+        
+        The primary goals of this format is to allow a simple XML format 
+        that is mostly human readable. The generation and parsing of the 
+        various data types are done through the TypeConverter classes 
+        associated with the data types.
+        
+        Example:
+        
+        ... ado.net/XML headers & schema ...
+        <resheader name="resmimetype">text/microsoft-resx</resheader>
+        <resheader name="version">2.0</resheader>
+        <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+        <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+        <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+        <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+        <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+            <value>[base64 mime encoded serialized .NET Framework object]</value>
+        </data>
+        <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+            <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+            <comment>This is a comment</comment>
+        </data>
+                    
+        There are any number of "resheader" rows that contain simple 
+        name/value pairs.
+        
+        Each data row contains a name, and value. The row also contains a 
+        type or mimetype. Type corresponds to a .NET class that support 
+        text/value conversion through the TypeConverter architecture. 
+        Classes that don't support this are serialized and stored with the 
+        mimetype set.
+        
+        The mimetype is used for serialized objects, and tells the 
+        ResXResourceReader how to depersist the object. This is currently not 
+        extensible. For a given mimetype the value must be set accordingly:
+        
+        Note - application/x-microsoft.net.object.binary.base64 is the format 
+        that the ResXResourceWriter will generate, however the reader can 
+        read any of the formats listed below.
+        
+        mimetype: application/x-microsoft.net.object.binary.base64
+        value   : The object must be serialized with 
+                : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+                : and then encoded with base64 encoding.
+        
+        mimetype: application/x-microsoft.net.object.soap.base64
+        value   : The object must be serialized with 
+                : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+                : and then encoded with base64 encoding.
+    
+        mimetype: application/x-microsoft.net.object.bytearray.base64
+        value   : The object must be serialized into a byte array 
+                : using a System.ComponentModel.TypeConverter
+                : and then encoded with base64 encoding.
+        -->
+  <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root" xmlns="">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
     <xsd:element name="root" msdata:IsDataSet="true">
       <xsd:complexType>
@@ -64,10 +122,10 @@
         </value>
   </resheader>
   <data name="Dashboard.Header.Title" xml:space="preserve">
-    <value>Dashboard</value>
+    <value>Painel Gamer</value>
   </data>
   <data name="Sidebar.Dashboard" xml:space="preserve">
-    <value>Dashboard</value>
+    <value>Painel</value>
   </data>
   <data name="Sidebar.Settings" xml:space="preserve">
     <value>Configurações</value>
@@ -130,16 +188,16 @@
     <value>Entre na minha comunidade do Discord para obter suporte ou jogar jogos comigo</value>
   </data>
   <data name="Dashboard.Actions.GitHub.Title" xml:space="preserve">
-    <value>Repositório do GitHub</value>
+    <value>Nexxsensi</value>
   </data>
   <data name="Dashboard.Actions.GitHub.Description" xml:space="preserve">
-    <value>Explore, revise e contribua para meu projeto através do GitHub</value>
+    <value>Acesse os canais oficiais da Nexxsensi.</value>
   </data>
   <data name="Dashboard.Actions.SupportMe.Title" xml:space="preserve">
-    <value>Apoie-me</value>
+    <value>Comunidade</value>
   </data>
   <data name="Dashboard.Actions.SupportMe.Description" xml:space="preserve">
-    <value>Dê uma estrela no repositório no GitHub, compartilhe com amigos, ou doe qualquer coisa ajuda este projeto a crescer!</value>
+    <value>Acompanhe novidades, suporte e melhorias para jogadores na comunidade Nexxsensi.</value>
   </data>
   <data name="Service.Registry.Description.CreateKey" xml:space="preserve">
     <value>Criar chave do registro {0}</value>
@@ -205,10 +263,10 @@
     <value>Seguro</value>
   </data>
   <data name="Optimizer.UI.Risk.Moderate" xml:space="preserve">
-    <value>Moderação</value>
+    <value>Cuidado</value>
   </data>
   <data name="Optimizer.UI.Risk.Risky" xml:space="preserve">
-    <value>Expert</value>
+    <value>Arriscado</value>
   </data>
   <data name="OptimizationDetailsDialog.DetailedDescription" xml:space="preserve">
     <value>Descrição detalhada</value>
@@ -217,16 +275,16 @@
     <value>Tags</value>
   </data>
   <data name="Optimizer.Performance.SvcHostSplit.ShortDescription" xml:space="preserve">
-    <value>Define o limite de divisão do Service Host para corresponder ao total de RAM do sistema, forçando o Windows a isolar serviços em processos separados para melhor estabilidade.</value>
+    <value>Ajusta o isolamento de servicos do Windows para melhorar estabilidade e uso de memoria em PCs com RAM suficiente.</value>
   </data>
   <data name="Optimizer.PowerManagement.InstallOptimizerDuckPowerPlan.Error.DetectActivePlanFailed" xml:space="preserve">
     <value>Falha ao detectar o plano de energia ativo atual.</value>
   </data>
   <data name="Optimizer.PowerManagement.InstallOptimizerDuckPowerPlan.Error.ImportFailed" xml:space="preserve">
-    <value>Falha ao importar o plano de energia do optimizerDuck.</value>
+    <value>Falha ao importar o plano de energia do Nexxsensi Otimizer.</value>
   </data>
   <data name="Optimizer.PowerManagement.InstallOptimizerDuckPowerPlan.Error.ActivateFailed" xml:space="preserve">
-    <value>Falha ao ativar o plano de energia do optimizerDuck.</value>
+    <value>Falha ao ativar o plano de energia do Nexxsensi Otimizer.</value>
   </data>
   <data name="Optimizer.UI.Risk.Help" xml:space="preserve">
     <value>Este valor reflete o nível de intervenção e a segurança do processo de otimização. Por favor, tenha cautela e considere cuidadosamente antes de aplicar qualquer otimização.</value>
@@ -241,7 +299,7 @@
     <value>Disco</value>
   </data>
   <data name="Optimizer.UI.Tags.NetworkRequired" xml:space="preserve">
-    <value>Conexão de rede requerida</value>
+    <value>Requer rede</value>
   </data>
   <data name="Optimizer.UI.Tags.Network" xml:space="preserve">
     <value>Rede</value>
@@ -250,7 +308,7 @@
     <value>Privacidade</value>
   </data>
   <data name="Optimizer.UI.Tags.Audio" xml:space="preserve">
-    <value>Áudio</value>
+    <value>Audio</value>
   </data>
   <data name="Optimizer.UI.Tags.Help" xml:space="preserve">
     <value>Essas tags indicam quais partes do sistema serão afetadas pela otimização.</value>
@@ -529,94 +587,94 @@
     <value>Depende</value>
   </data>
   <data name="Optimizer.UI.Tags.Security" xml:space="preserve">
-    <value>Segurança</value>
+    <value>Seguranca</value>
   </data>
   <data name="Optimizer.UI.Tags.Performance" xml:space="preserve">
-    <value>Performance</value>
+    <value>Desempenho</value>
   </data>
   <data name="Optimizer.UI.Tags.Latency" xml:space="preserve">
-    <value>Latência</value>
+    <value>Latencia</value>
   </data>
   <data name="Optimizer.Performance" xml:space="preserve">
-    <value>Performance</value>
+    <value>Desempenho</value>
   </data>
   <data name="Optimizer.PowerManagement" xml:space="preserve">
-    <value>Gerenciamento de Energia</value>
+    <value>Energia</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy" xml:space="preserve">
-    <value>Segurança &amp; Privacidade</value>
+    <value>Seguranca e Privacidade</value>
   </data>
   <data name="Optimizer.BloatwareAndServices" xml:space="preserve">
-    <value>Software Indesejável &amp; Serviços</value>
+    <value>Apps e Servicos</value>
   </data>
   <data name="Optimizer.Performance.DisableBackgroundApps.Name" xml:space="preserve">
-    <value>Desativar Aplicativos em Segundo Plano</value>
+    <value>Desativar apps em segundo plano</value>
   </data>
   <data name="Optimizer.Performance.DisableBackgroundApps.ShortDescription" xml:space="preserve">
-    <value>Previne que aplicativos inativos sejam executados em segundo plano para liberar RAM e reduzir a sobrecarga do CPU.</value>
+    <value>Impede que apps inativos rodem em segundo plano para liberar RAM e reduzir uso de CPU.</value>
   </data>
   <data name="Optimizer.Performance.SvcHostSplit.Name" xml:space="preserve">
-    <value>Otimizar Isolamento de Serviços</value>
+    <value>Otimizar isolamento de servicos</value>
   </data>
   <data name="Optimizer.Performance.SvcHostSplit.Error.InvalidRAM" xml:space="preserve">
     <value>RAM inválida: {0}</value>
   </data>
   <data name="Optimizer.Performance.ProcessPriority.Name" xml:space="preserve">
-    <value>Priorizar Aplicativos Ativos</value>
+    <value>Priorizar aplicativos ativos</value>
   </data>
   <data name="Optimizer.Performance.ProcessPriority.ShortDescription" xml:space="preserve">
-    <value>Aloca mais recursos de CPU para o aplicativo que você está usando atualmente para uma experiência mais rápida e responsiva.</value>
+    <value>Direciona mais recursos de CPU para o aplicativo em uso, melhorando resposta durante jogos e tarefas ativas.</value>
   </data>
   <data name="Optimizer.Performance.OptimizeMultimediaScheduler.Name" xml:space="preserve">
-    <value>Otimizar Agendador de Multimídia</value>
+    <value>Otimizar agendador multimidia</value>
   </data>
   <data name="Optimizer.Performance.OptimizeMultimediaScheduler.ShortDescription" xml:space="preserve">
-    <value>Configura o Serviço de Agendamento de Classes de Multimídia (MMCSS) para jogos e baixa latência priorizando cargas de trabalho de multimídia e desativando a limitação de rede.</value>
+    <value>Configura o MMCSS para priorizar jogos e baixa latencia, reduzindo limitacoes de rede para cargas multimidia.</value>
   </data>
   <data name="Optimizer.Performance.KeyboardLatencyOptimization.Name" xml:space="preserve">
-    <value>Otimizar Repetição de Teclado</value>
+    <value>Otimizar repeticao do teclado</value>
   </data>
   <data name="Optimizer.Performance.KeyboardLatencyOptimization.ShortDescription" xml:space="preserve">
-    <value>Define o atraso de repetição de teclado mais rápido e a taxa de repetição para uma digitação mais responsiva e pressionamentos de tecla repetidos.</value>
+    <value>Define atraso e taxa de repeticao do teclado para resposta mais rapida em jogos e uso diario.</value>
   </data>
   <data name="Optimizer.Performance.DisableAccessibilityKeyboardHotkeys.Name" xml:space="preserve">
-    <value>Desativar Teclas de Atalho de Teclado de Acessibilidade</value>
+    <value>Desativar atalhos de acessibilidade do teclado</value>
   </data>
   <data name="Optimizer.Performance.DisableAccessibilityKeyboardHotkeys.ShortDescription" xml:space="preserve">
-    <value>Desativa as teclas de atalho de teclado Sticky Keys, Filter Keys e Toggle Keys para evitar pop-ups acidentais durante jogos e digitação.</value>
+    <value>Desativa atalhos como Teclas de Aderencia, Filtro e Alternancia para evitar pop-ups acidentais durante jogos.</value>
   </data>
   <data name="Optimizer.PowerManagement.DisableHibernateAndFastStartup.Name" xml:space="preserve">
-    <value>Desativar Hibernação &amp; Inicialização Rápida</value>
+    <value>Desativar hibernacao e inicializacao rapida</value>
   </data>
   <data name="Optimizer.PowerManagement.DisableHibernateAndFastStartup.ShortDescription" xml:space="preserve">
-    <value>Desativa a hibernação e a inicialização rápida para recuperar espaço em disco e garantir um desligamento completo para uma inicialização de hardware mais limpa.</value>
+    <value>Desativa hibernacao e inicializacao rapida para recuperar espaco em disco e garantir inicializacao mais limpa.</value>
   </data>
   <data name="Optimizer.PowerManagement.DisableUSBPowerSaving.Name" xml:space="preserve">
-    <value>Desativar Economia de Energia USB</value>
+    <value>Desativar economia de energia USB</value>
   </data>
   <data name="Optimizer.PowerManagement.DisableUSBPowerSaving.ShortDescription" xml:space="preserve">
-    <value>Previne que o Windows desligue portas USB, eliminando atrasos de wake-up para mouse, teclado e outros periféricos.</value>
+    <value>Impede que o Windows desligue portas USB, reduzindo atrasos em mouse, teclado e outros perifericos.</value>
   </data>
   <data name="Optimizer.PowerManagement.InstallOptimizerDuckPowerPlan.Name" xml:space="preserve">
-    <value>Aplicar Plano de Energia Otimizado</value>
+    <value>Aplicar plano Nexxsensi Gamer</value>
   </data>
   <data name="Optimizer.PowerManagement.InstallOptimizerDuckPowerPlan.ShortDescription" xml:space="preserve">
-    <value>Instala um plano de energia personalizado focado em performance para garantir que seu sistema sempre execute na velocidade máxima. Aviso: Pode fazer o Gerenciador de Tarefas mostrar incorretamente o uso de 100% da CPU em alguns sistemas, enquanto o uso real da CPU não é afetado.</value>
+    <value>Importa e ativa o plano de energia gamer dos scripts, focado em manter alto desempenho durante jogos e emuladores.</value>
   </data>
   <data name="Optimizer.PowerManagement.InstallOptimizerDuckPowerPlan.Progress.Importing" xml:space="preserve">
     <value>Importando e ativando o plano de energia...</value>
   </data>
   <data name="Optimizer.PowerManagement.DisablePowerSaving.Name" xml:space="preserve">
-    <value>Desativar Limitação de Energia do Sistema</value>
+    <value>Desativar limitacao de energia do sistema</value>
   </data>
   <data name="Optimizer.PowerManagement.DisablePowerSaving.ShortDescription" xml:space="preserve">
-    <value>Previne que o Windows limite a performance da CPU (Limitação de Energia) para manter a potência máxima para tarefas ativas.</value>
+    <value>Impede que o Windows limite o desempenho da CPU para manter potencia alta em tarefas e jogos ativos.</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableTelemetry.Name" xml:space="preserve">
-    <value>Desativar Coleta de Dados (Telemetria)</value>
+    <value>Desativar telemetria</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableTelemetry.ShortDescription" xml:space="preserve">
-    <value>Desativa os serviços de telemetria e rastreamento de uso do Windows para melhorar sua privacidade pessoal e reduzir a atividade em segundo plano.</value>
+    <value>Desativa servicos e tarefas de coleta de dados do Windows para melhorar privacidade e reduzir atividade em segundo plano.</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableTelemetry.Progress.EditRegistry" xml:space="preserve">
     <value>Aplicando alterações de política e registro...</value>
@@ -628,91 +686,97 @@
     <value>Desativando tarefas programadas de telemetria...</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableErrorReporting.Name" xml:space="preserve">
-    <value>Desativar Relatório de Erros</value>
+    <value>Desativar relatorio de erros</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableErrorReporting.ShortDescription" xml:space="preserve">
-    <value>Desativa os serviços de Relatório de Erros do Windows e o Assistente de Compatibilidade de Programas.</value>
+    <value>Desativa o relatorio de erros do Windows e componentes de compatibilidade que rodam em segundo plano.</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableAdvertisingAndSuggestions.Name" xml:space="preserve">
-    <value>Desativar Anúncios e Sugestões</value>
+    <value>Desativar anuncios e sugestoes</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableAdvertisingAndSuggestions.ShortDescription" xml:space="preserve">
-    <value>Desativa anúncios personalizados, recursos de consumidor do Windows e sugestões do sistema.</value>
+    <value>Remove anuncios personalizados, sugestoes do sistema e conteudo promovido do Windows.</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableActivityHistory.Name" xml:space="preserve">
-    <value>Desativar Histórico de Atividades</value>
+    <value>Desativar historico de atividades</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableActivityHistory.ShortDescription" xml:space="preserve">
-    <value>Previne que o Windows colete e sincronize seu histórico de atividades.</value>
+    <value>Impede que o Windows colete e sincronize seu historico de atividades.</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableLocationAndSensors.Name" xml:space="preserve">
-    <value>Desativar Localização e Sensores</value>
+    <value>Desativar localizacao e sensores</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableLocationAndSensors.ShortDescription" xml:space="preserve">
-    <value>Desativa o rastreamento de localização, sensores do sistema e atualizações de mapas offline.</value>
+    <value>Desativa rastreamento de localizacao, sensores e atualizacoes de mapas offline.</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableAutoLogger.Name" xml:space="preserve">
-    <value>Desativar Log de Segundo Plano</value>
+    <value>Desativar logs em segundo plano</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableAutoLogger.ShortDescription" xml:space="preserve">
-    <value>Para o registro de eventos do sistema não essenciais para reduzir a atividade contínua do disco e salvar ciclos de CPU.</value>
+    <value>Reduz logs nao essenciais para diminuir uso de disco e CPU em segundo plano.</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableCortana.Name" xml:space="preserve">
-    <value>Desativar Cortana &amp; Busca na Web</value>
+    <value>Desativar Cortana e busca web</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableCortana.ShortDescription" xml:space="preserve">
-    <value>Desativa o assistente de voz Cortana e remove os resultados da Web do Bing da barra de busca do Windows.</value>
+    <value>Remove Cortana e resultados web do Bing da busca do Windows.</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableCopilot.Name" xml:space="preserve">
     <value>Desativar Windows Copilot</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableCopilot.ShortDescription" xml:space="preserve">
-    <value>Remove o assistente AI Copilot da barra de tarefas e da shell do sistema para liberar memória e espaço na tela.</value>
+    <value>Remove Copilot da barra de tarefas e do sistema para liberar memoria e reduzir distracoes.</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableContentDeliveryManager.Name" xml:space="preserve">
-    <value>Desativar Entrega de Conteúdo de Nuvem</value>
+    <value>Desativar entrega de conteudo</value>
   </data>
   <data name="Optimizer.SecurityAndPrivacy.DisableContentDeliveryManager.ShortDescription" xml:space="preserve">
-    <value>Desativa o conteúdo entregado pela nuvem do Windows, incluindo dicas do sistema, sugestões de spotlight e entrega automática de recursos de consumidor.</value>
+    <value>Desativa dicas, sugestoes, spotlight e recursos promovidos entregues pela nuvem.</value>
   </data>
   <data name="Optimizer.BloatwareAndServices.DisablePreinstalledApps.Name" xml:space="preserve">
-    <value>Bloquear Software Pré-instalado Indesejável</value>
+    <value>Bloquear apps pre-instalados</value>
   </data>
   <data name="Optimizer.BloatwareAndServices.DisablePreinstalledApps.ShortDescription" xml:space="preserve">
-    <value>Previne que o Windows re-instale automaticamente aplicativos de terceiros indesejáveis e software promovido.</value>
+    <value>Impede que o Windows reinstale automaticamente apps promovidos e softwares indesejados.</value>
   </data>
   <data name="Optimizer.BloatwareAndServices.ConfigureServices.Name" xml:space="preserve">
-    <value>Otimizar Serviços do Sistema</value>
+    <value>Otimizar servicos do sistema</value>
   </data>
   <data name="Optimizer.BloatwareAndServices.ConfigureServices.ShortDescription" xml:space="preserve">
-    <value>Ajusta serviços de segundo plano não essenciais para liberar recursos enquanto mantém todas as funcionalidades necessárias do Windows.</value>
+    <value>Ajusta servicos nao essenciais para liberar recursos mantendo as funcoes importantes do Windows.</value>
   </data>
   <data name="Optimizer.BloatwareAndServices.ConfigureServices.Progress.ChangeServiceStartupType" xml:space="preserve">
     <value>Configurando o tipo de inicialização para {0} para {1}...</value>
   </data>
   <data name="Optimizer.UI.Tags.Display" xml:space="preserve">
-    <value>Exibição</value>
+    <value>Tela</value>
   </data>
   <data name="Optimizer.UI.Tags.Visual" xml:space="preserve">
-    <value>Visualização</value> 
+    <value>Visual</value>
+  </data>
+  <data name="Optimizer.UI.Tags.Windows10Only" xml:space="preserve">
+    <value>Windows 10</value>
+  </data>
+  <data name="Optimizer.UI.Tags.Windows11Only" xml:space="preserve">
+    <value>Windows 11</value>
   </data>
   <data name="Optimizer.Gpu" xml:space="preserve">
     <value>GPU</value>
   </data>
   <data name="Optimizer.UserExperience" xml:space="preserve">
-    <value>Experiência do Usuário</value>
+    <value>Experiencia</value>
   </data>
   <data name="Optimizer.UserExperience.SpeedUpExplorerAndMenus.Name" xml:space="preserve">
-    <value>Acelerar Explorador &amp; Menus</value>
+    <value>Acelerar Explorer e menus</value>
   </data>
   <data name="Optimizer.UserExperience.SpeedUpExplorerAndMenus.ShortDescription" xml:space="preserve">
-    <value>Define StartupDelayInMSec=0, MenuShowDelay=0 para eliminar o atraso de inicialização do Explorador e reduzir o atraso de hover do menu para o mínimo.</value>
+    <value>Remove atrasos de abertura do Explorer e reduz o tempo de resposta dos menus.</value>
   </data>
   <data name="Optimizer.UserExperience.DisableVisualEffects.Name" xml:space="preserve">
-    <value>Desativar Efeitos Visuais</value>
+    <value>Desativar efeitos visuais</value>
   </data>
   <data name="Optimizer.UserExperience.DisableVisualEffects.ShortDescription" xml:space="preserve">
-    <value>Desativa as animações da barra de tarefas, sombras da lista de exibição, transparência da janela e Aero Peek para liberar recursos de GPU/CPU para melhor performance.</value>
+    <value>Reduz animacoes, sombras e transparencia para deixar a interface mais leve.</value>
   </data>
   <data name="Optimizer.Gpu.AmdDisableUlps.Name" xml:space="preserve">
     <value>Desativar AMD ULPS</value>
@@ -730,7 +794,7 @@
     <value>Desativar Controle de Clock de Vídeo AMD</value>
   </data>
   <data name="Optimizer.Gpu.AmdDisableVideoClockGating.ShortDescription" xml:space="preserve">
-    <value>Sets DisableVCEPowerGating=1, DisableVceClockGating=1, EnableUvdClockGating=0 for AMD video engines (VCE/UVD) to improve encode/decode stability. Increases video playback power.</value>
+    <value>Define DisableVCEPowerGating=1, DisableVceClockGating=1 e EnableUvdClockGating=0 nos motores de video AMD para melhorar estabilidade de encode/decode. Aumenta o consumo em reproducao de video.</value>
   </data>
   <data name="Optimizer.Gpu.AmdDisableAspm.Name" xml:space="preserve">
     <value>Desativar AMD ASPM</value>
@@ -769,16 +833,16 @@
     <value>Aparência</value>
   </data>
   <data name="Customize.Preferences.Section.Explorer" xml:space="preserve">
-    <value>Explorer</value>
+    <value>Explorador de arquivos</value>
   </data>
   <data name="Customize.Preferences.TaskbarWidgets.Name" xml:space="preserve">
-    <value>Taskbar Widgets</value>
+    <value>Widgets da barra de tarefas</value>
   </data>
   <data name="Customize.Preferences.TaskbarWidgets.Description" xml:space="preserve">
-    <value>Controls visibility of the Widgets button on the taskbar.</value>
+    <value>Controla a visibilidade do botao Widgets na barra de tarefas.</value>
   </data>
   <data name="Customize.Preferences.TaskbarWidgets.Recommendation.Reason" xml:space="preserve">
-    <value>Turning off widgets removes the background web service that fetches news and weather, reducing idle network and memory usage.</value>
+    <value>Desativar widgets remove o servico web em segundo plano que busca noticias e clima, reduzindo uso de rede e memoria em repouso.</value>
   </data>
   <data name="Customize.Preferences.TaskbarAlignment.Name" xml:space="preserve">
     <value>Alinhamento da Barra de Tarefas</value>
@@ -805,7 +869,7 @@
     <value>Controla o menu de layouts de snap que aparece quando o cursor passa sobre o botão de maximizar.</value>
   </data>
   <data name="Customize.Preferences.ExplorerItemCheckboxes.Name" xml:space="preserve">
-    <value>Caixas de Seleção do Explorer</value> 
+    <value>Caixas de Seleção do Explorer</value>
   </data>
   <data name="Customize.Preferences.ExplorerItemCheckboxes.Description" xml:space="preserve">
     <value>Mostra caixas de seleção ao selecionar itens no Explorer de arquivos.</value>
@@ -859,7 +923,7 @@
     <value>Mostrar Extensões de Arquivos</value>
   </data>
   <data name="Customize.Preferences.ShowFileExtensions.Description" xml:space="preserve">
-    <value>Mostra as extensões de arquivos (ex.: .txt, .exe) no Explorer de arquivos.</value> 
+    <value>Mostra as extensões de arquivos (ex.: .txt, .exe) no Explorer de arquivos.</value>
   </data>
   <data name="Customize.Preferences.ShowFileExtensions.Recommendation.Reason" xml:space="preserve">
     <value>Mostrar extensões de arquivos facilita a identificação de tipos de arquivos suspeitos e impede que malware se esconda atrás de ícones falsos.</value>
@@ -883,7 +947,7 @@
     <value>Histórico do clipboard permite relembrar múltiplas cópias passadas com Win+V, acelerando fluxos de trabalho de cópia-colagem repetitivos.</value>
   </data>
   <data name="Customize.Preferences.WindowShake.Name" xml:space="preserve">
-    <value>Agitar Janela</value> 
+    <value>Agitar Janela</value>
   </data>
   <data name="Customize.Preferences.WindowShake.Description" xml:space="preserve">
     <value>Agite uma janela para minimizar todas as outras janelas abertas.</value>
@@ -970,13 +1034,13 @@
     <value>NÃO altere a menos que você saiba exatamente o que está fazendo</value>
   </data>
   <data name="Optimizer.PowerManagement.InstallOptimizerDuckPowerPlan.Error.DownloadFailed" xml:space="preserve">
-    <value>Falha ao baixar o plano de energia do optimizerDuck.</value>
+    <value>Falha ao baixar o plano de energia do Nexxsensi Otimizer.</value>
   </data>
   <data name="Settings.About.Acknowledgements.Title" xml:space="preserve">
     <value>Agradecimentos</value>
   </data>
   <data name="Settings.About.Acknowledgements.Description" xml:space="preserve">
-    <value>O optimizerDuck é possível graças aos seguintes softwares e recursos de código aberto.</value>
+    <value>O Nexxsensi Otimizer é possível graças aos seguintes softwares e recursos de código aberto.</value>
   </data>
   <data name="RestorePoint.Title" xml:space="preserve">
     <value>Restauração do Sistema</value>
@@ -986,7 +1050,7 @@
 É uma medida de segurança para proteger seu Windows antes de aplicar alterações.</value>
   </data>
   <data name="RestorePointDialog.Help" xml:space="preserve">
-    <value>O aplicativo habilitará automaticamente a Restauração do Sistema e criará um checkpoint nomeado "optimizerDuck...".
+    <value>O aplicativo habilitará automaticamente a Restauração do Sistema e criará um checkpoint nomeado "Nexxsensi Otimizer...".
 Isso garante que você possa sempre voltar se algo der errado.</value>
   </data>
   <data name="RestorePoint.Snackbar.Error.Title" xml:space="preserve">
@@ -1047,7 +1111,7 @@ Isso garante que você possa sempre voltar se algo der errado.</value>
     <value>Nenhum aplicativo inútil encontrado ¯\_(ツ)_/¯</value>
   </data>
   <data name="Bloatware.Empty.Description" xml:space="preserve">
-    <value>O optimizerDuck não encontrou nenhum pacote AppX removível. Está vazio como o vácuo...</value>
+    <value>O Nexxsensi Otimizer não encontrou nenhum pacote AppX removível. Está vazio como o vácuo...</value>
   </data>
   <data name="Bloatware.Loading" xml:space="preserve">
     <value>Procurando aplicativos removíveis...</value>
@@ -1080,11 +1144,11 @@ Isso garante que você possa sempre voltar se algo der errado.</value>
     <value>Ao remover pacotes AppX instalados, também remova os pacotes Provisionados correspondentes para evitar a re-instalação automática para novos usuários.</value>
   </data>
   <data name="Dashboard.UpdateInfoBar.Message" xml:space="preserve">
-    <value>O optimizerDuck (v{0}) está disponível!
+    <value>O Nexxsensi Otimizer (v{0}) está disponível!
 Atualize agora para desfrutar das últimas funcionalidades, melhorias e correções de bugs.</value>
   </data>
   <data name="Common.Search.Placeholder" xml:space="preserve">
-    <value>Buscar...</value>
+    <value>Pesquisar...</value>
   </data>
   <data name="Common.Filter.All" xml:space="preserve">
     <value>Todos</value>
@@ -1141,7 +1205,7 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
     <value>Ordenar por</value>
   </data>
   <data name="Sidebar.DiskCleanup" xml:space="preserve">
-    <value>Limpeza de Disco</value> 
+    <value>Limpeza de Disco</value>
   </data>
   <data name="DiskCleanup.Header.Title" xml:space="preserve">
     <value>Limpeza de Disco</value>
@@ -1171,7 +1235,7 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
     <value>Limpeza Completa</value>
   </data>
   <data name="DiskCleanup.Complete.Message" xml:space="preserve">
-    <value>Sucesso ao liberar {0} de espaço no disco em {1}</value> 
+    <value>Sucesso ao liberar {0} de espaço no disco em {1}</value>
   </data>
   <data name="DiskCleanup.Error.Title" xml:space="preserve">
     <value>Erro de Limpeza</value>
@@ -1336,7 +1400,7 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
     <value>Desligado</value>
   </data>
   <data name="Common.SortBy.Status" xml:space="preserve">
-    <value>Status</value>
+    <value>Estado</value>
   </data>
   <data name="Common.Status.Applied" xml:space="preserve">
     <value>Aplicado</value>
@@ -1344,15 +1408,15 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
   <data name="StartupManager.Menu.OpenSettings" xml:space="preserve">
     <value>Abrir Configurações</value>
   </data>
-  
+  <!-- Scheduled Tasks (Startup Manager) -->
   <data name="StartupManager.Tasks.HideMicrosoft" xml:space="preserve">
     <value>Ocultar Tarefas Microsoft</value>
   </data>
-  
+  <!-- Sidebar -->
   <data name="Sidebar.ScheduledTasks" xml:space="preserve">
     <value>Tarefas Agendadas</value>
   </data>
-  
+  <!-- Scheduled Tasks Page -->
   <data name="ScheduledTasks.Header.Title" xml:space="preserve">
     <value>Tarefas Agendadas</value>
   </data>
@@ -1371,7 +1435,7 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
   <data name="ScheduledTasks.Menu.CreateTask" xml:space="preserve">
     <value>Criar Tarefa</value>
   </data>
-  
+  <!-- Scheduled Tasks Actions -->
   <data name="ScheduledTasks.Action.Details" xml:space="preserve">
     <value>Visualizar Detalhes</value>
   </data>
@@ -1384,14 +1448,14 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
   <data name="ScheduledTasks.Action.Delete" xml:space="preserve">
     <value>Deletar</value>
   </data>
-  
+  <!-- Scheduled Tasks Dialogs -->
   <data name="ScheduledTasks.Dialog.DeleteTitle" xml:space="preserve">
     <value>Deletar Tarefa Agendada</value>
   </data>
   <data name="ScheduledTasks.Dialog.DeleteMessage" xml:space="preserve">
     <value>Tem certeza que deseja deletar a tarefa "{0}"? Esta ação não pode ser desfeita.</value>
   </data>
-  
+  <!-- Scheduled Tasks Details -->
   <data name="ScheduledTasks.Details.Path" xml:space="preserve">
     <value>Caminho</value>
   </data>
@@ -1419,7 +1483,7 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
   <data name="ScheduledTasks.Details.LastResult" xml:space="preserve">
     <value>Último Resultado</value>
   </data>
-  
+  <!-- Common -->
   <data name="Common.Delete" xml:space="preserve">
     <value>Deletar</value>
   </data>
@@ -1659,10 +1723,10 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
     <value>Acordo Legal</value>
   </data>
   <data name="LegalDialog.Intro.ThankYou" xml:space="preserve">
-    <value>Obrigado por escolher o optimizerDuck.</value>
+    <value>Obrigado por escolher o Nexxsensi Otimizer.</value>
   </data>
   <data name="LegalDialog.Intro.Safety" xml:space="preserve">
-    <value>Para garantir transparência e sua segurança, o optimizerDuck pode ajustar certas configurações do sistema e configurações do registro.</value>
+    <value>Para garantir transparência e sua segurança, o Nexxsensi Otimizer pode ajustar certas configurações do sistema e configurações do registro.</value>
   </data>
   <data name="LegalDialog.Intro.Review" xml:space="preserve">
     <value>Por favor, dedique um momento para revisar os seguintes documentos. Ao continuar, você concorda com estes termos.</value>
@@ -1709,15 +1773,10 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
   <data name="TitleBar.Discord" xml:space="preserve">
     <value>Junte-se à comunidade Discord</value>
   </data>
-  <data name="Optimizer.UI.Tags.Windows10Only" xml:space="preserve">
-    <value>Apenas Windows 10</value>
-  </data>
-  <data name="Optimizer.UI.Tags.Windows11Only" xml:space="preserve">
-    <value>Apenas Windows 11</value>
-  </data>
   <data name="Customize.SystemFeatures.Section.Developer" xml:space="preserve">
     <value>Desenvolvedor</value>
   </data>
+  <!-- Developer Mode -->
   <data name="Customize.SystemFeatures.DeveloperMode.Name" xml:space="preserve">
     <value>Modo Desenvolvedor</value>
   </data>
@@ -1727,15 +1786,17 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
   <data name="Customize.SystemFeatures.DeveloperMode.Recommendation.Reason" xml:space="preserve">
     <value>O Modo Desenvolvedor permite sideloading e recursos de diagnóstico essenciais para o desenvolvimento e depuração de aplicativos.</value>
   </data>
+  <!-- Allow All Trusted Apps -->
   <data name="Customize.SystemFeatures.AllowAllTrustedApps.Name" xml:space="preserve">
     <value>Permitir todos os aplicativos confiáveis</value>
   </data>
   <data name="Customize.SystemFeatures.AllowAllTrustedApps.Description" xml:space="preserve">
-    <value>Permite que todos os aplicativos confiáveis da Windows Store sejam instalados sem exigir a ativação do Modo Desenvolvedor.</value>
+    <value>Permite instalar aplicativos confiaveis da Microsoft Store sem ativar o Modo Desenvolvedor.</value>
   </data>
   <data name="Customize.SystemFeatures.AllowAllTrustedApps.Recommendation.Reason" xml:space="preserve">
-    <value>Permitir todos os aplicativos confiáveis possibilita sideloading sem Modo Desenvolvedor; desativar restringe as instalações à Microsoft Store.</value>
+    <value>Permitir apps confiaveis libera sideload seguro sem Modo Desenvolvedor; desativar restringe instalacoes a Microsoft Store.</value>
   </data>
+  <!-- Long Paths -->
   <data name="Customize.SystemFeatures.LongPathsEnabled.Name" xml:space="preserve">
     <value>Suporte a caminhos longos (&gt;260 caracteres)</value>
   </data>
@@ -1774,5 +1835,35 @@ Atualize agora para desfrutar das últimas funcionalidades, melhorias e correç�
   </data>
   <data name="Customize.SystemFeatures.ShowBatteryPercentage.Description" xml:space="preserve">
     <value>Mostra a porcentagem da bateria ao lado do ícone de bateria na bandeja do sistema.</value>
+  </data>
+  <data name="Optimizer.SecurityAndPrivacy.ApplyWin11DebloatGamerPreset.ShortDescription" xml:space="preserve">
+    <value>Remove Bing e Copilot da busca, desliga Widgets e Chat, bloqueia sugestoes, desativa Recall/IA e reduz capturas do Game DVR.</value>
+  </data>
+  <data name="Optimizer.SecurityAndPrivacy.ApplyWin11DebloatGamerPreset.Name" xml:space="preserve">
+    <value>Debloat gamer do Windows 11</value>
+  </data>
+  <data name="Optimizer.Performance.OptimizeMouseAndKeyboardQueues.Name" xml:space="preserve">
+    <value>Otimizar filas de mouse e teclado</value>
+  </data>
+  <data name="Optimizer.Performance.OptimizeMouseAndKeyboardQueues.ShortDescription" xml:space="preserve">
+    <value>Ajusta as filas internas de mouse e teclado para reduzir travamentos de entrada e melhorar estabilidade em jogos.</value>
+  </data>
+  <data name="Optimizer.Performance.OptimizeStorageAndMemoryBehavior.Name" xml:space="preserve">
+    <value>Otimizar SSD e memoria do sistema</value>
+  </data>
+  <data name="Optimizer.Performance.OptimizeStorageAndMemoryBehavior.ShortDescription" xml:space="preserve">
+    <value>Desativa Prefetch/SysMain para SSD/NVMe, habilita TRIM e ajusta uso de memoria do sistema para desempenho.</value>
+  </data>
+  <data name="Optimizer.Performance.OptimizeBootTimers.Name" xml:space="preserve">
+    <value>Otimizar timers de boot do Windows</value>
+  </data>
+  <data name="Optimizer.Performance.OptimizeBootTimers.ShortDescription" xml:space="preserve">
+    <value>Aplica ajustes bcdedit usados nos scripts: useplatformtick, disabledynamictick e remocao de useplatformclock para reduzir variacao de timers em jogos. Requer reinicio.</value>
+  </data>
+  <data name="Optimizer.PowerManagement.UnlockProcessorFrequencyPowerSettings.Name" xml:space="preserve">
+    <value>Liberar ajuste de frequencia da CPU</value>
+  </data>
+  <data name="Optimizer.PowerManagement.UnlockProcessorFrequencyPowerSettings.ShortDescription" xml:space="preserve">
+    <value>Mostra opcoes avancadas de frequencia do processador nos planos de energia para ajustes finos de desempenho.</value>
   </data>
 </root>

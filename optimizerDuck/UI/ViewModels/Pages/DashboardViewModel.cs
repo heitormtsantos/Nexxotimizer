@@ -82,6 +82,36 @@ public partial class DashboardViewModel : ViewModel
         }
     }
 
+    public DiskVolume? PrimaryVolume =>
+        RuntimeDisk.Volumes.FirstOrDefault(volume => volume.IsSystemDrive)
+        ?? RuntimeDisk.Volumes.FirstOrDefault();
+
+    public double PrimaryStorageUsedPercent => PrimaryVolume?.UsedPercent ?? 0;
+
+    public double PrimaryStorageAvailableGB => PrimaryVolume?.AvailableSizeGB ?? 0;
+
+    public double PrimaryStorageTotalGB => PrimaryVolume?.TotalSizeGB ?? 0;
+
+    public double GpuMemoryGB => (SystemInfo.PrimaryGpu?.MemoryMB ?? 0) / 1024.0;
+
+    public double CpuClockGHz => (SystemInfo.Cpu?.CurrentClockMHz ?? 0) / 1000.0;
+
+    public double SystemHealthScore
+    {
+        get
+        {
+            var ramPressure = RuntimeRam.UsedPercent <= 0 ? 35 : RuntimeRam.UsedPercent;
+            var diskPressure = PrimaryStorageUsedPercent <= 0 ? 35 : PrimaryStorageUsedPercent;
+            var score = 100 - (ramPressure * 0.45) - (diskPressure * 0.25);
+            return Math.Clamp(Math.Round(score), 0, 100);
+        }
+    }
+
+    public string SystemHealthLabel =>
+        SystemHealthScore >= 75 ? "Bom"
+        : SystemHealthScore >= 50 ? "Atenção"
+        : "Crítico";
+
     protected override async Task InitializeOnceAsync()
     {
         _systemInfoService.LogSummary();
@@ -121,6 +151,28 @@ public partial class DashboardViewModel : ViewModel
     }
 
     #endregion Property Changed
+
+    partial void OnRuntimeRamChanged(RamInfo value)
+    {
+        OnPropertyChanged(nameof(SystemHealthScore));
+        OnPropertyChanged(nameof(SystemHealthLabel));
+    }
+
+    partial void OnRuntimeDiskChanged(DiskInfo value)
+    {
+        OnPropertyChanged(nameof(PrimaryVolume));
+        OnPropertyChanged(nameof(PrimaryStorageUsedPercent));
+        OnPropertyChanged(nameof(PrimaryStorageAvailableGB));
+        OnPropertyChanged(nameof(PrimaryStorageTotalGB));
+        OnPropertyChanged(nameof(SystemHealthScore));
+        OnPropertyChanged(nameof(SystemHealthLabel));
+    }
+
+    partial void OnSystemInfoChanged(SystemSnapshot value)
+    {
+        OnPropertyChanged(nameof(GpuMemoryGB));
+        OnPropertyChanged(nameof(CpuClockGHz));
+    }
 
     #region Commands
 

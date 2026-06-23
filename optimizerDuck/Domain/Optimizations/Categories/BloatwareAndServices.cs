@@ -14,7 +14,7 @@ namespace optimizerDuck.Domain.Optimizations.Categories;
 [OptimizationCategory(typeof(BloatwareAndServicesOptimizerPage))]
 public class BloatwareAndServices : IOptimizationCategory
 {
-    public string Name => Loc.Instance[$"Optimizer.{nameof(BloatwareAndServices)}"];
+    public string Name => "Apps e Servicos";
     public OptimizationCategoryOrder Order { get; init; } =
         OptimizationCategoryOrder.BloatwareAndServices;
     public ObservableCollection<IOptimization> Optimizations { get; init; } = [];

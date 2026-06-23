@@ -1,5 +1,6 @@
 using System.Windows;
 using Microsoft.Extensions.Options;
+using optimizerDuck.Common.Helpers;
 using optimizerDuck.Domain.Abstractions;
 using optimizerDuck.Domain.Configuration;
 using optimizerDuck.Resources.Languages;
@@ -50,8 +51,8 @@ public partial class MainWindow : IWindow
 
     internal void UpdatePendingIndicator(bool hasPending)
     {
-        AppTitleText.Text = hasPending ? "optimizerDuck*" : "optimizerDuck";
-        Title = hasPending ? "optimizerDuck*" : "optimizerDuck";
+        AppTitleText.Text = hasPending ? $"{Shared.AppDisplayName}*" : Shared.AppDisplayName;
+        Title = hasPending ? $"{Shared.AppDisplayName}*" : Shared.AppDisplayName;
     }
 
     private async void OnRootNavigationLoaded(object sender, RoutedEventArgs e)

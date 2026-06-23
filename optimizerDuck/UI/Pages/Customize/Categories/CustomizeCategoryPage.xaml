@@ -259,16 +259,6 @@
                                                     VerticalAlignment="Center"
                                                     Text="{Binding CurrentValue, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                                                     Visibility="{Binding ControlType, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter={x:Static models:CustomizeControlType.String}}" />
-                                                <ui:Button
-                                                    Margin="8,0,0,0"
-                                                    VerticalAlignment="Center"
-                                                    Background="Transparent"
-                                                    BorderBrush="Transparent"
-                                                    Command="{Binding DataContext.ViewModel.ViewSourceOnGitHubCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                                    CommandParameter="{Binding}"
-                                                    Cursor="Hand"
-                                                    Icon="{ui:SymbolIcon Code24}"
-                                                    ToolTip="{ext:Loc Optimizer.Menu.ViewSource}" />
                                             </StackPanel>
                                         </ui:CardControl>
                                     </DataTemplate>

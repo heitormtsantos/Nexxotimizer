@@ -41,19 +41,19 @@
                 <ui:HyperlinkButton
                     Content="{ext:Loc Key=LegalDialog.Link.TermsOfService}"
                     Icon="{ui:SymbolIcon DocumentText24}"
-                    NavigateUri="https://github.com/itsfatduck/optimizerDuck/blob/master/TERMS.md" />
+                    NavigateUri="https://nexxsensi.com/" />
 
                 <ui:HyperlinkButton
                     Margin="0,4,0,0"
                     Content="{ext:Loc Key=LegalDialog.Link.PrivacyPolicy}"
                     Icon="{ui:SymbolIcon ShieldLock24}"
-                    NavigateUri="https://github.com/itsfatduck/optimizerDuck/blob/master/PRIVACY.md" />
+                    NavigateUri="https://nexxsensi.com/" />
 
                 <ui:HyperlinkButton
                     Margin="0,4,0,0"
                     Content="{ext:Loc Key=LegalDialog.Link.Disclaimer}"
                     Icon="{ui:SymbolIcon Warning24}"
-                    NavigateUri="https://github.com/itsfatduck/optimizerDuck/blob/master/DISCLAIMER.md" />
+                    NavigateUri="https://nexxsensi.com/" />
             </StackPanel>
         </Border>
 

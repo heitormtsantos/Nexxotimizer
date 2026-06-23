@@ -31,19 +31,17 @@ public static class ReflectionHelper
             if (_implementationCache.TryGetValue(interfaceType, out var cached))
                 return cached;
 
-            var types = AppDomain
-                .CurrentDomain.GetAssemblies()
-                .Where(a =>
-                    a.FullName != null
-                    && a.FullName.StartsWith(
-                        nameof(optimizerDuck),
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                )
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Append(interfaceType.Assembly).Distinct();
+
+            var types = assemblies
                 .SelectMany(SafeGetTypes)
                 .Where(t =>
                     t != interfaceType
                     && t is { IsClass: true, IsAbstract: false }
+                    && t.Namespace?.StartsWith(
+                        nameof(optimizerDuck),
+                        StringComparison.OrdinalIgnoreCase
+                    ) == true
                     && interfaceType.IsAssignableFrom(t)
                 )
                 .ToList();

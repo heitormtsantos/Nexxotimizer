@@ -363,16 +363,6 @@
                                         <ui:Button
                                             HorizontalAlignment="Right"
                                             VerticalAlignment="Bottom"
-                                            Background="Transparent"
-                                            BorderBrush="Transparent"
-                                            Command="{Binding DataContext.ViewModel.ViewSourceOnGitHubCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                            CommandParameter="{Binding}"
-                                            Cursor="Hand"
-                                            Icon="{ui:SymbolIcon Code24}"
-                                            ToolTip="{ext:Loc Optimizer.Menu.ViewSource}" />
-                                        <ui:Button
-                                            HorizontalAlignment="Right"
-                                            VerticalAlignment="Bottom"
                                             Appearance="Transparent"
                                             Background="Transparent"
                                             BorderBrush="Transparent"
