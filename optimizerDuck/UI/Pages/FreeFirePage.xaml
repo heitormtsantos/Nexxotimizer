@@ -23,7 +23,7 @@
         <StackPanel Width="{Binding ViewportWidth, ElementName=GamesScrollViewer}">
             <Border
                 Height="230"
-                Margin="0,0,0,18"
+                Margin="0,0,0,20"
                 Background="#07080C"
                 BorderBrush="#2A1117"
                 BorderThickness="1"
@@ -32,105 +32,6 @@
                 <Image
                     Source="pack://application:,,,/Resources/Images/Jogos.png"
                     Stretch="UniformToFill" />
-            </Border>
-
-            <Border Style="{StaticResource GamerHeroCardStyle}">
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                    <Border
-                        Width="112"
-                        Height="112"
-                        Margin="0,0,22,0"
-                        Background="#080C16"
-                        BorderBrush="{DynamicResource BrandPrimaryBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8">
-                        <Image
-                            Margin="8"
-                            Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
-                            Stretch="Uniform" />
-                    </Border>
-
-                    <StackPanel Grid.Column="1">
-                        <ui:TextBlock
-                            FontTypography="Caption"
-                            Foreground="{DynamicResource BrandPrimaryBrightBrush}"
-                            Text="NEXXSENSI OTIMIZER / JOGOS" />
-
-                        <ui:TextBlock
-                            Margin="0,8,0,0"
-                            FontTypography="Title"
-                            Text="Central gamer para emulador" />
-                        <ui:TextBlock
-                            MaxWidth="700"
-                            Margin="0,6,0,0"
-                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                            Text="Detecta o emulador aberto, aplica prioridade alta, limpa arquivos temporarios e mostra os pontos que mais impactam estabilidade, RAM e energia antes da partida."
-                            TextWrapping="Wrap" />
-
-                        <UniformGrid
-                            MaxWidth="700"
-                            Margin="0,18,0,0"
-                            Columns="3">
-                            <Border Margin="0,0,10,0" Style="{StaticResource GamerMetricCardStyle}">
-                                <StackPanel>
-                                    <ui:TextBlock
-                                        FontTypography="Caption"
-                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                        Text="Sessao" />
-                                    <ui:TextBlock FontTypography="BodyStrong" Text="Prioridade alta" />
-                                </StackPanel>
-                            </Border>
-                            <Border Margin="0,0,10,0" Style="{StaticResource GamerMetricCardStyle}">
-                                <StackPanel>
-                                    <ui:TextBlock
-                                        FontTypography="Caption"
-                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                        Text="Deteccao" />
-                                    <ui:TextBlock
-                                        FontTypography="BodyStrong"
-                                        Foreground="{DynamicResource BrandSuccessBrush}"
-                                        Text="Somente aberto" />
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource GamerMetricCardStyle}">
-                                <StackPanel>
-                                    <ui:TextBlock
-                                        FontTypography="Caption"
-                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                        Text="Risco" />
-                                    <ui:TextBlock FontTypography="BodyStrong" Text="Sem alterar jogo" />
-                                </StackPanel>
-                            </Border>
-                        </UniformGrid>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                        <ui:Button
-                            MinWidth="176"
-                            Appearance="Primary"
-                            Command="{Binding ViewModel.ApplySessionBoostCommand}"
-                            Content="Boost gamer"
-                            Cursor="Hand"
-                            Foreground="{DynamicResource AccentButtonForeground}"
-                            Icon="{ui:SymbolIcon Rocket24}" />
-                        <ui:Button
-                            MinWidth="176"
-                            Margin="0,10,0,0"
-                            Appearance="Secondary"
-                            Command="{Binding ViewModel.InstallEmulatorCommand}"
-                            Content="Instalar emulador"
-                            Cursor="Hand"
-                            Icon="{ui:SymbolIcon ArrowDownload24}" />
-                        <ui:Button
-                            MinWidth="176"
-                            Margin="0,10,0,0"
-                            Appearance="Secondary"
-                            Command="{Binding ViewModel.RefreshCommand}"
-                            Content="Atualizar leitura"
-                            Cursor="Hand"
-                            Icon="{ui:SymbolIcon ArrowClockwise24}" />
-                    </StackPanel>
-                </Grid>
             </Border>
 
             <Grid Margin="0,0,0,20">
@@ -183,6 +84,31 @@
                         <ui:TextBlock FontTypography="BodyStrong" Text="Atalhos" />
                         <ui:Button
                             Margin="0,12,0,0"
+                            HorizontalAlignment="Stretch"
+                            Appearance="Primary"
+                            Command="{Binding ViewModel.ApplySessionBoostCommand}"
+                            Content="Boost gamer"
+                            Cursor="Hand"
+                            Foreground="{DynamicResource AccentButtonForeground}"
+                            Icon="{ui:SymbolIcon Rocket24}" />
+                        <ui:Button
+                            Margin="0,10,0,0"
+                            HorizontalAlignment="Stretch"
+                            Appearance="Secondary"
+                            Command="{Binding ViewModel.InstallEmulatorCommand}"
+                            Content="Instalar emulador"
+                            Cursor="Hand"
+                            Icon="{ui:SymbolIcon ArrowDownload24}" />
+                        <ui:Button
+                            Margin="0,10,0,0"
+                            HorizontalAlignment="Stretch"
+                            Appearance="Secondary"
+                            Command="{Binding ViewModel.RefreshCommand}"
+                            Content="Atualizar leitura"
+                            Cursor="Hand"
+                            Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                        <ui:Button
+                            Margin="0,10,0,0"
                             HorizontalAlignment="Stretch"
                             Appearance="Secondary"
                             Command="{Binding ViewModel.OpenGameSettingsCommand}"
