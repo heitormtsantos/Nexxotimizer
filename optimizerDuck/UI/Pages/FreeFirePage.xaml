@@ -15,8 +15,24 @@
     Style="{StaticResource PageRootStyle}"
     mc:Ignorable="d">
 
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel>
+    <ScrollViewer
+        x:Name="GamesScrollViewer"
+        HorizontalScrollBarVisibility="Disabled"
+        VerticalScrollBarVisibility="Auto">
+        <StackPanel Width="{Binding ViewportWidth, ElementName=GamesScrollViewer}">
+            <Border
+                Height="230"
+                Margin="0,0,0,18"
+                Background="#07080C"
+                BorderBrush="#2A1117"
+                BorderThickness="1"
+                ClipToBounds="True"
+                CornerRadius="8">
+                <Image
+                    Source="pack://application:,,,/Resources/Images/Jogos.png"
+                    Stretch="UniformToFill" />
+            </Border>
+
             <Border Style="{StaticResource GamerHeroCardStyle}">
                 <Grid ColumnDefinitions="Auto,*,Auto">
                     <Border

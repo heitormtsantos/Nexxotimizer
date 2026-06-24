@@ -81,8 +81,12 @@
             </StackPanel>
         </Grid>
 
-        <ScrollViewer Padding="28,24,28,28" VerticalScrollBarVisibility="Auto">
-            <StackPanel MaxWidth="1280">
+        <ScrollViewer
+            x:Name="PerformanceScrollViewer"
+            Padding="28,24,28,28"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel Width="{Binding ViewportWidth, ElementName=PerformanceScrollViewer}">
                 <Border
                     Height="166"
                     CornerRadius="8"

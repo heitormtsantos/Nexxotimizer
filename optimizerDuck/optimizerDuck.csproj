@@ -84,6 +84,7 @@
         <Resource Include="Resources\Images\DiscordLogo.png" />
         <Resource Include="Resources\Images\NexxsensiLogo.png" />
         <Resource Include="Resources\Images\Influ.png" />
+        <Resource Include="Resources\Images\Jogos.png" />
     </ItemGroup>
 
     <ItemGroup>

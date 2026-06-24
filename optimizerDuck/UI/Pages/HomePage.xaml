@@ -59,8 +59,12 @@
                 IsIndeterminate="True" />
         </Grid>
 
-        <ScrollViewer Padding="18,0,18,22" VerticalScrollBarVisibility="Auto">
-            <StackPanel MaxWidth="1280">
+        <ScrollViewer
+            x:Name="HomeScrollViewer"
+            Padding="18,0,18,22"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel Width="{Binding ViewportWidth, ElementName=HomeScrollViewer}">
                 <Border
                     Height="190"
                     CornerRadius="0"
