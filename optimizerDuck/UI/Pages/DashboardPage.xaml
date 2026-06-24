@@ -14,6 +14,7 @@
     d:DesignWidth="1180"
     ui:Design.Background="Black"
     ui:Design.Foreground="White"
+    Margin="0"
     Style="{StaticResource PageRootStyle}"
     mc:Ignorable="d">
     <Page.Resources>
@@ -83,7 +84,7 @@
 
         <ScrollViewer
             x:Name="PerformanceScrollViewer"
-            Padding="28,24,28,28"
+            Padding="0"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
             <StackPanel Width="{Binding ViewportWidth, ElementName=PerformanceScrollViewer}">
