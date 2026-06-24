@@ -277,112 +277,144 @@
 
                 <UniformGrid Columns="4">
                     <Border
-                        Height="118"
+                        Height="132"
                         Margin="0,0,12,0"
                         ClipToBounds="True"
                         Style="{StaticResource HomeCard}">
                         <Grid>
-                            <Rectangle Fill="#0E1016" />
-                            <Image
-                                Width="72"
-                                Height="72"
-                                Margin="16"
-                                HorizontalAlignment="Left"
-                                Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
-                                Stretch="Uniform" />
-                            <StackPanel Margin="104,20,14,0">
+                            <Rectangle>
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Offset="0" Color="#FF20151A" />
+                                        <GradientStop Offset="0.5" Color="#FF7F111C" />
+                                        <GradientStop Offset="1" Color="#FF10131B" />
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                            <Rectangle
+                                Margin="0,0,0,54"
+                                HorizontalAlignment="Right"
+                                Width="130"
+                                Fill="#30FFFFFF" />
+                            <StackPanel Margin="18,18,18,0">
                                 <ui:TextBlock
                                     Foreground="{StaticResource HomeText}"
-                                    FontSize="22"
+                                    FontSize="28"
                                     FontWeight="Black"
                                     Text="FREE FIRE" />
                                 <ui:TextBlock
-                                    Margin="0,8,0,0"
+                                    Margin="0,46,0,0"
                                     Style="{StaticResource HomeMutedText}"
-                                    Text="Boost para emulador" />
+                                    Text="Battle royale mobile" />
                             </StackPanel>
                         </Grid>
                     </Border>
 
                     <Border
-                        Height="118"
+                        Height="132"
                         Margin="0,0,12,0"
                         ClipToBounds="True"
                         Style="{StaticResource HomeCard}">
                         <Grid>
-                            <Rectangle Fill="#0E1016" />
-                            <Image
-                                Width="72"
-                                Height="72"
-                                Margin="16"
-                                HorizontalAlignment="Left"
-                                Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
-                                Stretch="Uniform" />
-                            <StackPanel Margin="104,20,14,0">
+                            <Rectangle>
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Offset="0" Color="#FF2A2417" />
+                                        <GradientStop Offset="0.45" Color="#FF8E5B17" />
+                                        <GradientStop Offset="1" Color="#FF15181F" />
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                            <Rectangle
+                                Margin="0,0,12,14"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Width="116"
+                                Height="82"
+                                RadiusX="8"
+                                RadiusY="8"
+                                Fill="#28FFFFFF" />
+                            <StackPanel Margin="18,18,18,0">
                                 <ui:TextBlock
                                     Foreground="{StaticResource HomeText}"
-                                    FontSize="22"
+                                    FontSize="28"
                                     FontWeight="Black"
-                                    Text="LIMPEZA" />
+                                    Text="PUBG" />
                                 <ui:TextBlock
-                                    Margin="0,8,0,0"
+                                    Margin="0,46,0,0"
                                     Style="{StaticResource HomeMutedText}"
-                                    Text="Cache, temp e prefetch" />
+                                    Text="Battlegrounds mobile" />
                             </StackPanel>
                         </Grid>
                     </Border>
 
                     <Border
-                        Height="118"
+                        Height="132"
                         Margin="0,0,12,0"
                         ClipToBounds="True"
                         Style="{StaticResource HomeCard}">
                         <Grid>
-                            <Rectangle Fill="#0E1016" />
-                            <Image
-                                Width="72"
-                                Height="72"
-                                Margin="16"
-                                HorizontalAlignment="Left"
-                                Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
-                                Stretch="Uniform" />
-                            <StackPanel Margin="104,20,14,0">
+                            <Rectangle>
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Offset="0" Color="#FF14203B" />
+                                        <GradientStop Offset="0.5" Color="#FF2F57C9" />
+                                        <GradientStop Offset="1" Color="#FF25112E" />
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                            <Rectangle
+                                Margin="0,0,18,18"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Width="96"
+                                Height="96"
+                                RadiusX="48"
+                                RadiusY="48"
+                                Fill="#24FFFFFF" />
+                            <StackPanel Margin="18,18,18,0">
                                 <ui:TextBlock
                                     Foreground="{StaticResource HomeText}"
-                                    FontSize="22"
+                                    FontSize="24"
                                     FontWeight="Black"
-                                    Text="PING" />
+                                    Text="CLASH ROYALE" />
                                 <ui:TextBlock
-                                    Margin="0,8,0,0"
+                                    Margin="0,50,0,0"
                                     Style="{StaticResource HomeMutedText}"
-                                    Text="Ajustes para estabilidade" />
+                                    Text="Estratégia em arena" />
                             </StackPanel>
                         </Grid>
                     </Border>
 
                     <Border
-                        Height="118"
+                        Height="132"
                         ClipToBounds="True"
                         Style="{StaticResource HomeCard}">
                         <Grid>
-                            <Rectangle Fill="#0E1016" />
-                            <Image
-                                Width="72"
-                                Height="72"
-                                Margin="16"
-                                HorizontalAlignment="Left"
-                                Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
-                                Stretch="Uniform" />
-                            <StackPanel Margin="104,20,14,0">
+                            <Rectangle>
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Offset="0" Color="#FF14181E" />
+                                        <GradientStop Offset="0.5" Color="#FF5D6A78" />
+                                        <GradientStop Offset="1" Color="#FF0E1116" />
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                            <Rectangle
+                                Margin="0,0,12,0"
+                                HorizontalAlignment="Right"
+                                Width="130"
+                                Fill="#2AFFFFFF" />
+                            <StackPanel Margin="18,18,18,0">
                                 <ui:TextBlock
                                     Foreground="{StaticResource HomeText}"
-                                    FontSize="22"
+                                    FontSize="26"
                                     FontWeight="Black"
-                                    Text="ENERGIA" />
+                                    Text="COUNTER-STRIKE 2" />
                                 <ui:TextBlock
-                                    Margin="0,8,0,0"
+                                    Margin="0,44,0,0"
                                     Style="{StaticResource HomeMutedText}"
-                                    Text="Plano gamer Nexxsensi" />
+                                    Text="FPS competitivo" />
                             </StackPanel>
                         </Grid>
                     </Border>
