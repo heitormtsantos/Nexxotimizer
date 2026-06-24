@@ -80,9 +80,15 @@
             </ui:NavigationView.PaneHeader>
             <ui:NavigationView.MenuItems>
                 <controls:FilledNavigationViewItem
-                    Content="Painel"
+                    Content="Início"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon Home24}"
+                    TargetPageType="{x:Type pages:HomePage}" />
+
+                <controls:FilledNavigationViewItem
+                    Content="Desempenho"
+                    Cursor="Hand"
+                    Icon="{ui:SymbolIcon DesktopPulse24}"
                     TargetPageType="{x:Type pages:DashboardPage}" />
 
                 <controls:FilledNavigationViewItem
@@ -121,7 +127,7 @@
                 <ui:NavigationViewItemSeparator Margin="0,2,0,2" />
 
                 <controls:FilledNavigationViewItem
-                    Content="Inicializacao"
+                    Content="Inicialização"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon WindowArrowUp24}"
                     TargetPageType="{x:Type pages:StartupManagerPage}" />
@@ -142,7 +148,7 @@
             <ui:NavigationView.FooterMenuItems>
                 <ui:NavigationViewItemSeparator Margin="0,2,0,2" />
                 <controls:FilledNavigationViewItem
-                    Content="Configuracoes"
+                    Content="Configurações"
                     Cursor="Hand"
                     Icon="{ui:SymbolIcon Settings24}"
                     TargetPageType="{x:Type pages:SettingsPage}" />

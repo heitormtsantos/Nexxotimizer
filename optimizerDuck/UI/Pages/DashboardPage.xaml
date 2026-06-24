@@ -8,7 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pages="clr-namespace:optimizerDuck.UI.Pages"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="Painel Gamer"
+    Title="Desempenho"
     d:DataContext="{d:DesignInstance pages:DashboardPage}"
     d:DesignHeight="720"
     d:DesignWidth="1180"
@@ -92,6 +92,7 @@
                     Background="#07080C">
                     <Grid>
                         <Image
+                            Panel.ZIndex="5"
                             Source="pack://application:,,,/Resources/Images/Influ.png"
                             Stretch="UniformToFill" />
 

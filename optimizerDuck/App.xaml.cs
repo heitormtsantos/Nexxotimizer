@@ -288,6 +288,9 @@ public partial class App : Application
                     services.AddSingleton<MainWindowViewModel>();
 
                     // Pages
+                    services.AddSingleton<HomeViewModel>();
+                    services.AddSingleton<HomePage>();
+
                     services.AddSingleton<DashboardViewModel>();
                     services.AddSingleton<DashboardPage>();
 

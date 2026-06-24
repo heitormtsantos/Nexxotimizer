@@ -83,6 +83,6 @@ public partial class MainWindow : IWindow
             }
         }
 
-        RootNavigation.Navigate(typeof(DashboardPage));
+        RootNavigation.Navigate(typeof(HomePage));
     }
 }

@@ -1,0 +1,388 @@
+<Page
+    x:Class="optimizerDuck.UI.Pages.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:optimizerDuck.Common.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="clr-namespace:optimizerDuck.UI.Pages"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="Início"
+    d:DataContext="{d:DesignInstance pages:HomePage}"
+    d:DesignHeight="720"
+    d:DesignWidth="1180"
+    ui:Design.Background="Black"
+    ui:Design.Foreground="White"
+    Style="{StaticResource PageRootStyle}"
+    mc:Ignorable="d">
+    <Page.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+
+        <SolidColorBrush x:Key="HomeBackground" Color="#07090D" />
+        <SolidColorBrush x:Key="HomePanel" Color="#11151C" />
+        <SolidColorBrush x:Key="HomePanelAlt" Color="#171B23" />
+        <SolidColorBrush x:Key="HomeStroke" Color="#232934" />
+        <SolidColorBrush x:Key="HomeText" Color="#F7F8FB" />
+        <SolidColorBrush x:Key="HomeMuted" Color="#9CA3AF" />
+        <SolidColorBrush x:Key="HomeRed" Color="#EF2334" />
+        <SolidColorBrush x:Key="HomeGreen" Color="#30F28C" />
+
+        <Style x:Key="HomeCard" TargetType="Border">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{StaticResource HomeStroke}" />
+            <Setter Property="Background" Value="{StaticResource HomePanel}" />
+        </Style>
+
+        <Style x:Key="HomeSectionTitle" TargetType="ui:TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource HomeText}" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+
+        <Style x:Key="HomeMutedText" TargetType="ui:TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource HomeMuted}" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+    </Page.Resources>
+
+    <Grid Background="{StaticResource HomeBackground}">
+        <Grid
+            Panel.ZIndex="20"
+            Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Border Background="#AA07090D" />
+            <ui:ProgressRing
+                Width="54"
+                Height="54"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsIndeterminate="True" />
+        </Grid>
+
+        <ScrollViewer Padding="18,0,18,22" VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="1280">
+                <Border
+                    Height="190"
+                    CornerRadius="0"
+                    ClipToBounds="True"
+                    Background="#090B10">
+                    <Image
+                        Source="pack://application:,,,/Resources/Images/Influ.png"
+                        Stretch="UniformToFill" />
+                </Border>
+
+                <Grid Margin="0,22,0,0" ColumnDefinitions="1.04*,18,1*">
+                    <StackPanel>
+                        <ui:TextBlock Style="{StaticResource HomeSectionTitle}" Text="Para você" />
+
+                        <Border
+                            Height="174"
+                            Margin="0,16,0,0"
+                            ClipToBounds="True"
+                            Style="{StaticResource HomeCard}">
+                            <Grid>
+                                <Rectangle>
+                                    <Rectangle.Fill>
+                                        <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                            <GradientStop Offset="0" Color="#E5101118" />
+                                            <GradientStop Offset="0.22" Color="#EEEF2334" />
+                                            <GradientStop Offset="0.62" Color="#88101118" />
+                                            <GradientStop Offset="1" Color="#F011151C" />
+                                        </LinearGradientBrush>
+                                    </Rectangle.Fill>
+                                </Rectangle>
+
+                                <Image
+                                    HorizontalAlignment="Right"
+                                    Width="255"
+                                    Margin="0,0,20,0"
+                                    Opacity="0.9"
+                                    Source="pack://application:,,,/Resources/Images/Influ.png"
+                                    Stretch="UniformToFill" />
+
+                                <StackPanel Margin="44,24,0,0">
+                                    <ui:TextBlock
+                                        Foreground="{StaticResource HomeText}"
+                                        FontSize="13"
+                                        FontWeight="Bold"
+                                        Text="INDIQUE E GANHE MAIS" />
+                                    <ui:TextBlock
+                                        Margin="0,-4,0,0"
+                                        Foreground="{StaticResource HomeText}"
+                                        FontSize="48"
+                                        FontWeight="Black"
+                                        Text="10%" />
+                                    <ui:TextBlock
+                                        Margin="4,-8,0,0"
+                                        Foreground="{StaticResource HomeText}"
+                                        FontSize="25"
+                                        FontWeight="Black"
+                                        Text="OFF" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            Height="58"
+                            Margin="0,0,0,0"
+                            Padding="24,0"
+                            Style="{StaticResource HomeCard}">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                <ui:SymbolIcon
+                                    VerticalAlignment="Center"
+                                    Foreground="{StaticResource HomeText}"
+                                    Symbol="ChevronLeft24" />
+                                <ui:TextBlock
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Foreground="{StaticResource HomeMuted}"
+                                    FontWeight="SemiBold"
+                                    Text="2 de 3" />
+                                <ui:SymbolIcon
+                                    Grid.Column="2"
+                                    Margin="0,0,24,0"
+                                    VerticalAlignment="Center"
+                                    Foreground="{StaticResource HomeText}"
+                                    Symbol="ChevronRight24" />
+                                <ui:Button
+                                    Grid.Column="3"
+                                    Width="138"
+                                    Appearance="Secondary"
+                                    Content="Assine agora" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <Grid>
+                            <ui:TextBlock Style="{StaticResource HomeSectionTitle}" Text="Dados da última sessão" />
+                            <ui:Button
+                                HorizontalAlignment="Right"
+                                Appearance="Transparent"
+                                Command="{Binding ViewModel.RefreshCommand}"
+                                Content="Atualizar"
+                                Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                        </Grid>
+
+                        <Border
+                            Height="232"
+                            Margin="0,16,0,0"
+                            Padding="28"
+                            Style="{StaticResource HomeCard}">
+                            <Grid ColumnDefinitions="160,*">
+                                <Grid>
+                                    <Ellipse
+                                        Width="130"
+                                        Height="130"
+                                        Stroke="#351117"
+                                        StrokeThickness="12" />
+                                    <Ellipse
+                                        Width="130"
+                                        Height="130"
+                                        Stroke="{StaticResource HomeRed}"
+                                        StrokeThickness="12" />
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <ui:TextBlock
+                                            HorizontalAlignment="Center"
+                                            Foreground="{StaticResource HomeText}"
+                                            FontSize="36"
+                                            FontWeight="Black"
+                                            Text="{Binding ViewModel.SystemHealthScore, StringFormat='{}{0:F0}'}" />
+                                        <ui:TextBlock
+                                            HorizontalAlignment="Center"
+                                            Foreground="{StaticResource HomeRed}"
+                                            FontSize="12"
+                                            FontWeight="Bold"
+                                            Text="{Binding ViewModel.SystemHealthLabel}" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <ui:TextBlock
+                                        Foreground="{StaticResource HomeText}"
+                                        FontSize="17"
+                                        FontWeight="SemiBold"
+                                        Text="Resumo de desempenho do PC" />
+                                    <ui:TextBlock
+                                        Margin="0,8,0,0"
+                                        Style="{StaticResource HomeMutedText}"
+                                        Text="{Binding ViewModel.LastSessionSummary}"
+                                        TextWrapping="Wrap" />
+                                    <ui:TextBlock
+                                        Margin="0,4,0,0"
+                                        Style="{StaticResource HomeMutedText}"
+                                        Text="{Binding ViewModel.StorageSummary}" />
+
+                                    <UniformGrid Margin="0,22,0,0" Columns="3">
+                                        <Border
+                                            Margin="0,0,8,0"
+                                            Padding="12"
+                                            Background="{StaticResource HomePanelAlt}"
+                                            CornerRadius="7">
+                                            <StackPanel>
+                                                <ui:TextBlock Style="{StaticResource HomeMutedText}" Text="RAM" />
+                                                <ui:TextBlock
+                                                    Foreground="{StaticResource HomeText}"
+                                                    FontWeight="Bold"
+                                                    Text="{Binding ViewModel.SystemInfo.Ram.UsedPercent, StringFormat='{}{0:F0}%'}" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border
+                                            Margin="0,0,8,0"
+                                            Padding="12"
+                                            Background="{StaticResource HomePanelAlt}"
+                                            CornerRadius="7">
+                                            <StackPanel>
+                                                <ui:TextBlock Style="{StaticResource HomeMutedText}" Text="Disco" />
+                                                <ui:TextBlock
+                                                    Foreground="{StaticResource HomeText}"
+                                                    FontWeight="Bold"
+                                                    Text="{Binding ViewModel.PrimaryVolume.UsedPercent, StringFormat='{}{0:F0}%'}" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border
+                                            Padding="12"
+                                            Background="{StaticResource HomePanelAlt}"
+                                            CornerRadius="7">
+                                            <StackPanel>
+                                                <ui:TextBlock Style="{StaticResource HomeMutedText}" Text="Sessão" />
+                                                <ui:TextBlock
+                                                    Foreground="{StaticResource HomeGreen}"
+                                                    FontWeight="Bold"
+                                                    Text="Pronta" />
+                                            </StackPanel>
+                                        </Border>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,28,0,14">
+                    <ui:TextBlock Style="{StaticResource HomeSectionTitle}" Text="Fique por dentro" />
+                    <ui:TextBlock
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Foreground="{StaticResource HomeMuted}"
+                        FontWeight="SemiBold"
+                        Text="Ver todos >" />
+                </Grid>
+
+                <UniformGrid Columns="4">
+                    <Border
+                        Height="118"
+                        Margin="0,0,12,0"
+                        ClipToBounds="True"
+                        Style="{StaticResource HomeCard}">
+                        <Grid>
+                            <Rectangle Fill="#0E1016" />
+                            <Image
+                                Width="72"
+                                Height="72"
+                                Margin="16"
+                                HorizontalAlignment="Left"
+                                Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
+                                Stretch="Uniform" />
+                            <StackPanel Margin="104,20,14,0">
+                                <ui:TextBlock
+                                    Foreground="{StaticResource HomeText}"
+                                    FontSize="22"
+                                    FontWeight="Black"
+                                    Text="FREE FIRE" />
+                                <ui:TextBlock
+                                    Margin="0,8,0,0"
+                                    Style="{StaticResource HomeMutedText}"
+                                    Text="Boost para emulador" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border
+                        Height="118"
+                        Margin="0,0,12,0"
+                        ClipToBounds="True"
+                        Style="{StaticResource HomeCard}">
+                        <Grid>
+                            <Rectangle Fill="#0E1016" />
+                            <Image
+                                Width="72"
+                                Height="72"
+                                Margin="16"
+                                HorizontalAlignment="Left"
+                                Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
+                                Stretch="Uniform" />
+                            <StackPanel Margin="104,20,14,0">
+                                <ui:TextBlock
+                                    Foreground="{StaticResource HomeText}"
+                                    FontSize="22"
+                                    FontWeight="Black"
+                                    Text="LIMPEZA" />
+                                <ui:TextBlock
+                                    Margin="0,8,0,0"
+                                    Style="{StaticResource HomeMutedText}"
+                                    Text="Cache, temp e prefetch" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border
+                        Height="118"
+                        Margin="0,0,12,0"
+                        ClipToBounds="True"
+                        Style="{StaticResource HomeCard}">
+                        <Grid>
+                            <Rectangle Fill="#0E1016" />
+                            <Image
+                                Width="72"
+                                Height="72"
+                                Margin="16"
+                                HorizontalAlignment="Left"
+                                Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
+                                Stretch="Uniform" />
+                            <StackPanel Margin="104,20,14,0">
+                                <ui:TextBlock
+                                    Foreground="{StaticResource HomeText}"
+                                    FontSize="22"
+                                    FontWeight="Black"
+                                    Text="PING" />
+                                <ui:TextBlock
+                                    Margin="0,8,0,0"
+                                    Style="{StaticResource HomeMutedText}"
+                                    Text="Ajustes para estabilidade" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border
+                        Height="118"
+                        ClipToBounds="True"
+                        Style="{StaticResource HomeCard}">
+                        <Grid>
+                            <Rectangle Fill="#0E1016" />
+                            <Image
+                                Width="72"
+                                Height="72"
+                                Margin="16"
+                                HorizontalAlignment="Left"
+                                Source="pack://application:,,,/Resources/Images/NexxsensiLogo.png"
+                                Stretch="Uniform" />
+                            <StackPanel Margin="104,20,14,0">
+                                <ui:TextBlock
+                                    Foreground="{StaticResource HomeText}"
+                                    FontSize="22"
+                                    FontWeight="Black"
+                                    Text="ENERGIA" />
+                                <ui:TextBlock
+                                    Margin="0,8,0,0"
+                                    Style="{StaticResource HomeMutedText}"
+                                    Text="Plano gamer Nexxsensi" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </UniformGrid>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>
