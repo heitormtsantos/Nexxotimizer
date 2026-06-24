@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using optimizerDuck.Common.Helpers;
 using optimizerDuck.Domain.Configuration;
 using optimizerDuck.Domain.Execution;
+using optimizerDuck.Domain.Optimizations.Models.Bloatware;
 using optimizerDuck.Services.Optimization.Providers;
 using AppXPackage = optimizerDuck.Domain.Optimizations.Models.Bloatware.AppXPackage;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -23,6 +24,9 @@ public class BloatwareService(
     IOptionsMonitor<AppSettings> appOptionsMonitor
 )
 {
+    private const string EdgeDisplayName = "Microsoft Edge";
+    private const string EdgeSyntheticPackageName = "Microsoft.MicrosoftEdge.Stable.Win32";
+
     private static readonly ConcurrentDictionary<string, string?> LogoCache = new(
         StringComparer.OrdinalIgnoreCase
     );
@@ -85,8 +89,6 @@ public class BloatwareService(
 
             var apps = JsonSerializer.Deserialize<List<AppXPackage>>(result.Stdout, options)!;
 
-            apps.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
-
             foreach (var app in apps)
             {
                 if (string.IsNullOrWhiteSpace(app.InstallLocation))
@@ -103,6 +105,10 @@ public class BloatwareService(
                     /* Ignore access exceptions */
                 }
             }
+
+            AddMicrosoftEdgePackageIfInstalled(apps);
+
+            apps.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
 
             logger.LogInformation("Found {AppCount} AppX packages", apps.Count);
 
@@ -130,6 +136,12 @@ public class BloatwareService(
                     "Skip removing app because PackageFullName is empty: {Name}",
                     appXPackage.Name
                 );
+                return;
+            }
+
+            if (IsMicrosoftEdgePackage(appXPackage))
+            {
+                await RemoveMicrosoftEdgeAsync().ConfigureAwait(false);
                 return;
             }
 
@@ -200,6 +212,171 @@ public class BloatwareService(
         {
             logger.LogError(ex, "Failed removing AppX package {Name}", appXPackage.Name);
         }
+    }
+
+    private async Task RemoveMicrosoftEdgeAsync()
+    {
+        var setupPath = FindMicrosoftEdgeSetupPath();
+        if (setupPath == null)
+        {
+            logger.LogWarning("Microsoft Edge setup.exe was not found for removal");
+            return;
+        }
+
+        logger.LogInformation("Removing Microsoft Edge using {SetupPath}", setupPath);
+
+        var escapedSetupPath = EscapePowerShellSingleQuotedString(setupPath);
+        var result = await ShellService
+            .PowerShellAsync(
+                $$"""
+                $setupPath = '{{escapedSetupPath}}'
+                if (-not (Test-Path -LiteralPath $setupPath)) {
+                    throw "Desinstalador do Microsoft Edge nao encontrado."
+                }
+
+                $arguments = @(
+                    '--uninstall',
+                    '--system-level',
+                    '--verbose-logging',
+                    '--force-uninstall'
+                )
+
+                $process = Start-Process `
+                    -FilePath $setupPath `
+                    -ArgumentList $arguments `
+                    -Wait `
+                    -PassThru `
+                    -WindowStyle Hidden
+
+                if ($process.ExitCode -ne 0) {
+                    throw "Falha ao remover Microsoft Edge. Codigo: $($process.ExitCode)"
+                }
+
+                Write-Output "Microsoft Edge removido."
+                """
+            )
+            .ConfigureAwait(false);
+
+        if (result.ExitCode != 0 || !string.IsNullOrWhiteSpace(result.Stderr))
+            logger.LogWarning(
+                "Microsoft Edge removal returned ExitCode={ExitCode}. Error={Error}",
+                result.ExitCode,
+                result.Stderr
+            );
+    }
+
+    private static void AddMicrosoftEdgePackageIfInstalled(List<AppXPackage> apps)
+    {
+        if (apps.Any(IsMicrosoftEdgePackage))
+            return;
+
+        var setupPath = FindMicrosoftEdgeSetupPath();
+        if (setupPath == null)
+            return;
+
+        var edgeInstallLocation = Directory.GetParent(Directory.GetParent(setupPath)!.FullName)!
+            .FullName;
+
+        apps.Add(
+            new AppXPackage
+            {
+                Name = EdgeDisplayName,
+                PackageFullName = EdgeSyntheticPackageName,
+                Publisher = "Microsoft Corporation",
+                Version = GetMicrosoftEdgeVersion(edgeInstallLocation),
+                InstallLocation = edgeInstallLocation,
+                Risk = AppRisk.Caution,
+            }
+        );
+    }
+
+    private static bool IsMicrosoftEdgePackage(AppXPackage appXPackage)
+    {
+        if (appXPackage.Name.Contains("WebView", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (
+            appXPackage.PackageFullName.Equals(
+                EdgeSyntheticPackageName,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+            return true;
+
+        return appXPackage.Name.Equals(EdgeDisplayName, StringComparison.OrdinalIgnoreCase)
+            || appXPackage.Name.Equals(
+                "Microsoft.MicrosoftEdge",
+                StringComparison.OrdinalIgnoreCase
+            )
+            || appXPackage.Name.Equals(
+                "Microsoft.MicrosoftEdge.Stable",
+                StringComparison.OrdinalIgnoreCase
+            );
+    }
+
+    private static string? FindMicrosoftEdgeSetupPath()
+    {
+        return GetMicrosoftEdgeSetupCandidates()
+            .Select(path => new
+            {
+                Path = path,
+                Version = TryGetVersionFromEdgeSetupPath(path),
+            })
+            .OrderByDescending(x => x.Version)
+            .Select(x => x.Path)
+            .FirstOrDefault();
+    }
+
+    private static IEnumerable<string> GetMicrosoftEdgeSetupCandidates()
+    {
+        var roots = new[]
+            {
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            }
+            .Where(root => !string.IsNullOrWhiteSpace(root))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var root in roots)
+        {
+            var applicationPath = Path.Combine(root, "Microsoft", "Edge", "Application");
+            if (!Directory.Exists(applicationPath))
+                continue;
+
+            IEnumerable<string> versionDirectories;
+            try
+            {
+                versionDirectories = Directory.EnumerateDirectories(applicationPath).ToList();
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var versionDirectory in versionDirectories)
+            {
+                var setupPath = Path.Combine(versionDirectory, "Installer", "setup.exe");
+                if (File.Exists(setupPath))
+                    yield return setupPath;
+            }
+        }
+    }
+
+    private static Version TryGetVersionFromEdgeSetupPath(string setupPath)
+    {
+        var versionDirectory = Directory.GetParent(Directory.GetParent(setupPath)!.FullName)!.Name;
+        return Version.TryParse(versionDirectory, out var version) ? version : new Version(0, 0);
+    }
+
+    private static string GetMicrosoftEdgeVersion(string edgeInstallLocation)
+    {
+        var version = Path.GetFileName(edgeInstallLocation);
+        return string.IsNullOrWhiteSpace(version) ? "Instalado" : version;
+    }
+
+    private static string EscapePowerShellSingleQuotedString(string value)
+    {
+        return value.Replace("'", "''");
     }
 
     private static string? ResolveLogo(string installLocation)
