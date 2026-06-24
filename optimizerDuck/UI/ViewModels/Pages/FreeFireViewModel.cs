@@ -2,12 +2,17 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Management;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 using optimizerDuck.Common.Helpers;
+using optimizerDuck.Domain.Configuration;
 using optimizerDuck.Services.UI;
 using optimizerDuck.Services.System;
 using Wpf.Ui;
@@ -18,11 +23,15 @@ namespace optimizerDuck.UI.ViewModels.Pages;
 public partial class FreeFireViewModel(
     ILogger<FreeFireViewModel> logger,
     ISnackbarService snackbarService,
-    ActivationService activationService
+    ActivationService activationService,
+    StreamService streamService,
+    IOptionsMonitor<AppSettings> appSettingsMonitor
 ) : ViewModel
 {
     private const string RecommendedEmulatorUrl =
         "https://www.ldplayer.net/games/garena-free-fire-on-pc.html";
+    private readonly HttpClient _downloadsClient = new() { Timeout = TimeSpan.FromMinutes(30) };
+    private readonly AppSettings.AppOptions _appOptions = appSettingsMonitor.CurrentValue.App;
 
     private static readonly EmulatorDefinition[] KnownEmulators =
     [
@@ -49,7 +58,14 @@ public partial class FreeFireViewModel(
     [ObservableProperty]
     private string _virtualizationStatus = "Verificando...";
 
+    [ObservableProperty]
+    private bool _isLoadingDownloads;
+
+    [ObservableProperty]
+    private string _downloadsStatus = "Carregando biblioteca gamer...";
+
     public ObservableCollection<EmulatorStatus> Emulators { get; } = [];
+    public ObservableCollection<GameDownloadItemViewModel> Downloads { get; } = [];
 
     protected override async Task InitializeOnceAsync()
     {
@@ -60,8 +76,10 @@ public partial class FreeFireViewModel(
     private async Task RefreshAsync()
     {
         BoostStatus = "Diagnostico atualizado. Nenhuma alteracao aplicada.";
+        IsLoadingDownloads = true;
+        DownloadsStatus = "Atualizando downloads da central gamer...";
 
-        await Task.Run(() =>
+        var diagnosticsTask = Task.Run(() =>
         {
             var emulators = KnownEmulators.Select(BuildStatus).Where(e => e.IsRunning).ToList();
             var ram = RamProvider.Get();
@@ -81,6 +99,9 @@ public partial class FreeFireViewModel(
                 RecommendedAction = BuildRecommendation(emulators, ram.AvailableGB, powerPlan);
             });
         });
+        var downloadsTask = LoadDownloadsAsync();
+
+        await Task.WhenAll(diagnosticsTask, downloadsTask);
     }
 
     [RelayCommand]
@@ -184,6 +205,114 @@ public partial class FreeFireViewModel(
         }
     }
 
+    [RelayCommand]
+    private async Task DownloadPackageAsync(GameDownloadItemViewModel item)
+    {
+        if (item == null)
+            return;
+
+        if (!await EnsureActivationAsync(openDialogWhenLocked: true))
+            return;
+
+        item.IsDownloading = true;
+        item.IsDownloaded = false;
+        item.DownloadPercent = 0;
+        item.DownloadStatus = "Preparando download...";
+
+        var absoluteUrl = BuildAbsoluteDownloadUrl(item.DownloadUrl);
+        var progress = new Progress<DownloadProgressInfo>(p =>
+        {
+            item.DownloadPercent = p.Percent ?? 0;
+            item.DownloadStatus =
+                $"{item.DownloadPercent:0}% • {GameDownloadItemViewModel.FormatBytes(p.BytesReceived)}"
+                + (p.TotalBytes.HasValue
+                    ? $" / {GameDownloadItemViewModel.FormatBytes(p.TotalBytes.Value)}"
+                    : string.Empty)
+                + $" • {FormatSpeed(p.SpeedBytesPerSecond)}";
+        });
+
+        var result = await streamService.TryDownloadWithProgressAsync(
+            absoluteUrl,
+            item.OriginalFileName,
+            progress,
+            CancellationToken.None
+        );
+
+        item.IsDownloading = false;
+
+        if (!result.Success || string.IsNullOrWhiteSpace(result.FilePath))
+        {
+            item.DownloadStatus = result.ErrorMessage ?? "Falha no download.";
+            snackbarService.Show(
+                "Jogos",
+                item.DownloadStatus,
+                ControlAppearance.Caution,
+                new SymbolIcon { Symbol = SymbolRegular.Warning24 },
+                TimeSpan.FromSeconds(5)
+            );
+            return;
+        }
+
+        item.DownloadedFilePath = result.FilePath;
+        item.IsDownloaded = true;
+        item.DownloadPercent = 100;
+        item.DownloadStatus = $"Concluido • {item.DownloadedFileName}";
+
+        snackbarService.Show(
+            "Jogos",
+            $"Download concluido: {item.DownloadedFileName}",
+            ControlAppearance.Success,
+            new SymbolIcon { Symbol = SymbolRegular.CheckmarkCircle24 },
+            TimeSpan.FromSeconds(5)
+        );
+    }
+
+    [RelayCommand]
+    private void OpenDownloadedFile(GameDownloadItemViewModel item)
+    {
+        if (item == null || string.IsNullOrWhiteSpace(item.DownloadedFilePath) || !File.Exists(item.DownloadedFilePath))
+            return;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = item.DownloadedFilePath, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to open downloaded file {FilePath}", item.DownloadedFilePath);
+            snackbarService.Show(
+                "Jogos",
+                "Nao foi possivel abrir o arquivo baixado.",
+                ControlAppearance.Caution,
+                new SymbolIcon { Symbol = SymbolRegular.Warning24 },
+                TimeSpan.FromSeconds(5)
+            );
+        }
+    }
+
+    [RelayCommand]
+    private void OpenDownloadedFolder(GameDownloadItemViewModel item)
+    {
+        if (item == null || string.IsNullOrWhiteSpace(item.DownloadedFilePath) || !File.Exists(item.DownloadedFilePath))
+            return;
+
+        try
+        {
+            Process.Start("explorer.exe", $"/select,\"{item.DownloadedFilePath}\"");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to open downloaded file folder {FilePath}", item.DownloadedFilePath);
+            snackbarService.Show(
+                "Jogos",
+                "Nao foi possivel abrir a pasta do download.",
+                ControlAppearance.Caution,
+                new SymbolIcon { Symbol = SymbolRegular.Warning24 },
+                TimeSpan.FromSeconds(5)
+            );
+        }
+    }
+
     private static EmulatorStatus BuildStatus(EmulatorDefinition definition)
     {
         var processes = definition
@@ -239,6 +368,77 @@ public partial class FreeFireViewModel(
             return "Considere usar um plano de energia de alto desempenho antes de jogar.";
 
         return "Ambiente pronto para aplicar o boost de sessao do emulador.";
+    }
+
+    private async Task LoadDownloadsAsync()
+    {
+        try
+        {
+            var endpoint = $"{GetDownloadsApiBaseUrl().TrimEnd('/')}/api/optimizer-downloads";
+            var payload = await _downloadsClient.GetFromJsonAsync<List<OptimizerDownloadItem>>(endpoint);
+            var items = payload ?? [];
+
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                Downloads.Clear();
+                foreach (var entry in items.OrderBy(i => i.SortOrder).ThenBy(i => i.Title).Select((item, index) => new { item, index }))
+                {
+                    Downloads.Add(
+                        new GameDownloadItemViewModel
+                        {
+                            Id = entry.item.Id,
+                            Title = entry.item.Title,
+                            Description = entry.item.Description ?? string.Empty,
+                            Category = entry.item.Category,
+                            DownloadUrl = entry.item.DownloadUrl,
+                            OriginalFileName = entry.item.OriginalFileName ?? entry.item.Title,
+                            CoverImageUrl = entry.item.CoverImageUrl ?? string.Empty,
+                            ButtonLabel = string.IsNullOrWhiteSpace(entry.item.ButtonLabel) ? "Baixar agora" : entry.item.ButtonLabel,
+                            FileSizeBytes = entry.item.FileSizeBytes,
+                            MimeType = entry.item.MimeType ?? string.Empty,
+                            CreatedAt = entry.item.CreatedAt,
+                            IsFeatured = entry.index == 0,
+                        }
+                    );
+                }
+
+                IsLoadingDownloads = false;
+                DownloadsStatus = Downloads.Count == 0
+                    ? "Nenhum download gamer disponivel agora."
+                    : $"{Downloads.Count} download(s) disponivel(is) para a aba Jogos.";
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to load optimizer downloads");
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                Downloads.Clear();
+                IsLoadingDownloads = false;
+                DownloadsStatus = "Nao foi possivel carregar os downloads do servidor.";
+            });
+        }
+    }
+
+    private string GetDownloadsApiBaseUrl()
+    {
+        return string.IsNullOrWhiteSpace(_appOptions.DownloadsApiBaseUrl)
+            ? "http://localhost:3333"
+            : _appOptions.DownloadsApiBaseUrl;
+    }
+
+    private string BuildAbsoluteDownloadUrl(string downloadUrl)
+    {
+        if (Uri.TryCreate(downloadUrl, UriKind.Absolute, out var absoluteUri))
+            return absoluteUri.ToString();
+
+        var baseUrl = GetDownloadsApiBaseUrl().TrimEnd('/');
+        return $"{baseUrl}/{downloadUrl.TrimStart('/')}";
+    }
+
+    private static string FormatSpeed(double bytesPerSecond)
+    {
+        return $"{GameDownloadItemViewModel.FormatBytes((long)bytesPerSecond)}/s";
     }
 
     private static string GetActivePowerPlan()
@@ -421,9 +621,9 @@ public partial class FreeFireViewModel(
 
     private sealed record CleanupResult(int DeletedItems, int FailedItems);
 
-    private async Task<bool> EnsureActivationAsync()
+    private async Task<bool> EnsureActivationAsync(bool openDialogWhenLocked = false)
     {
-        if (await activationService.EnsureActivatedAsync())
+        if (await activationService.EnsureActivatedAsync(openDialogWhenLocked))
             return true;
 
         snackbarService.Show(
@@ -446,3 +646,27 @@ public sealed record EmulatorStatus(
     string Status,
     string Detail
 );
+
+public sealed record OptimizerDownloadItem
+{
+    public string Id { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public string Category { get; init; } = string.Empty;
+    [JsonPropertyName("download_url")]
+    public string DownloadUrl { get; init; } = string.Empty;
+    [JsonPropertyName("original_file_name")]
+    public string? OriginalFileName { get; init; }
+    [JsonPropertyName("file_size_bytes")]
+    public long? FileSizeBytes { get; init; }
+    [JsonPropertyName("mime_type")]
+    public string? MimeType { get; init; }
+    [JsonPropertyName("cover_image_url")]
+    public string? CoverImageUrl { get; init; }
+    [JsonPropertyName("button_label")]
+    public string? ButtonLabel { get; init; }
+    [JsonPropertyName("sort_order")]
+    public int SortOrder { get; init; }
+    [JsonPropertyName("created_at")]
+    public DateTimeOffset? CreatedAt { get; init; }
+}

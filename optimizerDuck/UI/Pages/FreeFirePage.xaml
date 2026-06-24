@@ -17,6 +17,7 @@
     Style="{StaticResource PageRootStyle}"
     mc:Ignorable="d">
     <Page.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:BooleanToVisibilityConverter
             x:Key="InverseBooleanToVisibilityConverter"
             False="Visible"
@@ -64,19 +65,78 @@
             </Border>
 
             <Border
-                Height="230"
-                Margin="0,0,0,20"
-                Background="#07080C"
-                BorderBrush="#2A1117"
+                Height="116"
+                Margin="0,0,0,14"
+                Background="#0A0F19"
+                BorderBrush="#1F2430"
                 BorderThickness="1"
                 ClipToBounds="True"
-                CornerRadius="8">
-                <Image
-                    Source="pack://application:,,,/Resources/Images/Jogos.png"
-                    Stretch="UniformToFill" />
+                CornerRadius="10">
+                <Grid>
+                    <Image
+                        Opacity="0.82"
+                        Source="pack://application:,,,/Resources/Images/Jogos.png"
+                        Stretch="UniformToFill" />
+                    <Grid Background="#3A071033">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="240" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Margin="24,18,0,18">
+                            <ui:TextBlock
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                Text="Otimize seu emulador," />
+                            <ui:TextBlock
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                                Text="libere memoria" />
+                            <ui:TextBlock
+                                Margin="0,8,0,0"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="Mais desempenho. Menos travamentos. Vitoria garantida." />
+                        </StackPanel>
+
+                        <Border
+                            Grid.Column="1"
+                            Margin="0,16,18,16"
+                            Padding="18,12"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Background="#77060A12"
+                            BorderBrush="#3A2638"
+                            BorderThickness="1"
+                            CornerRadius="999">
+                            <StackPanel>
+                                <ui:SymbolIcon
+                                    HorizontalAlignment="Center"
+                                    FontSize="26"
+                                    Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                                    Symbol="Rocket24" />
+                                <ui:TextBlock
+                                    Margin="0,4,0,0"
+                                    HorizontalAlignment="Center"
+                                    FontTypography="Caption"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    Text="MODO" />
+                                <ui:TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Text="GAMER" />
+                                <ui:TextBlock
+                                    HorizontalAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Foreground="#FF4B68"
+                                    Text="ATIVADO" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
             </Border>
 
-            <Grid Margin="0,0,0,20">
+            <Grid Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2*" />
                     <ColumnDefinition Width="12" />
@@ -86,37 +146,57 @@
                 <Border Style="{StaticResource CardSurfaceStyle}">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="150" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
                         <Border
-                            Width="56"
-                            Height="56"
-                            Margin="0,0,16,0"
-                            Background="{DynamicResource BrandPrimaryMutedBrush}"
-                            CornerRadius="28">
-                            <ui:SymbolIcon
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="28"
-                                Foreground="{DynamicResource BrandPrimaryBrightBrush}"
-                                Symbol="Rocket24" />
+                            Grid.Column="0"
+                            Width="120"
+                            Height="120"
+                            Margin="8,4,18,4"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Background="#0B1324"
+                            BorderBrush="#214CFF"
+                            BorderThickness="1"
+                            CornerRadius="60">
+                            <Border
+                                Margin="10"
+                                Background="#101D36"
+                                BorderBrush="#28D7FF"
+                                BorderThickness="1"
+                                CornerRadius="50">
+                                <ui:SymbolIcon
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    FontSize="42"
+                                    Foreground="#1BE1FF"
+                                    Symbol="Rocket24" />
+                            </Border>
                         </Border>
 
-                        <StackPanel Grid.Column="1">
+                        <StackPanel Grid.Column="1" Margin="0,2,0,0">
                             <ui:TextBlock FontTypography="BodyStrong" Text="Status do boost" />
                             <ui:TextBlock
-                                Margin="0,4,0,0"
-                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Margin="0,14,0,0"
+                                Foreground="{DynamicResource BrandSuccessBrush}"
                                 Text="{Binding ViewModel.BoostStatus}"
                                 TextWrapping="Wrap" />
                             <ui:TextBlock
                                 Margin="0,12,0,0"
-                                FontTypography="Caption"
-                                Foreground="{DynamicResource BrandSuccessBrush}"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                 Text="{Binding ViewModel.RecommendedAction}"
                                 TextWrapping="Wrap" />
+                            <ui:Button
+                                Margin="0,16,0,0"
+                                HorizontalAlignment="Left"
+                                Appearance="Primary"
+                                Command="{Binding ViewModel.ApplySessionBoostCommand}"
+                                Content="Atualizar agora"
+                                Cursor="Hand"
+                                Foreground="{DynamicResource AccentButtonForeground}"
+                                Icon="{ui:SymbolIcon ArrowClockwise24}" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -124,110 +204,200 @@
                 <Border Grid.Column="2" Style="{StaticResource CardSurfaceStyle}">
                     <StackPanel>
                         <ui:TextBlock FontTypography="BodyStrong" Text="Atalhos" />
-                        <ui:Button
-                            Margin="0,12,0,0"
-                            HorizontalAlignment="Stretch"
-                            Appearance="Primary"
-                            Command="{Binding ViewModel.ApplySessionBoostCommand}"
-                            Content="Boost gamer"
-                            Cursor="Hand"
-                            Foreground="{DynamicResource AccentButtonForeground}"
-                            IsEnabled="{Binding Activation.IsActivated}"
-                            Icon="{ui:SymbolIcon Rocket24}" />
-                        <ui:Button
-                            Margin="0,10,0,0"
-                            HorizontalAlignment="Stretch"
-                            Appearance="Secondary"
-                            Command="{Binding ViewModel.InstallEmulatorCommand}"
-                            Content="Instalar emulador"
-                            Cursor="Hand"
-                            IsEnabled="{Binding Activation.IsActivated}"
-                            Icon="{ui:SymbolIcon ArrowDownload24}" />
-                        <ui:Button
-                            Margin="0,10,0,0"
-                            HorizontalAlignment="Stretch"
-                            Appearance="Secondary"
-                            Command="{Binding ViewModel.RefreshCommand}"
-                            Content="Atualizar leitura"
-                            Cursor="Hand"
-                            Icon="{ui:SymbolIcon ArrowClockwise24}" />
-                        <ui:Button
-                            Margin="0,10,0,0"
-                            HorizontalAlignment="Stretch"
-                            Appearance="Secondary"
-                            Command="{Binding ViewModel.OpenGameSettingsCommand}"
-                            Content="Config. de jogos do Windows"
-                            Cursor="Hand"
-                            IsEnabled="{Binding Activation.IsActivated}"
-                            Icon="{ui:SymbolIcon Settings24}" />
+                        <UniformGrid Margin="0,12,0,0" Columns="2">
+                            <ui:Button
+                                Margin="0,0,6,6"
+                                HorizontalAlignment="Stretch"
+                                Appearance="Secondary"
+                                Command="{Binding ViewModel.ApplySessionBoostCommand}"
+                                Content="Boost gamer"
+                                Cursor="Hand"
+                                Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                                IsEnabled="{Binding Activation.IsActivated}"
+                                Icon="{ui:SymbolIcon Rocket24}" />
+                            <ui:Button
+                                Margin="6,0,0,6"
+                                HorizontalAlignment="Stretch"
+                                Appearance="Secondary"
+                                Command="{Binding ViewModel.InstallEmulatorCommand}"
+                                Content="Instalar emulador"
+                                Cursor="Hand"
+                                Foreground="#BC71FF"
+                                IsEnabled="{Binding Activation.IsActivated}"
+                                Icon="{ui:SymbolIcon ArrowDownload24}" />
+                            <ui:Button
+                                Margin="0,6,6,0"
+                                HorizontalAlignment="Stretch"
+                                Appearance="Secondary"
+                                Command="{Binding ViewModel.RefreshCommand}"
+                                Content="Atualizar leitura"
+                                Cursor="Hand"
+                                Foreground="#3F8FFF"
+                                Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                            <ui:Button
+                                Margin="6,6,0,0"
+                                HorizontalAlignment="Stretch"
+                                Appearance="Secondary"
+                                Command="{Binding ViewModel.OpenGameSettingsCommand}"
+                                Content="Config. de jogos do Windows"
+                                Cursor="Hand"
+                                Foreground="#B05CFF"
+                                IsEnabled="{Binding Activation.IsActivated}"
+                                Icon="{ui:SymbolIcon Settings24}" />
+                        </UniformGrid>
                     </StackPanel>
                 </Border>
             </Grid>
 
             <UniformGrid
-                Margin="0,0,0,20"
+                Margin="0,0,0,16"
                 Columns="3">
                 <Border Margin="0,0,12,0" Style="{StaticResource CardSurfaceStyle}">
-                    <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="44" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border
+                            Width="36"
+                            Height="36"
+                            Background="#1C2640"
+                            CornerRadius="18">
+                            <ui:SymbolIcon
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Foreground="#4F79FF"
+                                Symbol="Flash24" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                            <ui:TextBlock FontTypography="Caption" Text="Plano de energia" />
+                            <ui:TextBlock
+                                Margin="0,4,0,0"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="{Binding ViewModel.PowerPlan}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
                         <ui:SymbolIcon
-                            Foreground="{DynamicResource BrandPrimaryBrightBrush}"
-                            Symbol="BatteryCharge24" />
-                        <ui:TextBlock
-                            Margin="0,8,0,0"
-                            FontTypography="BodyStrong"
-                            Text="Plano de energia" />
-                        <ui:TextBlock
-                            Margin="0,4,0,0"
-                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                            Text="{Binding ViewModel.PowerPlan}"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
+                            Grid.Column="2"
+                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                            Symbol="ChevronRight24" />
+                    </Grid>
                 </Border>
 
                 <Border Margin="0,0,12,0" Style="{StaticResource CardSurfaceStyle}">
-                    <StackPanel>
-                        <ui:SymbolIcon
-                            Foreground="{DynamicResource BrandSuccessBrush}"
-                            Symbol="Memory16" />
-                        <ui:TextBlock
-                            Margin="0,8,0,0"
-                            FontTypography="BodyStrong"
-                            Text="Memoria disponivel" />
-                        <ui:TextBlock
-                            Margin="0,4,0,0"
-                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                            Text="{Binding ViewModel.RamStatus}"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="44" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border
+                            Width="36"
+                            Height="36"
+                            Background="#172C2D"
+                            CornerRadius="18">
+                            <ui:SymbolIcon
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Foreground="#1CE0A7"
+                                Symbol="Memory16" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                            <ui:TextBlock FontTypography="Caption" Text="Memoria disponivel" />
+                            <ui:TextBlock
+                                Margin="0,4,0,0"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="{Binding ViewModel.RamStatus}"
+                                TextWrapping="Wrap" />
+                            <ProgressBar
+                                Height="8"
+                                Margin="0,10,0,0"
+                                Maximum="100"
+                                Value="78" />
+                            <ui:TextBlock
+                                Margin="0,6,0,0"
+                                HorizontalAlignment="Right"
+                                FontTypography="Caption"
+                                Foreground="{DynamicResource BrandPrimaryBrightBrush}"
+                                Text="78% em uso" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
                 <Border Style="{StaticResource CardSurfaceStyle}">
-                    <StackPanel>
-                        <ui:SymbolIcon
-                            Foreground="{DynamicResource BrandPrimaryBrightBrush}"
-                            Symbol="DeveloperBoard24" />
-                        <ui:TextBlock
-                            Margin="0,8,0,0"
-                            FontTypography="BodyStrong"
-                            Text="Virtualizacao" />
-                        <ui:TextBlock
-                            Margin="0,4,0,0"
-                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                            Text="{Binding ViewModel.VirtualizationStatus}"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="44" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border
+                            Width="36"
+                            Height="36"
+                            Background="#231B35"
+                            CornerRadius="18">
+                            <ui:SymbolIcon
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Foreground="#9B67FF"
+                                Symbol="DeveloperBoard24" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                            <ui:TextBlock FontTypography="Caption" Text="Virtualizacao" />
+                            <ui:TextBlock
+                                Margin="0,4,0,0"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="{Binding ViewModel.VirtualizationStatus}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Border
+                            Grid.Column="2"
+                            Padding="10,4"
+                            Background="#173425"
+                            CornerRadius="999">
+                            <ui:TextBlock
+                                FontTypography="Caption"
+                                Foreground="{DynamicResource BrandSuccessBrush}"
+                                Text="ATIVO" />
+                        </Border>
+                    </Grid>
                 </Border>
             </UniformGrid>
 
-            <ui:TextBlock
-                Margin="0,0,0,8"
-                FontTypography="BodyStrong"
-                Text="Emulador aberto no momento" />
-            <ui:TextBlock
+            <Border
                 Margin="0,0,0,10"
-                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                Text="A lista abaixo mostra apenas emuladores em execucao. Se estiver vazia, instale ou abra o emulador e clique em Atualizar leitura."
-                TextWrapping="Wrap" />
+                Padding="16"
+                Style="{StaticResource CardSurfaceStyle}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Border
+                        Width="40"
+                        Height="40"
+                        Margin="0,0,12,0"
+                        Background="#18253A"
+                        CornerRadius="20">
+                        <ui:SymbolIcon
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Foreground="#4B8FFF"
+                            Symbol="Apps24" />
+                    </Border>
+                    <StackPanel Grid.Column="1">
+                        <ui:TextBlock FontTypography="BodyStrong" Text="Emulador aberto no momento" />
+                        <ui:TextBlock
+                            Margin="0,4,0,0"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="A lista abaixo mostra apenas emuladores em execucao. Se estiver vazia, instale ou abra o emulador e clique em Atualizar leitura."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ui:Button
+                        Grid.Column="2"
+                        Appearance="Secondary"
+                        Command="{Binding ViewModel.RefreshCommand}"
+                        Content="Atualizar leitura"
+                        Cursor="Hand"
+                        Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                </Grid>
+            </Border>
 
             <ItemsControl ItemsSource="{Binding ViewModel.Emulators}">
                 <ItemsControl.ItemTemplate>
@@ -283,6 +453,224 @@
                                     Cursor="Hand"
                                     Icon="{ui:SymbolIcon FolderOpen24}" />
                             </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ui:TextBlock
+                Margin="0,22,0,8"
+                FontTypography="BodyStrong"
+                Text="Downloads gamer" />
+            <ui:TextBlock
+                Margin="0,0,0,10"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{Binding ViewModel.DownloadsStatus}"
+                TextWrapping="Wrap" />
+
+            <Border
+                Margin="0,0,0,12"
+                Padding="16"
+                Background="#101725"
+                BorderBrush="#2A3344"
+                BorderThickness="1"
+                CornerRadius="8"
+                Visibility="{Binding ViewModel.IsLoadingDownloads, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <ProgressBar
+                        Width="160"
+                        Height="8"
+                        Margin="0,6,12,0"
+                        IsIndeterminate="True" />
+                    <ui:TextBlock
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="Buscando downloads liberados no servidor..." />
+                </StackPanel>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding ViewModel.Downloads}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Width="340"
+                            Margin="0,0,16,16"
+                            Background="#171B22"
+                            BorderBrush="#2B313D"
+                            BorderThickness="1"
+                            CornerRadius="10">
+                            <StackPanel>
+                                <Border
+                                    Height="210"
+                                    Background="#0B0F19"
+                                    CornerRadius="10,10,0,0">
+                                    <Grid>
+                                        <Image
+                                            Stretch="UniformToFill"
+                                            Source="{Binding CoverImageUrl}"
+                                            Visibility="{Binding HasCover, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <Border
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Margin="0,12,12,0"
+                                            Padding="10,5"
+                                            Background="#FF8E1C"
+                                            CornerRadius="0,0,0,8"
+                                            Visibility="{Binding IsFeatured, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon
+                                                    Margin="0,0,6,0"
+                                                    FontSize="12"
+                                                    Foreground="White"
+                                                    Symbol="Star24" />
+                                                <ui:TextBlock
+                                                    FontTypography="Caption"
+                                                    Foreground="White"
+                                                    Text="DESTAQUE" />
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding HasCover, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                            <ui:SymbolIcon
+                                                HorizontalAlignment="Center"
+                                                FontSize="30"
+                                                Foreground="#FF8E1C"
+                                                Symbol="ArrowDownload24" />
+                                            <ui:TextBlock
+                                                Margin="0,8,0,0"
+                                                HorizontalAlignment="Center"
+                                                Foreground="White"
+                                                Text="{Binding Category}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <StackPanel Margin="16,14,16,16">
+                                    <ui:TextBlock
+                                        FontSize="17"
+                                        FontWeight="SemiBold"
+                                        Text="{Binding Title}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <ui:TextBlock
+                                        Margin="0,4,0,0"
+                                        FontTypography="Caption"
+                                        Foreground="#AAB3C0"
+                                        Text="{Binding Description}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                                        <Border
+                                            Padding="10,4"
+                                            Background="#262B36"
+                                            CornerRadius="999">
+                                            <ui:TextBlock Text="Jogos" />
+                                        </Border>
+                                        <Border
+                                            Margin="8,0,0,0"
+                                            Padding="10,4"
+                                            Background="#262B36"
+                                            CornerRadius="999">
+                                            <ui:TextBlock Text="{Binding PlatformTag}" />
+                                        </Border>
+                                        <Border
+                                            Margin="8,0,0,0"
+                                            Padding="10,4"
+                                            Background="#262B36"
+                                            CornerRadius="999">
+                                            <ui:TextBlock Text="{Binding Category}" />
+                                        </Border>
+                                    </StackPanel>
+
+                                    <Grid Margin="0,18,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border
+                                                Width="42"
+                                                Height="42"
+                                                Background="#2F57CC"
+                                                CornerRadius="21">
+                                                <ui:SymbolIcon
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="White"
+                                                    Symbol="Calendar24" />
+                                            </Border>
+                                            <StackPanel Margin="10,0,0,0">
+                                                <ui:TextBlock
+                                                    FontTypography="Caption"
+                                                    Foreground="#AAB3C0"
+                                                    Text="Atualizado em" />
+                                                <ui:TextBlock
+                                                    FontSize="19"
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding UpdatedAtLabel}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                                            <ui:TextBlock
+                                                HorizontalAlignment="Right"
+                                                FontTypography="Caption"
+                                                Foreground="#AAB3C0"
+                                                Text="Tamanho" />
+                                            <ui:TextBlock
+                                                HorizontalAlignment="Right"
+                                                FontSize="19"
+                                                FontWeight="SemiBold"
+                                                Text="{Binding FileSizeLabel}" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <ProgressBar
+                                        Height="10"
+                                        Margin="0,14,0,0"
+                                        Maximum="100"
+                                        Value="{Binding DownloadPercent}" />
+                                    <ui:TextBlock
+                                        Margin="0,8,0,0"
+                                        Foreground="#AAB3C0"
+                                        Text="{Binding DownloadStatus}"
+                                        TextWrapping="Wrap" />
+
+                                    <ui:Button
+                                        Margin="0,14,0,0"
+                                        Appearance="Primary"
+                                        Command="{Binding DataContext.ViewModel.DownloadPackageCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        Content="Baixar agora"
+                                        Cursor="Hand"
+                                        Foreground="White"
+                                        Icon="{ui:SymbolIcon ArrowDownload24}" />
+
+                                    <UniformGrid Margin="0,10,0,0" Columns="2">
+                                        <ui:Button
+                                            Margin="0,0,6,0"
+                                            Appearance="Secondary"
+                                            Command="{Binding DataContext.ViewModel.OpenDownloadedFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            Content="Abrir arquivo"
+                                            Cursor="Hand"
+                                            IsEnabled="{Binding IsDownloaded}"
+                                            Icon="{ui:SymbolIcon Document24}" />
+                                        <ui:Button
+                                            Margin="6,0,0,0"
+                                            Appearance="Secondary"
+                                            Command="{Binding DataContext.ViewModel.OpenDownloadedFolderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            Content="Abrir pasta"
+                                            Cursor="Hand"
+                                            IsEnabled="{Binding IsDownloaded}"
+                                            Icon="{ui:SymbolIcon FolderOpen24}" />
+                                    </UniformGrid>
+                                </StackPanel>
+                            </StackPanel>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

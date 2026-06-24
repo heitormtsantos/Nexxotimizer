@@ -107,7 +107,7 @@
                 Grid.Row="1"
                 AutomationProperties.AutomationId="NavigationItemItems"
                 Focusable="False"
-                ItemsSource="{TemplateBinding MenuItems}"
+                ItemsSource="{Binding MenuItems, RelativeSource={RelativeSource TemplatedParent}}"
                 KeyboardNavigation.DirectionalNavigation="Contained"
                 Opacity="0.0"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -479,7 +479,7 @@
                     <ItemsControl
                         x:Name="SubMenuItemsPresenter"
                         Focusable="False"
-                        ItemsSource="{TemplateBinding MenuItems}"
+                        ItemsSource="{Binding MenuItems, RelativeSource={RelativeSource TemplatedParent}}"
                         KeyboardNavigation.DirectionalNavigation="Contained"
                         Opacity="0.0"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"

@@ -234,7 +234,12 @@ public class BloatwareService(
                     throw "Desinstalador do Microsoft Edge nao encontrado."
                 }
 
+                Get-Process msedge,msedgewebview2,MicrosoftEdgeUpdate -ErrorAction SilentlyContinue |
+                    Stop-Process -Force -ErrorAction SilentlyContinue
+
                 $arguments = @(
+                    '--msedge',
+                    '--channel=stable',
                     '--uninstall',
                     '--system-level',
                     '--verbose-logging',
@@ -252,6 +257,22 @@ public class BloatwareService(
                     throw "Falha ao remover Microsoft Edge. Codigo: $($process.ExitCode)"
                 }
 
+                Start-Sleep -Seconds 2
+
+                $edgeStillInstalled = $false
+                $edgePaths = @(
+                    Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe',
+                    Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe'
+                ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
+
+                if ($edgePaths.Count -gt 0) {
+                    $edgeStillInstalled = $true
+                }
+
+                if ($edgeStillInstalled) {
+                    throw "Microsoft Edge ainda esta presente apos a desinstalacao."
+                }
+
                 Write-Output "Microsoft Edge removido."
                 """
             )
@@ -263,6 +284,9 @@ public class BloatwareService(
                 result.ExitCode,
                 result.Stderr
             );
+
+        if (FindMicrosoftEdgeSetupPath() != null)
+            throw new InvalidOperationException("Microsoft Edge ainda esta instalado apos a tentativa de remocao.");
     }
 
     private static void AddMicrosoftEdgePackageIfInstalled(List<AppXPackage> apps)

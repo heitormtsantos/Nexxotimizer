@@ -41,6 +41,11 @@ public sealed class AppSettings
         ///     Whether the user has accepted the legal terms.
         /// </summary>
         public bool LegalAccepted { get; set; } = false;
+
+        /// <summary>
+        ///     Base URL of the Onexxt backend used by the Jogos downloads area.
+        /// </summary>
+        public string DownloadsApiBaseUrl { get; set; } = "http://localhost:3333";
     }
 
     /// <summary>

@@ -272,33 +272,6 @@
                                 <ui:CardAction
                                     Margin="0,0,0,4"
                                     Padding="16,14"
-                                    VerticalAlignment="Stretch"
-                                    Command="{Binding ViewModel.OpenWebsiteCommand}"
-                                    CommandParameter="Documentation"
-                                    Cursor="Hand"
-                                    Icon="{ui:SymbolIcon Book20}"
-                                    IsChevronVisible="False">
-                                    <StackPanel>
-                                        <Grid ColumnDefinitions="* Auto">
-                                            <StackPanel>
-                                                <ui:TextBlock FontTypography="BodyStrong" Text="{ext:Loc Settings.About.Documentation.Title}" />
-                                                <ui:TextBlock
-                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                    Text="{ext:Loc Settings.About.Documentation.Description}"
-                                                    TextWrapping="Wrap" />
-                                            </StackPanel>
-
-                                            <ui:SymbolIcon
-                                                Grid.Column="1"
-                                                FontSize="20"
-                                                Symbol="Open24" />
-                                        </Grid>
-                                    </StackPanel>
-                                </ui:CardAction>
-
-                                <ui:CardAction
-                                    Margin="0,0,0,4"
-                                    Padding="16,14"
                                     Command="{Binding ViewModel.OpenWebsiteCommand}"
                                     CommandParameter="Help"
                                     Cursor="Hand"
@@ -313,38 +286,6 @@
                                             <ui:TextBlock
                                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                 Text="{ext:Loc Settings.About.NeedHelp.Description}"
-                                                TextWrapping="Wrap" />
-                                        </StackPanel>
-
-                                        <ui:SymbolIcon
-                                            Grid.Column="1"
-                                            FontSize="20"
-                                            Symbol="Open24" />
-                                    </Grid>
-                                </ui:CardAction>
-
-                                <ui:CardAction
-                                    Margin="0,0,0,4"
-                                    Padding="16,14"
-                                    VerticalAlignment="Stretch"
-                                    Command="{Binding ViewModel.OpenWebsiteCommand}"
-                                    CommandParameter="Acknowledgements"
-                                    Cursor="Hand"
-                                    IsChevronVisible="False">
-                                    <ui:CardAction.Icon>
-                                        <ui:SymbolIcon Symbol="DocumentHeart24" />
-                                    </ui:CardAction.Icon>
-
-                                    <Grid ColumnDefinitions="* Auto">
-                                        <StackPanel>
-                                            <ui:TextBlock
-                                                FontTypography="BodyStrong"
-                                                Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                Text="{ext:Loc Settings.About.Acknowledgements.Title}"
-                                                TextWrapping="Wrap" />
-                                            <ui:TextBlock
-                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                Text="{ext:Loc Settings.About.Acknowledgements.Description}"
                                                 TextWrapping="Wrap" />
                                         </StackPanel>
 

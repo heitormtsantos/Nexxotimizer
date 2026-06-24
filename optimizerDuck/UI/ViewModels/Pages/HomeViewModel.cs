@@ -12,6 +12,7 @@ public partial class HomeViewModel : ObservableObject, INavigationAware
     private readonly ILogger<HomeViewModel> _logger;
     private readonly SystemInfoService _systemInfoService;
     private readonly DispatcherTimer _updateTimer;
+    private bool _isRefreshingSilently;
 
     [ObservableProperty]
     private bool _isLoading;
@@ -25,7 +26,7 @@ public partial class HomeViewModel : ObservableObject, INavigationAware
         _logger = logger;
 
         _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _updateTimer.Tick += async (_, _) => await LoadAsync();
+        _updateTimer.Tick += async (_, _) => await RefreshRuntimeInfoAsync();
     }
 
     public DiskVolume? PrimaryVolume =>
@@ -73,7 +74,7 @@ public partial class HomeViewModel : ObservableObject, INavigationAware
 
     private async Task LoadAsync()
     {
-        if (IsLoading)
+        if (IsLoading || _isRefreshingSilently)
             return;
 
         IsLoading = true;
@@ -89,6 +90,27 @@ public partial class HomeViewModel : ObservableObject, INavigationAware
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    private async Task RefreshRuntimeInfoAsync()
+    {
+        if (IsLoading || _isRefreshingSilently)
+            return;
+
+        _isRefreshingSilently = true;
+
+        try
+        {
+            SystemInfo = await _systemInfoService.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to refresh home runtime info");
+        }
+        finally
+        {
+            _isRefreshingSilently = false;
         }
     }
 

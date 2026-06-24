@@ -51,7 +51,6 @@ public partial class MainWindow : IWindow
 
     internal void UpdatePendingIndicator(bool hasPending)
     {
-        AppTitleText.Text = hasPending ? $"{Shared.AppDisplayName}*" : Shared.AppDisplayName;
         Title = hasPending ? $"{Shared.AppDisplayName}*" : Shared.AppDisplayName;
     }
 
