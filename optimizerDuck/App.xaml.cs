@@ -338,6 +338,7 @@ public partial class App : Application
                     services.AddSingleton<SystemInfoService>();
                     services.AddSingleton<StreamService>();
                     services.AddSingleton<UpdaterService>();
+                    services.AddSingleton<ActivationService>();
                     services.AddSingleton<IRegistryWatcher, RegistryWatcher>();
                 }
             )
@@ -395,6 +396,18 @@ public partial class App : Application
                 ApplicationTheme.Dark,
                 updateAccent: false
             );
+
+            var activationService = _host.Services.GetRequiredService<ActivationService>();
+            var activation = activationService.ValidateStoredActivationAsync().GetAwaiter().GetResult();
+            if (!activation.Valid)
+            {
+                var activationWindow = new ActivationWindow(activationService);
+                if (activationWindow.ShowDialog() != true)
+                {
+                    Shutdown();
+                    return;
+                }
+            }
 
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             mainWindow.Closing += MainWindow_Closing;
