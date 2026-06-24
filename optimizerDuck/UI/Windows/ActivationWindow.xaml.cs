@@ -6,6 +6,7 @@ namespace optimizerDuck.UI.Windows;
 public partial class ActivationWindow : Window
 {
     private readonly ActivationService _activationService;
+    public ActivationValidationResponse? LastValidation { get; private set; }
 
     public ActivationWindow(ActivationService activationService)
     {
@@ -35,6 +36,7 @@ public partial class ActivationWindow : Window
                 return;
             }
 
+            LastValidation = result.Data;
             DialogResult = true;
             Close();
         }
@@ -48,5 +50,10 @@ public partial class ActivationWindow : Window
     {
         DialogResult = false;
         Close();
+    }
+
+    private void BuyKeyButton_Click(object sender, RoutedEventArgs e)
+    {
+        _activationService.OpenPurchasePageCommand.Execute(null);
     }
 }

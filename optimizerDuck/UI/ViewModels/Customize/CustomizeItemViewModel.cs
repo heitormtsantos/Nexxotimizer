@@ -7,6 +7,7 @@ using optimizerDuck.Domain.Customize.Models;
 using optimizerDuck.Domain.Execution;
 using optimizerDuck.Services.Configuration;
 using optimizerDuck.Services.System;
+using optimizerDuck.Services.UI;
 using Wpf.Ui.Controls;
 
 namespace optimizerDuck.UI.ViewModels.Customize;
@@ -14,7 +15,8 @@ namespace optimizerDuck.UI.ViewModels.Customize;
 public partial class CustomizeItemViewModel(
     ICustomizeSetting setting,
     ILoggerFactory loggerFactory,
-    IRegistryWatcher registryWatcher
+    IRegistryWatcher registryWatcher,
+    ActivationService activationService
 ) : ObservableObject, IDisposable
 {
     private readonly ILogger<CustomizeItemViewModel> _logger =
@@ -150,6 +152,12 @@ public partial class CustomizeItemViewModel(
     [RelayCommand]
     private void Toggle()
     {
+        if (!activationService.IsActivated)
+        {
+            activationService.OpenActivationWindow();
+            return;
+        }
+
         lock (_applyLock)
         {
             var currentTarget = _hasPendingValue ? (bool)_pendingValue! : IsEnabled;
@@ -171,6 +179,13 @@ public partial class CustomizeItemViewModel(
     {
         if (!_hasLoaded || ControlType == CustomizeControlType.Toggle)
             return;
+
+        if (!activationService.IsActivated)
+        {
+            activationService.OpenActivationWindow();
+            CurrentValue = setting.CurrentValue;
+            return;
+        }
 
         if (Equals(value, setting.CurrentValue))
             return;

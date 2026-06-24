@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using optimizerDuck.Common.Helpers;
+using optimizerDuck.Services.UI;
 using optimizerDuck.Services.System;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
@@ -16,7 +17,8 @@ namespace optimizerDuck.UI.ViewModels.Pages;
 
 public partial class FreeFireViewModel(
     ILogger<FreeFireViewModel> logger,
-    ISnackbarService snackbarService
+    ISnackbarService snackbarService,
+    ActivationService activationService
 ) : ViewModel
 {
     private const string RecommendedEmulatorUrl =
@@ -84,6 +86,9 @@ public partial class FreeFireViewModel(
     [RelayCommand]
     private async Task ApplySessionBoostAsync()
     {
+        if (!await EnsureActivationAsync())
+            return;
+
         var cleaned = await Task.Run(CleanGameCache);
         var targets = Emulators.Where(e => e.IsRunning).SelectMany(e => e.ProcessIds).Distinct();
         var boosted = 0;
@@ -119,6 +124,12 @@ public partial class FreeFireViewModel(
     [RelayCommand]
     private void InstallEmulator()
     {
+        if (!activationService.IsActivated)
+        {
+            activationService.OpenActivationWindow();
+            return;
+        }
+
         try
         {
             Process.Start(
@@ -409,6 +420,22 @@ public partial class FreeFireViewModel(
     private sealed record EmulatorDefinition(string DisplayName, string[] ProcessNames);
 
     private sealed record CleanupResult(int DeletedItems, int FailedItems);
+
+    private async Task<bool> EnsureActivationAsync()
+    {
+        if (await activationService.EnsureActivatedAsync())
+            return true;
+
+        snackbarService.Show(
+            "Key necessaria",
+            "Para ver esta funcao, ative sua key.",
+            ControlAppearance.Caution,
+            new SymbolIcon { Symbol = SymbolRegular.Key24 },
+            TimeSpan.FromSeconds(4)
+        );
+
+        return false;
+    }
 }
 
 public sealed record EmulatorStatus(

@@ -21,6 +21,7 @@ public partial class StartupManagerViewModel : ViewModel
     private readonly IContentDialogService _contentDialogService;
     private readonly ILogger<StartupManagerViewModel> _logger;
     private readonly StartupManagerService _startupManagerService;
+    private readonly ActivationService _activationService;
 
     // Per-section: Apps
     [ObservableProperty]
@@ -47,12 +48,14 @@ public partial class StartupManagerViewModel : ViewModel
     public StartupManagerViewModel(
         StartupManagerService startupManagerService,
         IContentDialogService contentDialogService,
-        ILogger<StartupManagerViewModel> logger
+        ILogger<StartupManagerViewModel> logger,
+        ActivationService activationService
     )
     {
         _startupManagerService = startupManagerService;
         _contentDialogService = contentDialogService;
         _logger = logger;
+        _activationService = activationService;
     }
 
     public ObservableCollection<StartupApp> Apps { get; } = [];
@@ -285,6 +288,14 @@ public partial class StartupManagerViewModel : ViewModel
     {
         if (e.PropertyName == nameof(StartupApp.IsEnabled) && sender is StartupApp app)
         {
+            if (!await _activationService.EnsureActivatedAsync(openDialogWhenLocked: true))
+            {
+                app.PropertyChanged -= App_PropertyChanged;
+                app.IsEnabled = !app.IsEnabled;
+                app.PropertyChanged += App_PropertyChanged;
+                return;
+            }
+
             try
             {
                 await _startupManagerService.ToggleStartupApp(app, app.IsEnabled);
@@ -300,6 +311,14 @@ public partial class StartupManagerViewModel : ViewModel
     {
         if (e.PropertyName == nameof(StartupTask.IsEnabled) && sender is StartupTask task)
         {
+            if (!await _activationService.EnsureActivatedAsync(openDialogWhenLocked: true))
+            {
+                task.PropertyChanged -= Task_PropertyChanged;
+                task.IsEnabled = !task.IsEnabled;
+                task.PropertyChanged += Task_PropertyChanged;
+                return;
+            }
+
             try
             {
                 await _startupManagerService.ToggleStartupTask(task, task.IsEnabled);

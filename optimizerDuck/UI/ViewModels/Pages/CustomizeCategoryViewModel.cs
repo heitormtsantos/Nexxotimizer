@@ -9,6 +9,7 @@ using optimizerDuck.Domain.Abstractions;
 using optimizerDuck.Domain.Customize.Models;
 using optimizerDuck.Resources.Languages;
 using optimizerDuck.Services.System;
+using optimizerDuck.Services.UI;
 using optimizerDuck.UI.ViewModels.Customize;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
@@ -53,7 +54,8 @@ public partial class CustomizeCategoryViewModel : ViewModel
     public CustomizeCategoryViewModel(
         ICustomizeCategory category,
         ILoggerFactory loggerFactory,
-        IRegistryWatcher registryWatcher
+        IRegistryWatcher registryWatcher,
+        ActivationService activationService
     )
     {
         _currentCategory = category;
@@ -66,7 +68,14 @@ public partial class CustomizeCategoryViewModel : ViewModel
 
         _allSettings.Clear();
         foreach (var setting in _currentCategory.Features)
-            _allSettings.Add(new CustomizeItemViewModel(setting, loggerFactory, registryWatcher));
+            _allSettings.Add(
+                new CustomizeItemViewModel(
+                    setting,
+                    loggerFactory,
+                    registryWatcher,
+                    activationService
+                )
+            );
 
         _ = InitializeAsync();
     }

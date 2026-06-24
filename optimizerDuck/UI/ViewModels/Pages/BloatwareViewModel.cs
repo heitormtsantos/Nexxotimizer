@@ -22,6 +22,7 @@ public partial class BloatwareViewModel : ViewModel
     private readonly BloatwareService _bloatwareService;
     private readonly IContentDialogService _contentDialogService;
     private readonly ILogger<BloatwareViewModel> _logger;
+    private readonly ActivationService _activationService;
 
     // Search, Filter, Sort
     [ObservableProperty]
@@ -39,12 +40,14 @@ public partial class BloatwareViewModel : ViewModel
     public BloatwareViewModel(
         BloatwareService bloatwareService,
         IContentDialogService contentDialogService,
-        ILogger<BloatwareViewModel> logger
+        ILogger<BloatwareViewModel> logger,
+        ActivationService activationService
     )
     {
         _bloatwareService = bloatwareService;
         _contentDialogService = contentDialogService;
         _logger = logger;
+        _activationService = activationService;
 
         AppxPackages.CollectionChanged += (_, e) =>
         {
@@ -180,6 +183,9 @@ public partial class BloatwareViewModel : ViewModel
     [RelayCommand(CanExecute = nameof(CanRemoveSelected))]
     private async Task RemoveSelected()
     {
+        if (!await _activationService.EnsureActivatedAsync(openDialogWhenLocked: true))
+            return;
+
         var toRemove = AppxPackages.Where(x => x.IsSelected).ToList();
         var confirmationViewModel = new BloatwareConfirmationDialogViewModel(toRemove);
 

@@ -14,6 +14,7 @@ using optimizerDuck.Domain.UI;
 using optimizerDuck.Resources.Languages;
 using optimizerDuck.Services.Optimization;
 using optimizerDuck.Services.Revert;
+using optimizerDuck.Services.UI;
 using optimizerDuck.UI.Dialogs;
 using optimizerDuck.UI.ViewModels.Dialogs;
 using Wpf.Ui;
@@ -43,6 +44,7 @@ public partial class OptimizationCategoryViewModel : ViewModel
     private readonly OptimizationService _optimizationService;
     private readonly RevertManager _revertManager;
     private readonly ISnackbarService _snackbarService;
+    private readonly ActivationService _activationService;
 
     public OptimizationCategoryViewModel(
         IOptimizationCategory category,
@@ -51,7 +53,8 @@ public partial class OptimizationCategoryViewModel : ViewModel
         ISnackbarService snackbarService,
         IContentDialogService contentDialogService,
         ILogger<OptimizationCategoryViewModel> logger,
-        IOptionsMonitor<AppSettings> appOptionsMonitor
+        IOptionsMonitor<AppSettings> appOptionsMonitor,
+        ActivationService activationService
     )
     {
         _category = category;
@@ -61,6 +64,7 @@ public partial class OptimizationCategoryViewModel : ViewModel
         _logger = logger;
         _contentDialogService = contentDialogService;
         _appOptionsMonitor = appOptionsMonitor;
+        _activationService = activationService;
     }
 
     #endregion
@@ -159,6 +163,9 @@ public partial class OptimizationCategoryViewModel : ViewModel
     [RelayCommand(CanExecute = nameof(CanToggleOptimization))]
     private async Task ToggleOptimizationAsync(IOptimization optimization)
     {
+        if (!await EnsureActivationAsync())
+            return;
+
         try
         {
             // Keep a stable reference to the previous state in case we need to roll back UI changes.
@@ -349,6 +356,22 @@ public partial class OptimizationCategoryViewModel : ViewModel
         {
             IsProcessing = false;
         }
+    }
+
+    private async Task<bool> EnsureActivationAsync()
+    {
+        if (await _activationService.EnsureActivatedAsync())
+            return true;
+
+        _snackbarService.Show(
+            "Key necessaria",
+            "Para ver esta funcao, ative sua key.",
+            ControlAppearance.Caution,
+            new SymbolIcon { Symbol = SymbolRegular.Key24, Filled = true },
+            TimeSpan.FromSeconds(4)
+        );
+
+        return false;
     }
 
     /// <summary>

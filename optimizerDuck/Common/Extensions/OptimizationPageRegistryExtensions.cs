@@ -8,6 +8,7 @@ using optimizerDuck.Domain.Attributes;
 using optimizerDuck.Domain.Configuration;
 using optimizerDuck.Services.Optimization;
 using optimizerDuck.Services.Revert;
+using optimizerDuck.Services.UI;
 using Wpf.Ui;
 using OptimizationCategoryViewModel = optimizerDuck.UI.ViewModels.Optimizer.OptimizationCategoryViewModel;
 
@@ -45,6 +46,7 @@ public static class OptimizationPageRegistryExtensions
         var contentDialogService = serviceProvider.GetRequiredService<IContentDialogService>();
         var logger = serviceProvider.GetRequiredService<ILogger<OptimizationCategoryViewModel>>();
         var appOptionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<AppSettings>>();
+        var activationService = serviceProvider.GetRequiredService<ActivationService>();
 
         var optimizationCategoryType = optimizationRegistry.GetCategory(categoryType);
 
@@ -55,9 +57,10 @@ public static class OptimizationPageRegistryExtensions
             snackbarService,
             contentDialogService,
             logger,
-            appOptionsMonitor
+            appOptionsMonitor,
+            activationService
         );
 
-        return Activator.CreateInstance(pageType, viewModel)!;
+        return Activator.CreateInstance(pageType, viewModel, activationService)!;
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using optimizerDuck.Common.Helpers;
 using optimizerDuck.Resources.Languages;
 using optimizerDuck.Services.System;
+using optimizerDuck.Services.UI;
 using Wpf.Ui;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
@@ -20,6 +21,7 @@ public partial class DashboardViewModel : ViewModel
     private readonly ISnackbarService _snackbarService;
     private readonly SystemInfoService _systemInfoService;
     private readonly UpdaterService _updaterService;
+    private readonly ActivationService _activationService;
 
     private readonly DispatcherTimer _updateTimer;
 
@@ -55,7 +57,8 @@ public partial class DashboardViewModel : ViewModel
         ISnackbarService snackbarService,
         ILogger<DashboardViewModel> logger,
         UpdaterService updaterService,
-        IContentDialogService contentDialogService
+        IContentDialogService contentDialogService,
+        ActivationService activationService
     )
     {
         _systemInfoService = systemInfoService;
@@ -63,6 +66,7 @@ public partial class DashboardViewModel : ViewModel
         _logger = logger;
         _updaterService = updaterService;
         _contentDialogService = contentDialogService;
+        _activationService = activationService;
 
         _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _updateTimer.Tick += async (s, e) => await UpdateRuntimeInfoAsync();
@@ -317,6 +321,15 @@ public partial class DashboardViewModel : ViewModel
     [RelayCommand]
     private void Run(string action)
     {
+        if (
+            string.Equals(action, "TaskManager", StringComparison.OrdinalIgnoreCase)
+            && !_activationService.IsActivated
+        )
+        {
+            _activationService.OpenActivationWindow();
+            return;
+        }
+
         try
         {
             switch (action)

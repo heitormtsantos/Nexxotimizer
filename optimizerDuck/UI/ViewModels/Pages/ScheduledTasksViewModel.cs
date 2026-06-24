@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using optimizerDuck.Resources.Languages;
 using optimizerDuck.Services.Optimization.Providers;
+using optimizerDuck.Services.UI;
 using optimizerDuck.UI.Dialogs;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
@@ -19,6 +20,7 @@ public partial class ScheduledTasksViewModel : ViewModel
     private readonly IContentDialogService _contentDialogService;
     private readonly ILogger<ScheduledTasksViewModel> _logger;
     private readonly ISnackbarService _snackbarService;
+    private readonly ActivationService _activationService;
 
     [ObservableProperty]
     private bool _hideMicrosoftTasks = true;
@@ -37,12 +39,14 @@ public partial class ScheduledTasksViewModel : ViewModel
     public ScheduledTasksViewModel(
         IContentDialogService contentDialogService,
         ISnackbarService snackbarService,
-        ILogger<ScheduledTasksViewModel> logger
+        ILogger<ScheduledTasksViewModel> logger,
+        ActivationService activationService
     )
     {
         _contentDialogService = contentDialogService;
         _snackbarService = snackbarService;
         _logger = logger;
+        _activationService = activationService;
     }
 
     public ObservableCollection<ScheduledTaskModel> Tasks { get; } = [];
@@ -81,6 +85,8 @@ public partial class ScheduledTasksViewModel : ViewModel
     private async Task ToggleTask(ScheduledTaskModel? task)
     {
         if (task == null)
+            return;
+        if (!await _activationService.EnsureActivatedAsync(openDialogWhenLocked: true))
             return;
         try
         {
@@ -141,6 +147,8 @@ public partial class ScheduledTasksViewModel : ViewModel
     private async Task RunTask(ScheduledTaskModel? task)
     {
         if (task == null)
+            return;
+        if (!await _activationService.EnsureActivatedAsync(openDialogWhenLocked: true))
             return;
         try
         {
@@ -205,6 +213,8 @@ public partial class ScheduledTasksViewModel : ViewModel
     {
         if (task == null)
             return;
+        if (!await _activationService.EnsureActivatedAsync(openDialogWhenLocked: true))
+            return;
         try
         {
             var success = await Task.Run(() => ScheduledTaskService.StopTask(task.FullPath));
@@ -267,6 +277,8 @@ public partial class ScheduledTasksViewModel : ViewModel
     private async Task DeleteTask(ScheduledTaskModel? task)
     {
         if (task == null)
+            return;
+        if (!await _activationService.EnsureActivatedAsync(openDialogWhenLocked: true))
             return;
 
         var dialog = new ContentDialog

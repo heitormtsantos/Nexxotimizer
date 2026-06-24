@@ -42,9 +42,44 @@
 
     <Grid>
         <!--  Main Content  -->
-        <Grid RowDefinitions="Auto,*" Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+        <Grid RowDefinitions="Auto,Auto,*" Visibility="{Binding ViewModel.IsLoading, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+            <Border
+                Grid.Row="0"
+                Margin="0,0,0,12"
+                Padding="18"
+                Background="#141A26"
+                BorderBrush="#8B3DFF"
+                BorderThickness="1"
+                CornerRadius="8"
+                Visibility="{Binding Activation.IsActivated, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <StackPanel Margin="0,0,12,0">
+                        <ui:TextBlock FontTypography="BodyStrong" Text="Para ver esta funcao, ative sua key." />
+                        <ui:TextBlock
+                            Margin="0,6,0,0"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="{Binding Activation.ActivationSummary}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ui:Button
+                        Grid.Column="1"
+                        Appearance="Primary"
+                        Command="{Binding Activation.ShowActivationDialogCommand}"
+                        Content="Inserir key"
+                        Foreground="{DynamicResource AccentButtonForeground}"
+                        Icon="{ui:SymbolIcon Key24}" />
+                    <ui:Button
+                        Grid.Column="2"
+                        Margin="10,0,0,0"
+                        Appearance="Secondary"
+                        Command="{Binding Activation.OpenPurchasePageCommand}"
+                        Content="Comprar key"
+                        Icon="{ui:SymbolIcon ShoppingBag24}" />
+                </Grid>
+            </Border>
+
             <!--  Toolbar  -->
-            <Border Grid.Row="0" Style="{StaticResource ToolbarSurfaceStyle}">
+            <Border Grid.Row="1" Style="{StaticResource ToolbarSurfaceStyle}">
                 <WrapPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <!--  Search  -->
                     <ui:TextBox
@@ -171,7 +206,7 @@
 
             <!--  No search results  -->
             <StackPanel
-                Grid.Row="1"
+                Grid.Row="2"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Visibility="{Binding ViewModel.Optimizations.Count, Converter={StaticResource ZeroToVisibilityConverter}}">
@@ -190,8 +225,9 @@
 
             <!--  Optimization Cards  -->
             <ui:VirtualizingItemsControl
-                Grid.Row="1"
+                Grid.Row="2"
                 ItemsSource="{Binding ViewModel.Optimizations}"
+                IsEnabled="{Binding Activation.IsActivated}"
                 VirtualizingPanel.CacheLength="1"
                 VirtualizingPanel.CacheLengthUnit="Page"
                 VirtualizingStackPanel.VirtualizationMode="Recycling"

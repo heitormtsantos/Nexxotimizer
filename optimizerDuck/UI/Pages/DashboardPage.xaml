@@ -19,6 +19,10 @@
     mc:Ignorable="d">
     <Page.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:BooleanToVisibilityConverter
+            x:Key="InverseBooleanToVisibilityConverter"
+            False="Visible"
+            True="Collapsed" />
         <converters:ProgressBarValueToBrushConverter x:Key="ProgressBarValueToBrushConverter" />
 
         <SolidColorBrush x:Key="DashBackground" Color="#05070B" />
@@ -88,6 +92,40 @@
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
             <StackPanel Width="{Binding ViewportWidth, ElementName=PerformanceScrollViewer}">
+                <Border
+                    Margin="0,0,0,14"
+                    Padding="18"
+                    Background="#141A26"
+                    BorderBrush="#8B3DFF"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Visibility="{Binding Activation.IsActivated, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                        <StackPanel Margin="0,0,12,0">
+                            <ui:TextBlock FontTypography="BodyStrong" Text="Para ver esta funcao, ative sua key." />
+                            <ui:TextBlock
+                                Margin="0,6,0,0"
+                                Foreground="{StaticResource DashMuted}"
+                                Text="{Binding Activation.ActivationSummary}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:Button
+                            Grid.Column="1"
+                            Appearance="Primary"
+                            Command="{Binding Activation.ShowActivationDialogCommand}"
+                            Content="Inserir key"
+                            Foreground="{DynamicResource AccentButtonForeground}"
+                            Icon="{ui:SymbolIcon Key24}" />
+                        <ui:Button
+                            Grid.Column="2"
+                            Margin="10,0,0,0"
+                            Appearance="Secondary"
+                            Command="{Binding Activation.OpenPurchasePageCommand}"
+                            Content="Comprar key"
+                            Icon="{ui:SymbolIcon ShoppingBag24}" />
+                    </Grid>
+                </Border>
+
                 <Border
                     Height="166"
                     CornerRadius="8"
@@ -448,6 +486,7 @@
                                     CommandParameter="TaskManager"
                                     Content="Otimizar Agora"
                                     Foreground="{DynamicResource AccentButtonForeground}"
+                                    IsEnabled="{Binding Activation.IsActivated}"
                                     Icon="{ui:SymbolIcon Rocket24}" />
                             </Grid>
                         </Grid>

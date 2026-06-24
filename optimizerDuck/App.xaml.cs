@@ -398,20 +398,12 @@ public partial class App : Application
             );
 
             var activationService = _host.Services.GetRequiredService<ActivationService>();
-            var activation = activationService.ValidateStoredActivationAsync().GetAwaiter().GetResult();
-            if (!activation.Valid)
-            {
-                var activationWindow = new ActivationWindow(activationService);
-                if (activationWindow.ShowDialog() != true)
-                {
-                    Shutdown();
-                    return;
-                }
-            }
 
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             mainWindow.Closing += MainWindow_Closing;
             mainWindow.Show();
+
+            _ = activationService.InitializeAsync();
         });
 
         _logger.LogInformation("Preloading optimizations in background...");

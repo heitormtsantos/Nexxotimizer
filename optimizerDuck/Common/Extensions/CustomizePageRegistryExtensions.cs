@@ -6,6 +6,7 @@ using optimizerDuck.Domain.Abstractions;
 using optimizerDuck.Domain.Attributes;
 using optimizerDuck.Services.Customize;
 using optimizerDuck.Services.System;
+using optimizerDuck.Services.UI;
 using optimizerDuck.UI.ViewModels.Pages;
 
 namespace optimizerDuck.Common.Extensions;
@@ -37,10 +38,16 @@ public static class CustomizePageRegistryExtensions
         var registry = serviceProvider.GetRequiredService<CustomizeRegistry>();
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
         var registryWatcher = serviceProvider.GetRequiredService<IRegistryWatcher>();
+        var activationService = serviceProvider.GetRequiredService<ActivationService>();
         var category = registry.Categories.First(c => c.GetType() == categoryType);
 
-        var viewModel = new CustomizeCategoryViewModel(category, loggerFactory, registryWatcher);
+        var viewModel = new CustomizeCategoryViewModel(
+            category,
+            loggerFactory,
+            registryWatcher,
+            activationService
+        );
 
-        return Activator.CreateInstance(pageType, viewModel)!;
+        return Activator.CreateInstance(pageType, viewModel, activationService)!;
     }
 }

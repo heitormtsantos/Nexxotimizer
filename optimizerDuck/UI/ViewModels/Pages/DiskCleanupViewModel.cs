@@ -14,7 +14,8 @@ namespace optimizerDuck.UI.ViewModels.Pages;
 public partial class DiskCleanupViewModel(
     DiskCleanupService diskCleanupService,
     ISnackbarService snackbarService,
-    ILogger<DiskCleanupViewModel> logger
+    ILogger<DiskCleanupViewModel> logger,
+    ActivationService activationService
 ) : ViewModel
 {
     [ObservableProperty]
@@ -128,6 +129,9 @@ public partial class DiskCleanupViewModel(
     [RelayCommand]
     private async Task CleanItemAsync(CleanupItem item)
     {
+        if (!await activationService.EnsureActivatedAsync(openDialogWhenLocked: true))
+            return;
+
         if (item.SizeBytes <= 0)
             return;
 
@@ -181,6 +185,9 @@ public partial class DiskCleanupViewModel(
     [RelayCommand]
     private async Task CleanSelectedAsync()
     {
+        if (!await activationService.EnsureActivatedAsync(openDialogWhenLocked: true))
+            return;
+
         if (!CanClean)
             return;
 
