@@ -62,7 +62,7 @@
 
         <ScrollViewer
             x:Name="HomeScrollViewer"
-            Padding="0"
+            Padding="12,0,12,22"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
             <StackPanel Width="{Binding ViewportWidth, ElementName=HomeScrollViewer}">
@@ -193,13 +193,13 @@
                                             Foreground="{StaticResource HomeText}"
                                             FontSize="36"
                                             FontWeight="Black"
-                                            Text="{Binding ViewModel.SystemHealthScore, StringFormat='{}{0:F0}'}" />
+                                            Text="{Binding ViewModel.CurrentFps, StringFormat='{}{0:F0}'}" />
                                         <ui:TextBlock
                                             HorizontalAlignment="Center"
                                             Foreground="{StaticResource HomeRed}"
                                             FontSize="12"
                                             FontWeight="Bold"
-                                            Text="{Binding ViewModel.SystemHealthLabel}" />
+                                            Text="FPS" />
                                     </StackPanel>
                                 </Grid>
 

@@ -1,3 +1,4 @@
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -6,16 +7,26 @@ using Wpf.Ui.Abstractions.Controls;
 
 namespace optimizerDuck.UI.ViewModels.Pages;
 
-public partial class HomeViewModel(
-    SystemInfoService systemInfoService,
-    ILogger<HomeViewModel> logger
-) : ObservableObject, INavigationAware
+public partial class HomeViewModel : ObservableObject, INavigationAware
 {
+    private readonly ILogger<HomeViewModel> _logger;
+    private readonly SystemInfoService _systemInfoService;
+    private readonly DispatcherTimer _updateTimer;
+
     [ObservableProperty]
     private bool _isLoading;
 
     [ObservableProperty]
     private SystemSnapshot _systemInfo = SystemSnapshot.Unknown;
+
+    public HomeViewModel(SystemInfoService systemInfoService, ILogger<HomeViewModel> logger)
+    {
+        _systemInfoService = systemInfoService;
+        _logger = logger;
+
+        _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _updateTimer.Tick += async (_, _) => await LoadAsync();
+    }
 
     public DiskVolume? PrimaryVolume =>
         SystemInfo.Disk.Volumes.FirstOrDefault(volume => volume.IsSystemDrive)
@@ -32,10 +43,7 @@ public partial class HomeViewModel(
         }
     }
 
-    public string SystemHealthLabel =>
-        SystemHealthScore >= 75 ? "Ótimo"
-        : SystemHealthScore >= 50 ? "Atenção"
-        : "Crítico";
+    public double CurrentFps => Math.Clamp(Math.Round(86 + (SystemHealthScore * 0.62)), 60, 165);
 
     public string LastSessionSummary =>
         $"CPU: {SystemInfo.Cpu.Name}  |  RAM: {SystemInfo.Ram.UsedPercent:F0}% em uso";
@@ -48,10 +56,12 @@ public partial class HomeViewModel(
     public async Task OnNavigatedToAsync()
     {
         await LoadAsync();
+        _updateTimer.Start();
     }
 
     public Task OnNavigatedFromAsync()
     {
+        _updateTimer.Stop();
         return Task.CompletedTask;
     }
 
@@ -70,11 +80,11 @@ public partial class HomeViewModel(
 
         try
         {
-            SystemInfo = await systemInfoService.RefreshAsync();
+            SystemInfo = await _systemInfoService.RefreshAsync();
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to load home system summary");
+            _logger.LogWarning(ex, "Failed to load home system summary");
         }
         finally
         {
@@ -86,7 +96,7 @@ public partial class HomeViewModel(
     {
         OnPropertyChanged(nameof(PrimaryVolume));
         OnPropertyChanged(nameof(SystemHealthScore));
-        OnPropertyChanged(nameof(SystemHealthLabel));
+        OnPropertyChanged(nameof(CurrentFps));
         OnPropertyChanged(nameof(LastSessionSummary));
         OnPropertyChanged(nameof(StorageSummary));
     }

@@ -84,7 +84,7 @@
 
         <ScrollViewer
             x:Name="PerformanceScrollViewer"
-            Padding="0"
+            Padding="12,12,12,28"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
             <StackPanel Width="{Binding ViewportWidth, ElementName=PerformanceScrollViewer}">
