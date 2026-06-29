@@ -22,8 +22,7 @@ public partial class HomePage : INavigableView<HomeViewModel>
         DataContext = this;
 
         InitializeComponent();
-
-        HomePromoImage.Source = new BitmapImage(_promoImages[0]);
+        UpdatePromoImage();
 
         _carouselTimer = new DispatcherTimer
         {
@@ -39,8 +38,22 @@ public partial class HomePage : INavigableView<HomeViewModel>
 
     private void OnCarouselTimerTick(object? sender, EventArgs e)
     {
-        _promoImageIndex = (_promoImageIndex + 1) % _promoImages.Length;
-        HomePromoImage.Source = new BitmapImage(_promoImages[_promoImageIndex]);
+        ShowPromoImage(_promoImageIndex + 1);
+    }
+
+    private void OnPreviousPromoClick(object sender, System.Windows.RoutedEventArgs e)
+    {
+        ShowPromoImage(_promoImageIndex - 1);
+    }
+
+    private void OnNextPromoClick(object sender, System.Windows.RoutedEventArgs e)
+    {
+        ShowPromoImage(_promoImageIndex + 1);
+    }
+
+    private void OnOpenAssineClick(object sender, System.Windows.RoutedEventArgs e)
+    {
+        ShowPromoImage(1);
     }
 
     private void OnUnloaded(object sender, System.Windows.RoutedEventArgs e)
@@ -48,5 +61,24 @@ public partial class HomePage : INavigableView<HomeViewModel>
         _carouselTimer.Stop();
         _carouselTimer.Tick -= OnCarouselTimerTick;
         Unloaded -= OnUnloaded;
+    }
+
+    private void ShowPromoImage(int index)
+    {
+        _promoImageIndex = ((index % _promoImages.Length) + _promoImages.Length) % _promoImages.Length;
+        UpdatePromoImage();
+        RestartCarousel();
+    }
+
+    private void UpdatePromoImage()
+    {
+        HomePromoImage.Source = new BitmapImage(_promoImages[_promoImageIndex]);
+        HomePromoCounterText.Text = $"{_promoImageIndex + 1} de {_promoImages.Length}";
+    }
+
+    private void RestartCarousel()
+    {
+        _carouselTimer.Stop();
+        _carouselTimer.Start();
     }
 }

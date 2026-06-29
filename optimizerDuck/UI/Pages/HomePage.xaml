@@ -83,14 +83,51 @@
                         <ui:TextBlock Style="{StaticResource HomeSectionTitle}" Text="Para você" />
 
                         <Border
-                            Height="174"
+                            Height="230"
                             Margin="0,16,0,0"
                             ClipToBounds="True"
                             Style="{StaticResource HomeCard}">
-                            <Image
-                                x:Name="HomePromoImage"
-                                Source="pack://application:,,,/Resources/Images/Assine.png"
-                                Stretch="UniformToFill" />
+                            <Grid RowDefinitions="*,58">
+                                <Image
+                                    x:Name="HomePromoImage"
+                                    Source="pack://application:,,,/Resources/Images/Assine.png"
+                                    Stretch="UniformToFill" />
+
+                                <Border
+                                    Grid.Row="1"
+                                    Background="{StaticResource HomePanelAlt}"
+                                    BorderThickness="0,1,0,0"
+                                    BorderBrush="{StaticResource HomeStroke}">
+                                    <Grid Margin="12,10,12,10" ColumnDefinitions="40,*,40,12,132">
+                                        <ui:Button
+                                            Grid.Column="0"
+                                            Appearance="Transparent"
+                                            Click="OnPreviousPromoClick"
+                                            Icon="{ui:SymbolIcon ChevronLeft20}" />
+
+                                        <ui:TextBlock
+                                            x:Name="HomePromoCounterText"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Foreground="{StaticResource HomeText}"
+                                            FontWeight="SemiBold"
+                                            Text="1 de 2" />
+
+                                        <ui:Button
+                                            Grid.Column="2"
+                                            Appearance="Transparent"
+                                            Click="OnNextPromoClick"
+                                            Icon="{ui:SymbolIcon ChevronRight20}" />
+
+                                        <ui:Button
+                                            Grid.Column="4"
+                                            Appearance="Primary"
+                                            Click="OnOpenAssineClick"
+                                            Content="Assine agora" />
+                                    </Grid>
+                                </Border>
+                            </Grid>
                         </Border>
                     </StackPanel>
 
