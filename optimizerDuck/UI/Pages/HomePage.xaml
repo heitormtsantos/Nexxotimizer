@@ -18,6 +18,7 @@
     mc:Ignorable="d">
     <Page.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <converters:MultiplyNumberConverter x:Key="MultiplyNumberConverter" />
 
         <SolidColorBrush x:Key="HomeBackground" Color="#07090D" />
         <SolidColorBrush x:Key="HomePanel" Color="#11151C" />
@@ -67,12 +68,13 @@
             VerticalScrollBarVisibility="Auto">
             <StackPanel Width="{Binding ViewportWidth, ElementName=HomeScrollViewer}">
                 <Border
-                    Height="190"
+                    Height="{Binding ViewportWidth, ElementName=HomeScrollViewer, Converter={StaticResource MultiplyNumberConverter}, ConverterParameter=0.1616161616}"
+                    Margin="-12,0,-12,0"
                     CornerRadius="0"
                     ClipToBounds="True"
                     Background="#090B10">
                     <Image
-                        Source="pack://application:,,,/Resources/Images/Influ.png"
+                        Source="pack://application:,,,/Resources/Images/BannerPrincipal.png"
                         Stretch="UniformToFill" />
                 </Border>
 
@@ -85,77 +87,10 @@
                             Margin="0,16,0,0"
                             ClipToBounds="True"
                             Style="{StaticResource HomeCard}">
-                            <Grid>
-                                <Rectangle>
-                                    <Rectangle.Fill>
-                                        <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
-                                            <GradientStop Offset="0" Color="#E5101118" />
-                                            <GradientStop Offset="0.22" Color="#EEEF2334" />
-                                            <GradientStop Offset="0.62" Color="#88101118" />
-                                            <GradientStop Offset="1" Color="#F011151C" />
-                                        </LinearGradientBrush>
-                                    </Rectangle.Fill>
-                                </Rectangle>
-
-                                <Image
-                                    HorizontalAlignment="Right"
-                                    Width="255"
-                                    Margin="0,0,20,0"
-                                    Opacity="0.9"
-                                    Source="pack://application:,,,/Resources/Images/Influ.png"
-                                    Stretch="UniformToFill" />
-
-                                <StackPanel Margin="44,24,0,0">
-                                    <ui:TextBlock
-                                        Foreground="{StaticResource HomeText}"
-                                        FontSize="13"
-                                        FontWeight="Bold"
-                                        Text="INDIQUE E GANHE MAIS" />
-                                    <ui:TextBlock
-                                        Margin="0,-4,0,0"
-                                        Foreground="{StaticResource HomeText}"
-                                        FontSize="48"
-                                        FontWeight="Black"
-                                        Text="10%" />
-                                    <ui:TextBlock
-                                        Margin="4,-8,0,0"
-                                        Foreground="{StaticResource HomeText}"
-                                        FontSize="25"
-                                        FontWeight="Black"
-                                        Text="OFF" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <Border
-                            Height="58"
-                            Margin="0,0,0,0"
-                            Padding="24,0"
-                            Style="{StaticResource HomeCard}">
-                            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                                <ui:SymbolIcon
-                                    VerticalAlignment="Center"
-                                    Foreground="{StaticResource HomeText}"
-                                    Symbol="ChevronLeft24" />
-                                <ui:TextBlock
-                                    Grid.Column="1"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Foreground="{StaticResource HomeMuted}"
-                                    FontWeight="SemiBold"
-                                    Text="2 de 3" />
-                                <ui:SymbolIcon
-                                    Grid.Column="2"
-                                    Margin="0,0,24,0"
-                                    VerticalAlignment="Center"
-                                    Foreground="{StaticResource HomeText}"
-                                    Symbol="ChevronRight24" />
-                                <ui:Button
-                                    Grid.Column="3"
-                                    Width="138"
-                                    Appearance="Secondary"
-                                    Content="Assine agora" />
-                            </Grid>
+                            <Image
+                                x:Name="HomePromoImage"
+                                Source="pack://application:,,,/Resources/Images/Assine.png"
+                                Stretch="UniformToFill" />
                         </Border>
                     </StackPanel>
 
@@ -281,33 +216,10 @@
                         Margin="0,0,12,0"
                         ClipToBounds="True"
                         Style="{StaticResource HomeCard}">
-                        <Grid>
-                            <Rectangle>
-                                <Rectangle.Fill>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Offset="0" Color="#FF20151A" />
-                                        <GradientStop Offset="0.5" Color="#FF7F111C" />
-                                        <GradientStop Offset="1" Color="#FF10131B" />
-                                    </LinearGradientBrush>
-                                </Rectangle.Fill>
-                            </Rectangle>
-                            <Rectangle
-                                Margin="0,0,0,54"
-                                HorizontalAlignment="Right"
-                                Width="130"
-                                Fill="#30FFFFFF" />
-                            <StackPanel Margin="18,18,18,0">
-                                <ui:TextBlock
-                                    Foreground="{StaticResource HomeText}"
-                                    FontSize="28"
-                                    FontWeight="Black"
-                                    Text="FREE FIRE" />
-                                <ui:TextBlock
-                                    Margin="0,46,0,0"
-                                    Style="{StaticResource HomeMutedText}"
-                                    Text="Battle royale mobile" />
-                            </StackPanel>
-                        </Grid>
+                        <Image
+                            Source="pack://application:,,,/Resources/Images/GameFreeFireLogo2.png"
+                            Margin="10"
+                            Stretch="Uniform" />
                     </Border>
 
                     <Border
@@ -315,37 +227,10 @@
                         Margin="0,0,12,0"
                         ClipToBounds="True"
                         Style="{StaticResource HomeCard}">
-                        <Grid>
-                            <Rectangle>
-                                <Rectangle.Fill>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Offset="0" Color="#FF2A2417" />
-                                        <GradientStop Offset="0.45" Color="#FF8E5B17" />
-                                        <GradientStop Offset="1" Color="#FF15181F" />
-                                    </LinearGradientBrush>
-                                </Rectangle.Fill>
-                            </Rectangle>
-                            <Rectangle
-                                Margin="0,0,12,14"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Bottom"
-                                Width="116"
-                                Height="82"
-                                RadiusX="8"
-                                RadiusY="8"
-                                Fill="#28FFFFFF" />
-                            <StackPanel Margin="18,18,18,0">
-                                <ui:TextBlock
-                                    Foreground="{StaticResource HomeText}"
-                                    FontSize="28"
-                                    FontWeight="Black"
-                                    Text="PUBG" />
-                                <ui:TextBlock
-                                    Margin="0,46,0,0"
-                                    Style="{StaticResource HomeMutedText}"
-                                    Text="Battlegrounds mobile" />
-                            </StackPanel>
-                        </Grid>
+                        <Image
+                            Source="pack://application:,,,/Resources/Images/GamePubgLogo.png"
+                            Margin="10"
+                            Stretch="Uniform" />
                     </Border>
 
                     <Border
@@ -353,70 +238,20 @@
                         Margin="0,0,12,0"
                         ClipToBounds="True"
                         Style="{StaticResource HomeCard}">
-                        <Grid>
-                            <Rectangle>
-                                <Rectangle.Fill>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Offset="0" Color="#FF14203B" />
-                                        <GradientStop Offset="0.5" Color="#FF2F57C9" />
-                                        <GradientStop Offset="1" Color="#FF25112E" />
-                                    </LinearGradientBrush>
-                                </Rectangle.Fill>
-                            </Rectangle>
-                            <Rectangle
-                                Margin="0,0,18,18"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Bottom"
-                                Width="96"
-                                Height="96"
-                                RadiusX="48"
-                                RadiusY="48"
-                                Fill="#24FFFFFF" />
-                            <StackPanel Margin="18,18,18,0">
-                                <ui:TextBlock
-                                    Foreground="{StaticResource HomeText}"
-                                    FontSize="24"
-                                    FontWeight="Black"
-                                    Text="CLASH ROYALE" />
-                                <ui:TextBlock
-                                    Margin="0,50,0,0"
-                                    Style="{StaticResource HomeMutedText}"
-                                    Text="Estratégia em arena" />
-                            </StackPanel>
-                        </Grid>
+                        <Image
+                            Source="pack://application:,,,/Resources/Images/GameValorantLogo.png"
+                            Margin="10"
+                            Stretch="Uniform" />
                     </Border>
 
                     <Border
                         Height="132"
                         ClipToBounds="True"
                         Style="{StaticResource HomeCard}">
-                        <Grid>
-                            <Rectangle>
-                                <Rectangle.Fill>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Offset="0" Color="#FF14181E" />
-                                        <GradientStop Offset="0.5" Color="#FF5D6A78" />
-                                        <GradientStop Offset="1" Color="#FF0E1116" />
-                                    </LinearGradientBrush>
-                                </Rectangle.Fill>
-                            </Rectangle>
-                            <Rectangle
-                                Margin="0,0,12,0"
-                                HorizontalAlignment="Right"
-                                Width="130"
-                                Fill="#2AFFFFFF" />
-                            <StackPanel Margin="18,18,18,0">
-                                <ui:TextBlock
-                                    Foreground="{StaticResource HomeText}"
-                                    FontSize="26"
-                                    FontWeight="Black"
-                                    Text="COUNTER-STRIKE 2" />
-                                <ui:TextBlock
-                                    Margin="0,44,0,0"
-                                    Style="{StaticResource HomeMutedText}"
-                                    Text="FPS competitivo" />
-                            </StackPanel>
-                        </Grid>
+                        <Image
+                            Source="pack://application:,,,/Resources/Images/GameFortnite.png"
+                            Margin="10"
+                            Stretch="Uniform" />
                     </Border>
                 </UniformGrid>
             </StackPanel>

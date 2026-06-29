@@ -45,7 +45,7 @@ public sealed class AppSettings
         /// <summary>
         ///     Base URL of the Onexxt backend used by the Jogos downloads area.
         /// </summary>
-        public string DownloadsApiBaseUrl { get; set; } = "http://localhost:3333";
+        public string DownloadsApiBaseUrl { get; set; } = "https://api.nexxsensi.com";
     }
 
     /// <summary>

@@ -422,9 +422,20 @@ public partial class FreeFireViewModel(
 
     private string GetDownloadsApiBaseUrl()
     {
-        return string.IsNullOrWhiteSpace(_appOptions.DownloadsApiBaseUrl)
-            ? "http://localhost:3333"
-            : _appOptions.DownloadsApiBaseUrl;
+        const string productionBaseUrl = "https://api.nexxsensi.com";
+
+        if (string.IsNullOrWhiteSpace(_appOptions.DownloadsApiBaseUrl))
+            return productionBaseUrl;
+
+        var configuredBaseUrl = _appOptions.DownloadsApiBaseUrl.Trim();
+
+        if (
+            configuredBaseUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+            || configuredBaseUrl.Contains("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+        )
+            return productionBaseUrl;
+
+        return configuredBaseUrl;
     }
 
     private string BuildAbsoluteDownloadUrl(string downloadUrl)

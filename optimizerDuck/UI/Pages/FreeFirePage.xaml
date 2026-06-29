@@ -65,74 +65,19 @@
             </Border>
 
             <Border
-                Height="116"
-                Margin="0,0,0,14"
+                Height="158"
+                Margin="-12,0,-12,14"
                 Background="#0A0F19"
                 BorderBrush="#1F2430"
                 BorderThickness="1"
                 ClipToBounds="True"
                 CornerRadius="10">
-                <Grid>
+                <Grid Background="#070B12">
                     <Image
-                        Opacity="0.82"
-                        Source="pack://application:,,,/Resources/Images/Jogos.png"
+                        Source="pack://application:,,,/Resources/Images/BannerPrincipal.png"
+                        Margin="0,-34,0,0"
+                        VerticalAlignment="Top"
                         Stretch="UniformToFill" />
-                    <Grid Background="#3A071033">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="240" />
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Margin="24,18,0,18">
-                            <ui:TextBlock
-                                FontSize="24"
-                                FontWeight="SemiBold"
-                                Text="Otimize seu emulador," />
-                            <ui:TextBlock
-                                FontSize="24"
-                                FontWeight="SemiBold"
-                                Foreground="{DynamicResource BrandPrimaryBrightBrush}"
-                                Text="libere memoria" />
-                            <ui:TextBlock
-                                Margin="0,8,0,0"
-                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                Text="Mais desempenho. Menos travamentos. Vitoria garantida." />
-                        </StackPanel>
-
-                        <Border
-                            Grid.Column="1"
-                            Margin="0,16,18,16"
-                            Padding="18,12"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Center"
-                            Background="#77060A12"
-                            BorderBrush="#3A2638"
-                            BorderThickness="1"
-                            CornerRadius="999">
-                            <StackPanel>
-                                <ui:SymbolIcon
-                                    HorizontalAlignment="Center"
-                                    FontSize="26"
-                                    Foreground="{DynamicResource BrandPrimaryBrightBrush}"
-                                    Symbol="Rocket24" />
-                                <ui:TextBlock
-                                    Margin="0,4,0,0"
-                                    HorizontalAlignment="Center"
-                                    FontTypography="Caption"
-                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                    Text="MODO" />
-                                <ui:TextBlock
-                                    HorizontalAlignment="Center"
-                                    FontWeight="SemiBold"
-                                    Text="GAMER" />
-                                <ui:TextBlock
-                                    HorizontalAlignment="Center"
-                                    FontWeight="SemiBold"
-                                    Foreground="#FF4B68"
-                                    Text="ATIVADO" />
-                            </StackPanel>
-                        </Border>
-                    </Grid>
                 </Grid>
             </Border>
 

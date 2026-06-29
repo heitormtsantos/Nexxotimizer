@@ -127,7 +127,8 @@
                 </Border>
 
                 <Border
-                    Height="166"
+                    Height="214"
+                    Margin="-12,0,-12,0"
                     CornerRadius="8"
                     ClipToBounds="True"
                     BorderBrush="#2A1117"
@@ -136,7 +137,10 @@
                     <Grid>
                         <Image
                             Panel.ZIndex="5"
-                            Source="pack://application:,,,/Resources/Images/Influ.png"
+                            x:Name="DashboardHeroImage"
+                            Source="pack://application:,,,/Resources/Images/PerformanceCarousel1.png"
+                            Margin="0,-58,0,0"
+                            VerticalAlignment="Top"
                             Stretch="UniformToFill" />
 
                         <Rectangle Opacity="0.92">

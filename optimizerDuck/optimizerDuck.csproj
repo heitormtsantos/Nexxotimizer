@@ -85,6 +85,29 @@
         <Resource Include="Resources\Images\NexxsensiLogo.png" />
         <Resource Include="Resources\Images\Influ.png" />
         <Resource Include="Resources\Images\Jogos.png" />
+        <Resource Include="Resources\Images\Banner.jpeg" />
+        <Resource Include="Resources\Images\Banner2.jpg" />
+        <Resource Include="Resources\Images\Assine.png" />
+        <Resource Include="Resources\Images\HomeCarousel2.png" />
+        <Resource Include="Resources\Images\BannerPrincipal.png" />
+        <Resource Include="Resources\Images\GameFreeFire.jpg" />
+        <Resource Include="Resources\Images\GameFreeFireAlt.png" />
+        <Resource Include="Resources\Images\GameFreeFireShort.png" />
+        <Resource Include="Resources\Images\GameFreeFireLogo2.png" />
+        <Resource Include="Resources\Images\GamePubg.png" />
+        <Resource Include="Resources\Images\GamePubgAlt.png" />
+        <Resource Include="Resources\Images\GamePubgLogo.png" />
+        <Resource Include="Resources\Images\GameClash.png" />
+        <Resource Include="Resources\Images\GameCs2.png" />
+        <Resource Include="Resources\Images\GameCs2Alt.png" />
+        <Resource Include="Resources\Images\GameCs2Wide.webp" />
+        <Resource Include="Resources\Images\GameValorant.png" />
+        <Resource Include="Resources\Images\GameValorantLogo.png" />
+        <Resource Include="Resources\Images\GameFortnite.png" />
+        <Resource Include="Resources\Images\PerformanceCarousel1.png" />
+        <Resource Include="Resources\Images\PerformanceCarousel2.png" />
+        <Resource Include="Resources\Images\PerformanceCarousel3.png" />
+        <Resource Include="Resources\Images\PerformanceCarousel4.png" />
     </ItemGroup>
 
     <ItemGroup>
