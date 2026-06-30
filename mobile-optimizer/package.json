@@ -1,0 +1,31 @@
+{
+  "name": "nexxsensi-mobile-optimizer",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
+    "expo": "~56.0.12",
+    "expo-secure-store": "~56.0.4",
+    "expo-status-bar": "~56.0.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "web:dev": "expo start --web --localhost --port 8084",
+    "bridge": "node bridge/server.mjs",
+    "package:bridge": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-bridge.ps1",
+    "verify:local": "node scripts/verify-local.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "private": true
+}
