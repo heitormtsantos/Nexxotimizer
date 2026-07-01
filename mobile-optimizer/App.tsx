@@ -6,12 +6,14 @@ import {
   AppState,
   Image,
   ImageBackground,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  StatusBar as RNStatusBar,
   View,
 } from 'react-native';
 
@@ -21,22 +23,17 @@ import {
   getInstalledGames,
   getLaunchableApps,
   getNativeAdvancedStatus,
-  getPairingInput,
   getPerformanceSnapshot,
   InstalledGame,
   launchGame,
   NativeAdvancedStatus,
-  openDeveloperOptions,
   openShizuku,
   OptimizerActionResult,
   PerformanceSnapshot,
   PingResult,
-  requestNotificationPermission,
   requestShizukuPermission,
   runOptimizerAction,
   runPing,
-  startPairingNotification,
-  stopPairingNotification,
 } from './src/services/nativeOptimizer';
 import { colors } from './src/theme/colors';
 
@@ -103,6 +100,10 @@ const gameCarouselImages = [
   banners.gameCarousel4,
 ];
 
+const topInset = Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : 0;
+const bottomInset = Platform.OS === 'android' ? 22 : 0;
+const bottomNavHeight = 78 + bottomInset;
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [games, setGames] = useState<InstalledGame[]>([]);
@@ -121,16 +122,13 @@ export default function App() {
   const [selectedProfile, setSelectedProfile] = useState('profile-balanced');
   const [gameCarouselIndex, setGameCarouselIndex] = useState(0);
   const [notice, setNotice] = useState('Ative o Modo Avançado para liberar boost real.');
-  const [pairCode, setPairCode] = useState('');
-  const [pairPort, setPairPort] = useState('');
 
   const ready = !!advanced?.canRunPrivilegedActions;
   useEffect(() => {
     refreshAll();
-    syncPairingInput();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        syncPairingInput();
+        refreshAll();
         refreshPerformanceSnapshot();
       }
     });
@@ -149,20 +147,6 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, []);
-
-  async function syncPairingInput() {
-    try {
-      const input = await getPairingInput();
-      if (input.code) {
-        setPairCode(input.code);
-      }
-      if (input.port) {
-        setPairPort(input.port);
-      }
-    } catch {
-      // Native pairing input is a convenience only.
-    }
-  }
 
   async function refreshAll() {
     try {
@@ -245,16 +229,6 @@ export default function App() {
     await launchGame(selectedGame);
   }
 
-  async function startPairing() {
-    if (!pairCode.trim() || !pairPort.trim()) {
-      setNotice('Digite o código e a porta mostrados no pareamento sem fio.');
-      return;
-    }
-
-    setNotice('Agora conclua o pareamento no componente de permissão.');
-    await openShizuku();
-  }
-
   async function refreshPerformanceSnapshot() {
     try {
       setPerformance(await getPerformanceSnapshot(selectedGame ?? undefined));
@@ -287,41 +261,21 @@ export default function App() {
 
   async function installPermissionComponent() {
     try {
-      setNotice('Abrindo instalação do componente de permissão...');
+      setNotice('Abrindo Shizuku...');
       const opened = await openShizuku();
       setNotice(
         opened
-          ? 'Instale ou abra o Shizuku. Depois volte para configurar a depuração Wi-Fi.'
-          : 'Não foi possível abrir a instalação do Shizuku.'
+          ? 'No Shizuku, use Começar pela Depuração via Wireless. Depois volte para autorizar este app.'
+          : 'Não foi possível abrir o Shizuku.'
       );
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Não foi possível abrir a instalação do Shizuku.');
-    }
-  }
-
-  async function beginWirelessDebugSetup() {
-    try {
-      const permissionReady = await requestNotificationPermission();
-      const notificationReady = await startPairingNotification();
-      if (!permissionReady && !notificationReady) {
-        setNotice('Permita as notificações do app e toque novamente para abrir a depuração Wi-Fi.');
-        return;
-      }
-      if (!notificationReady) {
-        setNotice('Não foi possível criar a notificação. Verifique a permissão de notificações.');
-        return;
-      }
-      setNotice('Expanda a notificação para digitar código e porta sem sair da depuração Wi-Fi.');
-      await openDeveloperOptions();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Não foi possível abrir a depuração Wi-Fi.');
+      setNotice(error instanceof Error ? error.message : 'Não foi possível abrir o Shizuku.');
     }
   }
 
   async function requestPermissionAndRefresh() {
     try {
       await requestShizukuPermission();
-      await stopPairingNotification();
       await refreshAll();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Modo Avançado ainda não está ativo.');
@@ -342,19 +296,13 @@ export default function App() {
             ready={ready}
             notice={notice}
             runningAction={runningAction}
-            pairCode={pairCode}
-            pairPort={pairPort}
-            setPairCode={setPairCode}
-            setPairPort={setPairPort}
             setSelectedGame={setSelectedGame}
             runAction={runAction}
             selectedProfile={selectedProfile}
             boostAndOpen={boostAndOpen}
             refreshAll={refreshAll}
             openAppPicker={openAppPicker}
-            startPairing={startPairing}
             installPermissionComponent={installPermissionComponent}
-            beginWirelessDebugSetup={beginWirelessDebugSetup}
             requestPermissionAndRefresh={requestPermissionAndRefresh}
           />
         )}
@@ -399,14 +347,8 @@ export default function App() {
         {activeTab === 'profile' && (
           <ProfileScreen
             advanced={advanced}
-            pairCode={pairCode}
-            pairPort={pairPort}
-            setPairCode={setPairCode}
-            setPairPort={setPairPort}
             refreshAll={refreshAll}
-            startPairing={startPairing}
             installPermissionComponent={installPermissionComponent}
-            beginWirelessDebugSetup={beginWirelessDebugSetup}
             requestPermissionAndRefresh={requestPermissionAndRefresh}
             appliedActionCount={appliedActionCount}
           />
@@ -426,19 +368,13 @@ function HomeScreen({
   ready,
   notice,
   runningAction,
-  pairCode,
-  pairPort,
-  setPairCode,
-  setPairPort,
   setSelectedGame,
   runAction,
   selectedProfile,
   boostAndOpen,
   refreshAll,
   openAppPicker,
-  startPairing,
   installPermissionComponent,
-  beginWirelessDebugSetup,
   requestPermissionAndRefresh,
 }: {
   selectedGame: InstalledGame | null;
@@ -449,38 +385,19 @@ function HomeScreen({
   ready: boolean;
   notice: string;
   runningAction: string | null;
-  pairCode: string;
-  pairPort: string;
-  setPairCode: (value: string) => void;
-  setPairPort: (value: string) => void;
   setSelectedGame: (game: InstalledGame | null) => void;
   runAction: (actionId: string) => void;
   selectedProfile: string;
   boostAndOpen: () => void;
   refreshAll: () => void;
   openAppPicker: () => void;
-  startPairing: () => void;
   installPermissionComponent: () => void;
-  beginWirelessDebugSetup: () => void;
   requestPermissionAndRefresh: () => void;
 }) {
   return (
     <Screen>
       <AppHeader refreshAll={refreshAll} />
       <HomeBanner source={banners.home} />
-      {!ready && (
-        <ConnectionCard
-          advanced={advanced}
-          pairCode={pairCode}
-          pairPort={pairPort}
-          setPairCode={setPairCode}
-          setPairPort={setPairPort}
-          startPairing={startPairing}
-          installPermissionComponent={installPermissionComponent}
-          beginWirelessDebugSetup={beginWirelessDebugSetup}
-          requestPermissionAndRefresh={requestPermissionAndRefresh}
-        />
-      )}
 
       <View style={styles.hero}>
         <View style={styles.heroBeam} />
@@ -501,6 +418,14 @@ function HomeScreen({
           <AppIcon name="game-controller" size={34} color={colors.text} />
         </View>
       </View>
+
+      {!ready && (
+        <ConnectionCard
+          advanced={advanced}
+          installPermissionComponent={installPermissionComponent}
+          requestPermissionAndRefresh={requestPermissionAndRefresh}
+        />
+      )}
 
       <View style={styles.roundActions}>
         {quickActions.map((action) => (
@@ -608,30 +533,34 @@ function AppHeader({ refreshAll }: { refreshAll: () => void }) {
 
 function ConnectionCard({
   advanced,
-  pairCode,
-  pairPort,
-  setPairCode,
-  setPairPort,
-  startPairing,
   installPermissionComponent,
-  beginWirelessDebugSetup,
   requestPermissionAndRefresh,
   compact = false,
 }: {
   advanced: NativeAdvancedStatus | null;
-  pairCode: string;
-  pairPort: string;
-  setPairCode: (value: string) => void;
-  setPairPort: (value: string) => void;
-  startPairing: () => void;
   installPermissionComponent: () => void;
-  beginWirelessDebugSetup: () => void;
   requestPermissionAndRefresh: () => void;
   compact?: boolean;
 }) {
   const hasPermissionTool = !!advanced?.shizukuInstalled;
   const alive = !!advanced?.shizukuAlive;
   const permission = !!advanced?.shizukuPermission;
+  const statusText = permission ? 'Pronto' : alive ? 'Autorizar' : hasPermissionTool ? 'Abrir' : 'Instalar';
+  const helpText = permission
+    ? 'Modo Avançado ativo. O app já pode executar otimizações reais.'
+    : alive
+      ? 'Shizuku está rodando. Toque em autorizar para liberar este app.'
+      : hasPermissionTool
+        ? 'Abra o Shizuku e toque em Começar pela Depuração via Wireless.'
+        : 'Instale o Shizuku para ativar permissões avançadas sem computador.';
+  const primaryLabel = permission
+    ? 'Atualizar status'
+    : alive
+      ? 'Autorizar este app'
+      : hasPermissionTool
+        ? 'Abrir Shizuku'
+        : 'Instalar Shizuku';
+  const primaryAction = alive || permission ? requestPermissionAndRefresh : installPermissionComponent;
 
   return (
     <View style={styles.connectCard}>
@@ -640,48 +569,24 @@ function ConnectionCard({
           <Text style={styles.connectKicker}>CONFIGURAÇÃO RÁPIDA</Text>
           <Text style={styles.connectTitle}>Ativar Modo Avançado</Text>
         </View>
-        <Text style={[styles.readyBadge, alive ? styles.readyOk : styles.readyPending]}>
-          {alive ? 'Conectado' : 'Pendente'}
+        <Text style={[styles.readyBadge, permission ? styles.readyOk : styles.readyPending]}>
+          {statusText}
         </Text>
       </View>
       <View style={styles.compactSteps}>
-        <SetupStep done={hasPermissionTool} label="Componente" />
-        <SetupStep done={alive} label="Depuração Wi-Fi" />
-        <SetupStep done={permission} label="Permissão" />
+        <SetupStep done={hasPermissionTool} label="Shizuku instalado" />
+        <SetupStep done={alive} label="Shizuku rodando" />
+        <SetupStep done={permission} label="Permissão do app" />
       </View>
-      <Text style={styles.connectHelp}>Digite o código e a porta exibidos pelo Android.</Text>
-      <View style={styles.inputRow}>
-        <TextInput
-          value={pairCode}
-          onChangeText={setPairCode}
-          placeholder="Código"
-          placeholderTextColor={colors.dim}
-          keyboardType="number-pad"
-          style={styles.input}
-        />
-        <TextInput
-          value={pairPort}
-          onChangeText={setPairPort}
-          placeholder="Porta"
-          placeholderTextColor={colors.dim}
-          keyboardType="number-pad"
-          style={styles.input}
-        />
-      </View>
-      <Pressable style={styles.primaryButtonFull} onPress={beginWirelessDebugSetup}>
-        <AppIcon name="wifi" size={16} color={colors.text} />
+      <Text style={styles.connectHelp}>{helpText}</Text>
+      <Pressable style={styles.primaryButtonFull} onPress={primaryAction}>
+        <AppIcon name={alive && !permission ? 'shield-checkmark' : 'flash'} size={16} color={colors.text} />
         <Text style={[styles.primaryButtonText, styles.primaryButtonTextBright]}>
-          Abrir depuração Wi-Fi
+          {primaryLabel}
         </Text>
       </Pressable>
-      {!hasPermissionTool && (
-        <Pressable style={styles.secondarySetupButton} onPress={installPermissionComponent}>
-          <AppIcon name="shield-checkmark" size={15} color={colors.text} />
-          <Text style={styles.secondarySetupText}>Instalar componente de permissão</Text>
-        </Pressable>
-      )}
       <Pressable style={styles.permissionLink} onPress={requestPermissionAndRefresh}>
-        <Text style={styles.permissionText}>Já configurei, autorizar este app</Text>
+        <Text style={styles.permissionText}>Já configurei no Shizuku, verificar permissão</Text>
       </Pressable>
     </View>
   );
@@ -1016,26 +921,14 @@ function ToolSection({
 function ProfileScreen({
   advanced,
   appliedActionCount,
-  pairCode,
-  pairPort,
-  setPairCode,
-  setPairPort,
   refreshAll,
-  startPairing,
   installPermissionComponent,
-  beginWirelessDebugSetup,
   requestPermissionAndRefresh,
 }: {
   advanced: NativeAdvancedStatus | null;
   appliedActionCount: number;
-  pairCode: string;
-  pairPort: string;
-  setPairCode: (value: string) => void;
-  setPairPort: (value: string) => void;
   refreshAll: () => void;
-  startPairing: () => void;
   installPermissionComponent: () => void;
-  beginWirelessDebugSetup: () => void;
   requestPermissionAndRefresh: () => void;
 }) {
   const shizukuLabel = advanced?.shizukuPermission
@@ -1065,13 +958,7 @@ function ProfileScreen({
       <Text style={styles.profileSectionTitle}>Configuração rápida</Text>
       <ConnectionCard
         advanced={advanced}
-        pairCode={pairCode}
-        pairPort={pairPort}
-        setPairCode={setPairCode}
-        setPairPort={setPairPort}
-        startPairing={startPairing}
         installPermissionComponent={installPermissionComponent}
-        beginWirelessDebugSetup={beginWirelessDebugSetup}
         requestPermissionAndRefresh={requestPermissionAndRefresh}
         compact
       />
@@ -1618,6 +1505,7 @@ const styles = StyleSheet.create({
   safe: {
     backgroundColor: '#05060A',
     flex: 1,
+    paddingTop: topInset,
   },
   app: {
     backgroundColor: '#05060A',
@@ -1627,7 +1515,7 @@ const styles = StyleSheet.create({
   content: {
     gap: 16,
     padding: 16,
-    paddingBottom: 128,
+    paddingBottom: bottomNavHeight + 50,
   },
   topHeader: {
     alignItems: 'center',
@@ -1822,23 +1710,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
   },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  input: {
-    backgroundColor: '#070A11',
-    borderColor: '#252E42',
-    borderRadius: 11,
-    borderWidth: 1,
-    color: colors.text,
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '800',
-    minHeight: 48,
-    minWidth: 0,
-    paddingHorizontal: 12,
-  },
   primaryButtonFull: {
     alignItems: 'center',
     backgroundColor: colors.purple,
@@ -1848,23 +1719,6 @@ const styles = StyleSheet.create({
     minHeight: 50,
     justifyContent: 'center',
     paddingHorizontal: 12,
-  },
-  secondarySetupButton: {
-    alignItems: 'center',
-    backgroundColor: '#111827',
-    borderColor: '#2A3347',
-    borderRadius: 11,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: 14,
-  },
-  secondarySetupText: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: '900',
   },
   permissionLink: {
     alignItems: 'center',
@@ -2667,9 +2521,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     bottom: 0,
     flexDirection: 'row',
-    height: 78,
+    height: bottomNavHeight,
     left: 0,
-    paddingBottom: 7,
+    paddingBottom: 7 + bottomInset,
     position: 'absolute',
     right: 0,
   },

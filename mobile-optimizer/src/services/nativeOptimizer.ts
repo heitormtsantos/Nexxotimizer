@@ -56,11 +56,6 @@ export type OptimizerActionResult = {
   }>;
 };
 
-export type PairingInput = {
-  code: string;
-  port: string;
-};
-
 type NexxsensiNativeModule = {
   getInstalledGames(): Promise<InstalledGame[]>;
   getLaunchableApps(): Promise<InstalledGame[]>;
@@ -70,13 +65,8 @@ type NexxsensiNativeModule = {
   getPerformanceSnapshot(packageName?: string): Promise<PerformanceSnapshot>;
   runPing(host: string): Promise<PingResult>;
   runOptimizerAction(actionId: string, packageName?: string): Promise<OptimizerActionResult>;
-  openDeveloperOptions(): Promise<boolean>;
   openShizuku(): Promise<boolean>;
   requestShizukuPermission(): Promise<boolean>;
-  requestNotificationPermission(): Promise<boolean>;
-  startPairingNotification(): Promise<boolean>;
-  stopPairingNotification(): Promise<boolean>;
-  getPairingInput(): Promise<PairingInput>;
 };
 
 const nativeModule = NativeModules.NexxsensiNative as NexxsensiNativeModule | undefined;
@@ -155,46 +145,6 @@ export async function getNativeAdvancedStatus(): Promise<NativeAdvancedStatus> {
   }
 
   return nativeModule.getAdvancedStatus();
-}
-
-export async function openDeveloperOptions(): Promise<boolean> {
-  if (Platform.OS !== 'android' || !nativeModule) {
-    return false;
-  }
-
-  return nativeModule.openDeveloperOptions();
-}
-
-export async function requestNotificationPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android' || !nativeModule) {
-    return false;
-  }
-
-  return nativeModule.requestNotificationPermission();
-}
-
-export async function startPairingNotification(): Promise<boolean> {
-  if (Platform.OS !== 'android' || !nativeModule) {
-    return false;
-  }
-
-  return nativeModule.startPairingNotification();
-}
-
-export async function stopPairingNotification(): Promise<boolean> {
-  if (Platform.OS !== 'android' || !nativeModule) {
-    return false;
-  }
-
-  return nativeModule.stopPairingNotification();
-}
-
-export async function getPairingInput(): Promise<PairingInput> {
-  if (Platform.OS !== 'android' || !nativeModule) {
-    return { code: '', port: '' };
-  }
-
-  return nativeModule.getPairingInput();
 }
 
 export async function openShizuku(): Promise<boolean> {

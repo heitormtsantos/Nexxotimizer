@@ -1,12 +1,6 @@
-package com.nexxsensi.mobileoptimizer
+﻿package com.nexxsensi.mobileoptimizer
 
-import android.Manifest
 import android.app.ActivityManager
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.RemoteInput
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -18,7 +12,6 @@ import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import android.os.StatFs
-import android.provider.Settings
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -35,8 +28,6 @@ class NexxsensiNativeModule(
   private val reactContext: ReactApplicationContext
 ) : ReactContextBaseJavaModule(reactContext) {
 
-  private val pairingNotificationId = 2408
-  private val pairingChannelId = "advanced_mode_pairing"
   private var shellService: INexxsensiShellService? = null
   private var shellBinding = false
 
@@ -106,7 +97,7 @@ class NexxsensiNativeModule(
     try {
       val launchIntent = reactContext.packageManager.getLaunchIntentForPackage(packageName)
       if (launchIntent == null) {
-        promise.reject("app_not_launchable", "App não pode ser aberto: $packageName")
+        promise.reject("app_not_launchable", "App nÃ£o pode ser aberto: $packageName")
         return
       }
 
@@ -146,100 +137,6 @@ class NexxsensiNativeModule(
   }
 
   @ReactMethod
-  fun openDeveloperOptions(promise: Promise) {
-    openIntent(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS), promise)
-  }
-
-  @ReactMethod
-  fun requestNotificationPermission(promise: Promise) {
-    try {
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-        promise.resolve(true)
-        return
-      }
-
-      if (reactContext.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
-        PackageManager.PERMISSION_GRANTED
-      ) {
-        promise.resolve(true)
-        return
-      }
-
-      val activity = getCurrentActivity()
-      if (activity == null) {
-        promise.resolve(false)
-        return
-      }
-
-      activity.requestPermissions(
-        arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-        778
-      )
-      promise.resolve(false)
-    } catch (error: Exception) {
-      promise.reject("notification_permission_failed", error.message, error)
-    }
-  }
-
-  @ReactMethod
-  fun startPairingNotification(promise: Promise) {
-    try {
-      createPairingChannel()
-      val notificationManager = reactContext.getSystemService(
-        Context.NOTIFICATION_SERVICE
-      ) as NotificationManager
-
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-        reactContext.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-        PackageManager.PERMISSION_GRANTED
-      ) {
-        promise.resolve(false)
-        return
-      }
-
-      notificationManager.notify(pairingNotificationId, buildPairingNotification())
-      promise.resolve(true)
-    } catch (error: Exception) {
-      promise.reject("pairing_notification_failed", error.message, error)
-    }
-  }
-
-  @ReactMethod
-  fun stopPairingNotification(promise: Promise) {
-    try {
-      val notificationManager = reactContext.getSystemService(
-        Context.NOTIFICATION_SERVICE
-      ) as NotificationManager
-      notificationManager.cancel(pairingNotificationId)
-      promise.resolve(true)
-    } catch (error: Exception) {
-      promise.reject("pairing_notification_cancel_failed", error.message, error)
-    }
-  }
-
-  @ReactMethod
-  fun getPairingInput(promise: Promise) {
-    try {
-      val preferences = reactContext.getSharedPreferences(
-        PairingNotificationReceiver.PREFS,
-        Context.MODE_PRIVATE
-      )
-      val input = WritableNativeMap()
-      input.putString(
-        "code",
-        preferences.getString(PairingNotificationReceiver.KEY_CODE, "").orEmpty()
-      )
-      input.putString(
-        "port",
-        preferences.getString(PairingNotificationReceiver.KEY_PORT, "").orEmpty()
-      )
-      promise.resolve(input)
-    } catch (error: Exception) {
-      promise.reject("pairing_input_failed", error.message, error)
-    }
-  }
-
-  @ReactMethod
   fun openShizuku(promise: Promise) {
     val launchIntent = reactContext.packageManager.getLaunchIntentForPackage(
       "moe.shizuku.privileged.api"
@@ -271,7 +168,7 @@ class NexxsensiNativeModule(
   fun requestShizukuPermission(promise: Promise) {
     try {
       if (!Shizuku.pingBinder()) {
-        promise.reject("shizuku_not_running", "Shizuku não está ativo.")
+        promise.reject("shizuku_not_running", "Shizuku nÃ£o estÃ¡ ativo.")
         return
       }
 
@@ -333,7 +230,7 @@ class NexxsensiNativeModule(
         val result = WritableNativeMap()
         result.putDouble("fps", 0.0)
         result.putBoolean("fpsAvailable", false)
-        result.putString("fpsSource", "Selecione um jogo e ative o Modo Avançado.")
+        result.putString("fpsSource", "Selecione um jogo e ative o Modo AvanÃ§ado.")
         result.putNull("cpuUsedPercent")
         result.putNull("gpuUsedPercent")
 
@@ -361,10 +258,10 @@ class NexxsensiNativeModule(
             result.putBoolean("fpsAvailable", true)
             result.putString("fpsSource", "dumpsys gfxinfo")
           } else {
-            result.putString("fpsSource", "Abra o jogo uma vez para gerar histórico de frames.")
+            result.putString("fpsSource", "Abra o jogo uma vez para gerar histÃ³rico de frames.")
           }
         } else {
-          result.putString("fpsSource", gfxInfo.stderr.ifBlank { "Android não retornou dados de FPS." })
+          result.putString("fpsSource", gfxInfo.stderr.ifBlank { "Android nÃ£o retornou dados de FPS." })
         }
 
         val cpuInfo = parseShellResult(
@@ -404,14 +301,14 @@ class NexxsensiNativeModule(
         if (!canUseShizuku()) {
           promise.reject(
             "advanced_mode_required",
-            "Ative e autorize o Shizuku para executar otimizações reais."
+            "Ative e autorize o Shizuku para executar otimizaÃ§Ãµes reais."
           )
           return@Thread
         }
 
         val commands = buildActionCommands(actionId, packageName.orEmpty())
         if (commands.isEmpty()) {
-          promise.reject("unknown_action", "Ação não reconhecida: $actionId")
+          promise.reject("unknown_action", "AÃ§Ã£o nÃ£o reconhecida: $actionId")
           return@Thread
         }
 
@@ -455,112 +352,6 @@ class NexxsensiNativeModule(
     } catch (error: Exception) {
       promise.reject("open_intent_failed", error.message, error)
     }
-  }
-
-  private fun createPairingChannel() {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-      return
-    }
-
-    val notificationManager = reactContext.getSystemService(
-      Context.NOTIFICATION_SERVICE
-    ) as NotificationManager
-    val channel = NotificationChannel(
-      pairingChannelId,
-      "Modo Avançado",
-      NotificationManager.IMPORTANCE_HIGH
-    ).apply {
-      description = "Ajuda a voltar ao Game Optimizer durante a configuração."
-      setShowBadge(false)
-    }
-    notificationManager.createNotificationChannel(channel)
-  }
-
-  private fun buildPairingNotification(): Notification {
-    val openAppIntent = reactContext.packageManager.getLaunchIntentForPackage(
-      reactContext.packageName
-    )?.apply {
-      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-    } ?: Intent(reactContext, MainActivity::class.java).apply {
-      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-    }
-    val flags = PendingIntent.FLAG_UPDATE_CURRENT or
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
-    val pendingIntent = PendingIntent.getActivity(
-      reactContext,
-      2408,
-      openAppIntent,
-      flags
-    )
-    val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      Notification.Builder(reactContext, pairingChannelId)
-    } else {
-      Notification.Builder(reactContext)
-    }
-
-    return builder
-      .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
-      .setContentTitle("Game Optimizer aguardando pareamento")
-      .setContentText("Expanda e use os botões para digitar código e porta.")
-      .setStyle(Notification.BigTextStyle().bigText("Expanda e use os botões para digitar código e porta sem sair da tela de depuração Wi-Fi."))
-      .setSubText("Modo Avançado")
-      .setOngoing(true)
-      .setAutoCancel(false)
-      .setContentIntent(pendingIntent)
-      .addAction(
-        buildPairingInputAction(
-          PairingNotificationReceiver.KEY_CODE,
-          PairingNotificationReceiver.ACTION_SAVE_CODE,
-          "Digitar código",
-          2410
-        )
-      )
-      .addAction(
-        buildPairingInputAction(
-          PairingNotificationReceiver.KEY_PORT,
-          PairingNotificationReceiver.ACTION_SAVE_PORT,
-          "Digitar porta",
-          2411
-        )
-      )
-      .build()
-  }
-
-  private fun buildPairingInputAction(
-    key: String,
-    actionName: String,
-    title: String,
-    requestCode: Int
-  ): Notification.Action {
-    val inputIntent = Intent(
-      reactContext,
-      PairingNotificationReceiver::class.java
-    ).apply {
-      action = actionName
-    }
-    val flags = PendingIntent.FLAG_UPDATE_CURRENT or
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        PendingIntent.FLAG_MUTABLE
-      } else {
-        0
-      }
-    val pendingIntent = PendingIntent.getBroadcast(
-      reactContext,
-      requestCode,
-      inputIntent,
-      flags
-    )
-    val input = RemoteInput.Builder(key)
-      .setLabel(title)
-      .build()
-
-    return Notification.Action.Builder(
-      android.R.drawable.ic_menu_edit,
-      title,
-      pendingIntent
-    )
-      .addRemoteInput(input)
-      .build()
   }
 
   private fun isPackageInstalled(packageName: String): Boolean {
@@ -613,10 +404,10 @@ class NexxsensiNativeModule(
     Shizuku.bindUserService(args, connection)
     if (!latch.await(12, TimeUnit.SECONDS)) {
       shellBinding = false
-      throw IllegalStateException("Não foi possível conectar ao serviço Shizuku.")
+      throw IllegalStateException("NÃ£o foi possÃ­vel conectar ao serviÃ§o Shizuku.")
     }
 
-    return shellService ?: throw IllegalStateException("Serviço Shizuku indisponível.")
+    return shellService ?: throw IllegalStateException("ServiÃ§o Shizuku indisponÃ­vel.")
   }
 
   private fun waitForShellService(): INexxsensiShellService? {
@@ -639,11 +430,11 @@ class NexxsensiNativeModule(
       )
       "cool" -> listOf(
         ActionCommand("Reduzindo processos em segundo plano", "am kill-all"),
-        ActionCommand("Aplicando perfil leve de animação", "settings put global animator_duration_scale 0.5")
+        ActionCommand("Aplicando perfil leve de animaÃ§Ã£o", "settings put global animator_duration_scale 0.5")
       )
       "stutter" -> listOf(
-        ActionCommand("Reduzindo animação de janelas", "settings put global window_animation_scale 0.5"),
-        ActionCommand("Reduzindo transições", "settings put global transition_animation_scale 0.5"),
+        ActionCommand("Reduzindo animaÃ§Ã£o de janelas", "settings put global window_animation_scale 0.5"),
+        ActionCommand("Reduzindo transiÃ§Ãµes", "settings put global transition_animation_scale 0.5"),
         ActionCommand("Reduzindo animador", "settings put global animator_duration_scale 0.5")
       )
       "battery" -> listOf(
@@ -663,8 +454,8 @@ class NexxsensiNativeModule(
         }
       }
       "revert" -> listOf(
-        ActionCommand("Restaurando animação de janelas", "settings put global window_animation_scale 1"),
-        ActionCommand("Restaurando transições", "settings put global transition_animation_scale 1"),
+        ActionCommand("Restaurando animaÃ§Ã£o de janelas", "settings put global window_animation_scale 1"),
+        ActionCommand("Restaurando transiÃ§Ãµes", "settings put global transition_animation_scale 1"),
         ActionCommand("Restaurando animador", "settings put global animator_duration_scale 1"),
         ActionCommand("Restaurando bateria adaptativa", "settings put global adaptive_battery_management_enabled 1 || true"),
         ActionCommand("Restaurando apps em espera", "settings put global app_standby_enabled 1 || true"),
@@ -872,3 +663,4 @@ class NexxsensiNativeModule(
     val stderr: String
   )
 }
+
