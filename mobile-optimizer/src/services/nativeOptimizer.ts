@@ -5,6 +5,8 @@ export type InstalledGame = {
   label: string;
   category: string;
   system: boolean;
+  game?: boolean;
+  icon?: string | null;
 };
 
 export type NativeAdvancedStatus = {
@@ -111,7 +113,7 @@ export async function getPerformanceSnapshot(game?: InstalledGame): Promise<Perf
   return nativeModule.getPerformanceSnapshot(game?.packageName);
 }
 
-export async function runPing(host = '8.8.8.8'): Promise<PingResult> {
+export async function runPing(host = '1.1.1.1'): Promise<PingResult> {
   if (Platform.OS !== 'android' || !nativeModule) {
     return { ok: false, latencyMs: 0, host };
   }

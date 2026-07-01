@@ -7,19 +7,27 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import android.os.StatFs
+import android.util.Base64
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.WritableNativeArray
 import com.facebook.react.bridge.WritableNativeMap
+import java.io.ByteArrayOutputStream
 import java.io.File
-import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import rikka.shizuku.Shizuku
@@ -28,10 +36,43 @@ class NexxsensiNativeModule(
   private val reactContext: ReactApplicationContext
 ) : ReactContextBaseJavaModule(reactContext) {
 
+  private val shizukuPermissionRequestCode = 777
   private var shellService: INexxsensiShellService? = null
   private var shellBinding = false
+  private var pendingShizukuPermissionPromise: Promise? = null
+  private val shizukuPermissionListener =
+    Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+      if (requestCode != shizukuPermissionRequestCode) {
+        return@OnRequestPermissionResultListener
+      }
+
+      val promise = pendingShizukuPermissionPromise ?: return@OnRequestPermissionResultListener
+      pendingShizukuPermissionPromise = null
+      promise.resolve(grantResult == PackageManager.PERMISSION_GRANTED)
+    }
 
   override fun getName(): String = "NexxsensiNative"
+
+  override fun initialize() {
+    super.initialize()
+    try {
+      Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
+    } catch (_: Throwable) {
+    }
+  }
+
+  override fun invalidate() {
+    try {
+      Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
+    } catch (_: Throwable) {
+    }
+    pendingShizukuPermissionPromise?.reject(
+      "shizuku_permission_cancelled",
+      "Solicitação de permissão cancelada."
+    )
+    pendingShizukuPermissionPromise = null
+    super.invalidate()
+  }
 
   @ReactMethod
   fun getInstalledGames(promise: Promise) {
@@ -44,17 +85,11 @@ class NexxsensiNativeModule(
       val games = WritableNativeArray()
 
       launchableApps
-        .map { it.activityInfo.applicationInfo }
-        .distinctBy { it.packageName }
-        .filter { isGameApp(it, packageManager) }
-        .sortedBy { packageManager.getApplicationLabel(it).toString().lowercase() }
-        .forEach { appInfo ->
-          val item = WritableNativeMap()
-          item.putString("packageName", appInfo.packageName)
-          item.putString("label", packageManager.getApplicationLabel(appInfo).toString())
-          item.putString("category", categoryName(appInfo))
-          item.putBoolean("system", (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0)
-          games.pushMap(item)
+        .distinctBy { it.activityInfo.packageName }
+        .filter { isGameApp(it.activityInfo.applicationInfo, packageManager) }
+        .sortedBy { appLabel(it, packageManager).lowercase() }
+        .forEach { resolveInfo ->
+          games.pushMap(appMap(resolveInfo, packageManager))
         }
 
       promise.resolve(games)
@@ -73,17 +108,14 @@ class NexxsensiNativeModule(
       val apps = WritableNativeArray()
 
       packageManager.queryIntentActivities(intent, 0)
-        .map { it.activityInfo.applicationInfo }
-        .distinctBy { it.packageName }
-        .filter { it.packageName != reactContext.packageName }
-        .sortedBy { packageManager.getApplicationLabel(it).toString().lowercase() }
-        .forEach { appInfo ->
-          val item = WritableNativeMap()
-          item.putString("packageName", appInfo.packageName)
-          item.putString("label", packageManager.getApplicationLabel(appInfo).toString())
-          item.putString("category", categoryName(appInfo))
-          item.putBoolean("system", (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0)
-          apps.pushMap(item)
+        .distinctBy { it.activityInfo.packageName }
+        .filter { it.activityInfo.packageName != reactContext.packageName }
+        .sortedWith(
+          compareByDescending<ResolveInfo> { isGameApp(it.activityInfo.applicationInfo, packageManager) }
+            .thenBy { appLabel(it, packageManager).lowercase() }
+        )
+        .forEach { resolveInfo ->
+          apps.pushMap(appMap(resolveInfo, packageManager))
         }
 
       promise.resolve(apps)
@@ -97,7 +129,7 @@ class NexxsensiNativeModule(
     try {
       val launchIntent = reactContext.packageManager.getLaunchIntentForPackage(packageName)
       if (launchIntent == null) {
-        promise.reject("app_not_launchable", "App nÃ£o pode ser aberto: $packageName")
+        promise.reject("app_not_launchable", "App não pode ser aberto: $packageName")
         return
       }
 
@@ -168,7 +200,7 @@ class NexxsensiNativeModule(
   fun requestShizukuPermission(promise: Promise) {
     try {
       if (!Shizuku.pingBinder()) {
-        promise.reject("shizuku_not_running", "Shizuku nÃ£o estÃ¡ ativo.")
+        promise.reject("shizuku_not_running", "Shizuku não está ativo.")
         return
       }
 
@@ -177,9 +209,16 @@ class NexxsensiNativeModule(
         return
       }
 
-      Shizuku.requestPermission(777)
-      promise.resolve(false)
+      pendingShizukuPermissionPromise?.reject(
+        "shizuku_permission_replaced",
+        "Uma nova solicitação de permissão foi iniciada."
+      )
+      pendingShizukuPermissionPromise = promise
+      Shizuku.requestPermission(shizukuPermissionRequestCode)
     } catch (error: Throwable) {
+      if (pendingShizukuPermissionPromise === promise) {
+        pendingShizukuPermissionPromise = null
+      }
       promise.reject("shizuku_permission_failed", error.message, error)
     }
   }
@@ -187,29 +226,42 @@ class NexxsensiNativeModule(
   @ReactMethod
   fun getDeviceMetrics(promise: Promise) {
     try {
-      val activityManager = reactContext.getSystemService(
-        Context.ACTIVITY_SERVICE
-      ) as ActivityManager
-      val memoryInfo = ActivityManager.MemoryInfo()
-      activityManager.getMemoryInfo(memoryInfo)
-
-      val storage = StatFs(Environment.getDataDirectory().absolutePath)
-      val totalStorage = storage.blockSizeLong * storage.blockCountLong
-      val freeStorage = storage.blockSizeLong * storage.availableBlocksLong
-      val batteryManager = reactContext.getSystemService(
-        Context.BATTERY_SERVICE
-      ) as BatteryManager
-      val rawBatteryPercent = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-      val batteryPercent = rawBatteryPercent.coerceIn(0, 100)
+      val metrics = WritableNativeMap()
+      val memoryInfo = try {
+        val activityManager = reactContext.getSystemService(
+          Context.ACTIVITY_SERVICE
+        ) as ActivityManager
+        ActivityManager.MemoryInfo().also { activityManager.getMemoryInfo(it) }
+      } catch (_: Throwable) {
+        null
+      }
+      val storageInfo = try {
+        val storage = StatFs(Environment.getDataDirectory().absolutePath)
+        val totalStorage = storage.blockSizeLong * storage.blockCountLong
+        val freeStorage = storage.blockSizeLong * storage.availableBlocksLong
+        totalStorage to freeStorage
+      } catch (_: Throwable) {
+        0L to 0L
+      }
+      val batteryPercent = try {
+        val batteryManager = reactContext.getSystemService(
+          Context.BATTERY_SERVICE
+        ) as BatteryManager
+        batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY).coerceIn(0, 100)
+      } catch (_: Throwable) {
+        0
+      }
       val temperature = readThermalTemperature()
 
-      val metrics = WritableNativeMap()
-      metrics.putDouble("ramTotalBytes", memoryInfo.totalMem.toDouble())
-      metrics.putDouble("ramAvailableBytes", memoryInfo.availMem.toDouble())
-      metrics.putDouble("ramUsedPercent", usedPercent(memoryInfo.totalMem, memoryInfo.availMem))
-      metrics.putDouble("storageTotalBytes", totalStorage.toDouble())
-      metrics.putDouble("storageFreeBytes", freeStorage.toDouble())
-      metrics.putDouble("storageUsedPercent", usedPercent(totalStorage, freeStorage))
+      metrics.putDouble("ramTotalBytes", (memoryInfo?.totalMem ?: 0L).toDouble())
+      metrics.putDouble("ramAvailableBytes", (memoryInfo?.availMem ?: 0L).toDouble())
+      metrics.putDouble(
+        "ramUsedPercent",
+        usedPercent(memoryInfo?.totalMem ?: 0L, memoryInfo?.availMem ?: 0L)
+      )
+      metrics.putDouble("storageTotalBytes", storageInfo.first.toDouble())
+      metrics.putDouble("storageFreeBytes", storageInfo.second.toDouble())
+      metrics.putDouble("storageUsedPercent", usedPercent(storageInfo.first, storageInfo.second))
       metrics.putInt("batteryPercent", batteryPercent)
       if (temperature != null) {
         metrics.putDouble("temperatureCelsius", temperature)
@@ -230,7 +282,7 @@ class NexxsensiNativeModule(
         val result = WritableNativeMap()
         result.putDouble("fps", 0.0)
         result.putBoolean("fpsAvailable", false)
-        result.putString("fpsSource", "Selecione um jogo e ative o Modo AvanÃ§ado.")
+        result.putString("fpsSource", "Selecione um jogo e ative o Modo Avançado.")
         result.putNull("cpuUsedPercent")
         result.putNull("gpuUsedPercent")
 
@@ -258,10 +310,10 @@ class NexxsensiNativeModule(
             result.putBoolean("fpsAvailable", true)
             result.putString("fpsSource", "dumpsys gfxinfo")
           } else {
-            result.putString("fpsSource", "Abra o jogo uma vez para gerar histÃ³rico de frames.")
+            result.putString("fpsSource", "Abra o jogo uma vez para gerar histórico de frames.")
           }
         } else {
-          result.putString("fpsSource", gfxInfo.stderr.ifBlank { "Android nÃ£o retornou dados de FPS." })
+          result.putString("fpsSource", gfxInfo.stderr.ifBlank { "Android não retornou dados de FPS." })
         }
 
         val cpuInfo = parseShellResult(
@@ -280,16 +332,23 @@ class NexxsensiNativeModule(
   fun runPing(host: String, promise: Promise) {
     Thread {
       try {
+        val target = host.ifBlank { "1.1.1.1" }
         val started = System.nanoTime()
-        val reachable = InetAddress.getByName(host.ifBlank { "8.8.8.8" }).isReachable(2500)
+        Socket().use { socket ->
+          socket.connect(InetSocketAddress(target, 443), 2500)
+        }
         val elapsedMs = (System.nanoTime() - started) / 1_000_000
         val result = WritableNativeMap()
-        result.putBoolean("ok", reachable)
+        result.putBoolean("ok", true)
         result.putInt("latencyMs", elapsedMs.toInt())
-        result.putString("host", host.ifBlank { "8.8.8.8" })
+        result.putString("host", target)
         promise.resolve(result)
-      } catch (error: Exception) {
-        promise.reject("ping_failed", error.message, error)
+    } catch (error: Exception) {
+        val result = WritableNativeMap()
+        result.putBoolean("ok", false)
+        result.putInt("latencyMs", 0)
+        result.putString("host", host.ifBlank { "1.1.1.1" })
+        promise.resolve(result)
       }
     }.start()
   }
@@ -301,14 +360,14 @@ class NexxsensiNativeModule(
         if (!canUseShizuku()) {
           promise.reject(
             "advanced_mode_required",
-            "Ative e autorize o Shizuku para executar otimizaÃ§Ãµes reais."
+            "Ative e autorize o Shizuku para executar otimizações reais."
           )
           return@Thread
         }
 
         val commands = buildActionCommands(actionId, packageName.orEmpty())
         if (commands.isEmpty()) {
-          promise.reject("unknown_action", "AÃ§Ã£o nÃ£o reconhecida: $actionId")
+          promise.reject("unknown_action", "Ação não reconhecida: $actionId")
           return@Thread
         }
 
@@ -363,6 +422,57 @@ class NexxsensiNativeModule(
     }
   }
 
+  private fun appMap(resolveInfo: ResolveInfo, packageManager: PackageManager): WritableNativeMap {
+    val appInfo = resolveInfo.activityInfo.applicationInfo
+    val item = WritableNativeMap()
+    item.putString("packageName", appInfo.packageName)
+    item.putString("label", appLabel(resolveInfo, packageManager))
+    item.putString("category", categoryName(appInfo))
+    item.putBoolean("system", (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0)
+    item.putBoolean("game", isGameApp(appInfo, packageManager))
+    item.putString("icon", iconDataUri(resolveInfo.loadIcon(packageManager)))
+    return item
+  }
+
+  private fun appLabel(resolveInfo: ResolveInfo, packageManager: PackageManager): String {
+    val loadedLabel = resolveInfo.loadLabel(packageManager)?.toString()?.trim()
+    if (!loadedLabel.isNullOrBlank()) {
+      return loadedLabel
+    }
+
+    val appLabel = packageManager.getApplicationLabel(resolveInfo.activityInfo.applicationInfo)
+      ?.toString()
+      ?.trim()
+    return appLabel?.takeIf { it.isNotBlank() } ?: resolveInfo.activityInfo.packageName
+  }
+
+  private fun iconDataUri(drawable: Drawable?): String? {
+    if (drawable == null) {
+      return null
+    }
+
+    return try {
+      val bitmap = when (drawable) {
+        is BitmapDrawable -> drawable.bitmap
+        else -> {
+          val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 96
+          val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 96
+          val created = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+          val canvas = Canvas(created)
+          drawable.setBounds(0, 0, canvas.width, canvas.height)
+          drawable.draw(canvas)
+          created
+        }
+      }
+      val scaled = Bitmap.createScaledBitmap(bitmap, 96, 96, true)
+      val stream = ByteArrayOutputStream()
+      scaled.compress(Bitmap.CompressFormat.PNG, 90, stream)
+      "data:image/png;base64,${Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)}"
+    } catch (_: Throwable) {
+      null
+    }
+  }
+
   private fun canUseShizuku(): Boolean {
     return try {
       Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
@@ -404,10 +514,10 @@ class NexxsensiNativeModule(
     Shizuku.bindUserService(args, connection)
     if (!latch.await(12, TimeUnit.SECONDS)) {
       shellBinding = false
-      throw IllegalStateException("NÃ£o foi possÃ­vel conectar ao serviÃ§o Shizuku.")
+      throw IllegalStateException("Não foi possível conectar ao serviço Shizuku.")
     }
 
-    return shellService ?: throw IllegalStateException("ServiÃ§o Shizuku indisponÃ­vel.")
+    return shellService ?: throw IllegalStateException("Serviço Shizuku indisponível.")
   }
 
   private fun waitForShellService(): INexxsensiShellService? {
@@ -430,11 +540,11 @@ class NexxsensiNativeModule(
       )
       "cool" -> listOf(
         ActionCommand("Reduzindo processos em segundo plano", "am kill-all"),
-        ActionCommand("Aplicando perfil leve de animaÃ§Ã£o", "settings put global animator_duration_scale 0.5")
+        ActionCommand("Aplicando perfil leve de animação", "settings put global animator_duration_scale 0.5")
       )
       "stutter" -> listOf(
-        ActionCommand("Reduzindo animaÃ§Ã£o de janelas", "settings put global window_animation_scale 0.5"),
-        ActionCommand("Reduzindo transiÃ§Ãµes", "settings put global transition_animation_scale 0.5"),
+        ActionCommand("Reduzindo animação de janelas", "settings put global window_animation_scale 0.5"),
+        ActionCommand("Reduzindo transições", "settings put global transition_animation_scale 0.5"),
         ActionCommand("Reduzindo animador", "settings put global animator_duration_scale 0.5")
       )
       "battery" -> listOf(
@@ -454,8 +564,8 @@ class NexxsensiNativeModule(
         }
       }
       "revert" -> listOf(
-        ActionCommand("Restaurando animaÃ§Ã£o de janelas", "settings put global window_animation_scale 1"),
-        ActionCommand("Restaurando transiÃ§Ãµes", "settings put global transition_animation_scale 1"),
+        ActionCommand("Restaurando animação de janelas", "settings put global window_animation_scale 1"),
+        ActionCommand("Restaurando transições", "settings put global transition_animation_scale 1"),
         ActionCommand("Restaurando animador", "settings put global animator_duration_scale 1"),
         ActionCommand("Restaurando bateria adaptativa", "settings put global adaptive_battery_management_enabled 1 || true"),
         ActionCommand("Restaurando apps em espera", "settings put global app_standby_enabled 1 || true"),
@@ -570,7 +680,11 @@ class NexxsensiNativeModule(
         if (!temp.exists()) {
           null
         } else {
-          temp.readText().trim().toDoubleOrNull()
+          try {
+            temp.readText().trim().toDoubleOrNull()
+          } catch (_: Throwable) {
+            null
+          }
         }
       }
       .map { value -> if (value > 1000) value / 1000.0 else value }
@@ -663,4 +777,5 @@ class NexxsensiNativeModule(
     val stderr: String
   )
 }
+
 

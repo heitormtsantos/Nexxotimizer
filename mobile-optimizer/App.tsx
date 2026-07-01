@@ -149,27 +149,54 @@ export default function App() {
   }, []);
 
   async function refreshAll() {
-    try {
-      const [nextGames, nextMetrics, nextPing, nextAdvanced] = await Promise.all([
-        getInstalledGames(),
-        getDeviceMetrics(),
-        runPing(),
-        getNativeAdvancedStatus(),
-      ]);
-      const mergedGames = mergeByPackage(nextGames, manualGames);
-      const nextSelected =
-        selectedGame && mergedGames.some((game) => game.packageName === selectedGame.packageName)
-          ? selectedGame
-          : mergedGames[0] ?? null;
-      setGames(mergedGames);
-      setSelectedGame(nextSelected);
+    const [gamesResult, metricsResult, pingResult, advancedResult] = await Promise.allSettled([
+      getInstalledGames(),
+      getDeviceMetrics(),
+      runPing(),
+      getNativeAdvancedStatus(),
+    ]);
+    const nextAdvanced =
+      advancedResult.status === 'fulfilled' ? advancedResult.value : advanced;
+    const nextGames =
+      gamesResult.status === 'fulfilled' ? gamesResult.value : games;
+    const nextMetrics =
+      metricsResult.status === 'fulfilled' ? metricsResult.value : metrics;
+    const nextPing =
+      pingResult.status === 'fulfilled' ? pingResult.value : ping;
+    const mergedGames = mergeByPackage(nextGames, manualGames);
+    const nextSelected =
+      selectedGame && mergedGames.some((game) => game.packageName === selectedGame.packageName)
+        ? selectedGame
+        : mergedGames[0] ?? null;
+    const hasFailure = [gamesResult, metricsResult, pingResult, advancedResult]
+      .some((result) => result.status === 'rejected');
+
+    setGames(mergedGames);
+    setSelectedGame(nextSelected);
+    if (nextMetrics) {
       setMetrics(normalizeMetrics(nextMetrics));
+    }
+    if (nextPing) {
       setPing(nextPing);
+    }
+    if (nextAdvanced) {
       setAdvanced(nextAdvanced);
+    }
+
+    try {
       setPerformance(await getPerformanceSnapshot(nextSelected ?? undefined));
-      setNotice(nextAdvanced.canRunPrivilegedActions ? 'Modo Avançado pronto.' : 'Ative o Modo Avançado para liberar boost real.');
     } catch {
-      setNotice('Não foi possível ler todos os dados. Tente atualizar.');
+      setPerformance(null);
+    }
+
+    if (nextAdvanced?.canRunPrivilegedActions) {
+      setNotice('Modo Avançado pronto.');
+    } else if (nextAdvanced?.shizukuAlive) {
+      setNotice('Shizuku está ativo. Toque em Autorizar este app.');
+    } else if (hasFailure) {
+      setNotice('Alguns dados não foram lidos, mas o status foi atualizado.');
+    } else {
+      setNotice('Ative o Modo Avançado para liberar boost real.');
     }
   }
 
@@ -275,9 +302,11 @@ export default function App() {
 
   async function requestPermissionAndRefresh() {
     try {
-      await requestShizukuPermission();
+      const granted = await requestShizukuPermission();
       await refreshAll();
+      setNotice(granted ? 'Permissão do Shizuku autorizada.' : 'Verifique a autorização no Shizuku e toque em atualizar.');
     } catch (error) {
+      await refreshAll();
       setNotice(error instanceof Error ? error.message : 'Modo Avançado ainda não está ativo.');
     }
   }
@@ -531,6 +560,31 @@ function AppHeader({ refreshAll }: { refreshAll: () => void }) {
   );
 }
 
+function AppBadge({ app, size = 40 }: { app: InstalledGame; size?: number }) {
+  if (app.icon) {
+    return (
+      <Image
+        source={{ uri: app.icon }}
+        resizeMode="cover"
+        style={[
+          styles.appIconImage,
+          {
+            borderRadius: size / 2,
+            height: size,
+            width: size,
+          },
+        ]}
+      />
+    );
+  }
+
+  return (
+    <View style={[styles.gameCardIcon, { height: size, width: size }]}>
+      <AppIcon name={app.game || app.category === 'game' ? 'game-controller' : 'apps'} size={Math.round(size * 0.52)} color={colors.purple} />
+    </View>
+  );
+}
+
 function ConnectionCard({
   advanced,
   installPermissionComponent,
@@ -761,12 +815,12 @@ function GamesScreen({
             {filteredApps.length > 0 ? (
               filteredApps.map((app) => (
                 <View key={app.packageName} style={styles.appPickerRow}>
-                  <View style={styles.gameCardIcon}>
-                    <AppIcon name="apps" size={20} color={colors.purple} />
-                  </View>
+                  <AppBadge app={app} />
                   <View style={styles.gameCardCopy}>
                     <Text numberOfLines={1} style={styles.gameCardTitle}>{app.label}</Text>
-                    <Text numberOfLines={1} style={styles.gameCardSub}>{app.packageName}</Text>
+                    <Text numberOfLines={1} style={styles.gameCardSub}>
+                      {app.game || app.category === 'game' ? 'Jogo detectado' : app.packageName}
+                    </Text>
                   </View>
                   <Pressable style={styles.addAppButton} onPress={() => addManualGame(app)}>
                     <Text style={styles.addAppButtonText}>Adicionar</Text>
@@ -784,9 +838,7 @@ function GamesScreen({
         <ImageBackground source={gameBannerFor(selectedGame)} resizeMode="cover" style={styles.featuredGameImage}>
           <View style={styles.featuredOverlay}>
             <View style={styles.featuredTopRow}>
-              <View style={styles.featuredGameIcon}>
-                <AppIcon name="game-controller" size={22} color={colors.text} />
-              </View>
+              <AppBadge app={selectedGame} size={44} />
               <View style={styles.featuredCopy}>
                 <Text style={styles.featuredLabel}>Selecionado</Text>
                 <Text numberOfLines={1} adjustsFontSizeToFit style={styles.featuredTitle}>
@@ -834,13 +886,11 @@ function GamesScreen({
             ]}
             onPress={() => setSelectedGame(game)}
           >
-            <View style={styles.gameCardIcon}>
-              <AppIcon name="game-controller" size={22} color={colors.purple} />
-            </View>
+            <AppBadge app={game} />
             <View style={styles.gameCardCopy}>
               <Text numberOfLines={1} style={styles.gameCardTitle}>{game.label}</Text>
               <Text style={styles.gameCardSub}>
-                {selectedGame?.packageName === game.packageName ? 'Selecionado' : 'Detectado'}
+                {selectedGame?.packageName === game.packageName ? 'Selecionado' : game.game ? 'Jogo detectado' : 'Adicionado'}
               </Text>
             </View>
             {selectedGame?.packageName === game.packageName && (
@@ -2387,6 +2437,11 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     width: 40,
+  },
+  appIconImage: {
+    backgroundColor: '#151B29',
+    borderColor: '#252E42',
+    borderWidth: 1,
   },
   gameCardCopy: {
     flex: 1,
