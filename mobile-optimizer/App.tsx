@@ -1,11 +1,14 @@
 ﻿import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   AppState,
+  Animated,
+  Easing,
   Image,
   ImageBackground,
+  Linking,
   Platform,
   Pressable,
   SafeAreaView,
@@ -18,7 +21,17 @@ import {
 } from 'react-native';
 
 import {
+  ActivationState,
+  isActivationUsable,
+  validateActivationKey,
+} from './src/services/activationClient';
+import {
+  loadMobileState,
+  saveActivationState,
+} from './src/services/mobileStorage';
+import {
   DeviceMetrics,
+  canDrawOverlays,
   getDeviceMetrics,
   getInstalledGames,
   getLaunchableApps,
@@ -28,12 +41,14 @@ import {
   launchGame,
   NativeAdvancedStatus,
   openShizuku,
+  openOverlaySettings,
   OptimizerActionResult,
   PerformanceSnapshot,
   PingResult,
   requestShizukuPermission,
   runOptimizerAction,
   runPing,
+  startGameOverlay,
 } from './src/services/nativeOptimizer';
 import { colors } from './src/theme/colors';
 
@@ -47,6 +62,16 @@ type QuickAction = {
   title: string;
   subtitle: string;
   tone: Tone;
+};
+
+type OptimizationProgress = {
+  actionId: string;
+  title: string;
+  percent: number;
+  currentStep: string;
+  processedItems: string[];
+  done: boolean;
+  failed: boolean;
 };
 
 const tabs: Array<{ id: TabId; icon: IconName; label: string }> = [
@@ -74,6 +99,9 @@ const optimizationTools: QuickAction[] = [
 
 const systemTools: QuickAction[] = [
   { id: 'cool', icon: 'thermometer', title: 'Resfriar', subtitle: 'Reduzir uso da CPU', tone: 'blue' },
+  { id: 'dpi-600', icon: 'scan', title: 'DPI 600', subtitle: 'Sensibilidade gamer', tone: 'blue' },
+  { id: 'dpi-900', icon: 'expand', title: 'DPI 900', subtitle: 'Extremo para Free Fire', tone: 'purple' },
+  { id: 'dpi-reset', icon: 'contract', title: 'Reverter DPI', subtitle: 'Voltar tamanho padrão', tone: 'green' },
   { id: 'battery', icon: 'battery-charging', title: 'Modo Bateria', subtitle: 'Consumo menor', tone: 'green' },
   { id: 'revert', icon: 'refresh', title: 'Reverter Ajustes', subtitle: 'Voltar padrão', tone: 'blue' },
 ];
@@ -100,6 +128,83 @@ const gameCarouselImages = [
   banners.gameCarousel4,
 ];
 
+const actionNames: Record<string, string> = {
+  'game-boost': 'Boost do jogo',
+  ram: 'Liberando RAM',
+  cache: 'Limpando cache',
+  cool: 'Resfriando sistema',
+  stutter: 'Reduzindo travadas',
+  battery: 'Modo bateria',
+  revert: 'Revertendo ajustes',
+  'dpi-600': 'Aplicando DPI 600',
+  'dpi-720': 'Aplicando DPI 720',
+  'dpi-900': 'Aplicando DPI 900',
+  'dpi-reset': 'Revertendo DPI',
+  'profile-economy': 'Perfil economia',
+  'profile-balanced': 'Perfil equilibrado',
+  'profile-performance': 'Perfil desempenho',
+};
+
+const plannedSteps: Record<string, string[]> = {
+  'game-boost': [
+    'Finalizando processos em segundo plano',
+    'Limpando cache temporário',
+    'Aplicando perfil de desempenho',
+    'Preparando o jogo selecionado',
+    'Ativando overlay gamer',
+  ],
+  ram: [
+    'Analisando processos ativos',
+    'Liberando memória ociosa',
+    'Atualizando leitura de RAM',
+  ],
+  cache: [
+    'Calculando arquivos temporários',
+    'Limpando cache do sistema',
+    'Atualizando armazenamento livre',
+  ],
+  cool: [
+    'Reduzindo carga em segundo plano',
+    'Aplicando perfil leve',
+    'Verificando temperatura',
+  ],
+  stutter: [
+    'Reduzindo animações',
+    'Ajustando transições',
+    'Aplicando resposta rápida',
+  ],
+  battery: [
+    'Finalizando processos ociosos',
+    'Aplicando economia inteligente',
+    'Atualizando consumo',
+  ],
+  revert: [
+    'Restaurando animações',
+    'Revertendo limites do sistema',
+    'Voltando ao padrão',
+  ],
+  'dpi-600': [
+    'Preparando escala gamer',
+    'Aplicando DPI 600',
+    'Atualizando interface do Android',
+  ],
+  'dpi-720': [
+    'Preparando escala gamer',
+    'Aplicando DPI 720',
+    'Atualizando interface do Android',
+  ],
+  'dpi-900': [
+    'Preparando escala extrema',
+    'Aplicando DPI 900',
+    'Atualizando interface do Android',
+  ],
+  'dpi-reset': [
+    'Removendo DPI personalizado',
+    'Restaurando densidade padrão',
+    'Atualizando interface do Android',
+  ],
+};
+
 const topInset = Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : 0;
 const bottomInset = Platform.OS === 'android' ? 22 : 0;
 const bottomNavHeight = 78 + bottomInset;
@@ -121,9 +226,30 @@ export default function App() {
   const [runningAction, setRunningAction] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState('profile-balanced');
   const [gameCarouselIndex, setGameCarouselIndex] = useState(0);
+  const [optimizationProgress, setOptimizationProgress] = useState<OptimizationProgress | null>(null);
+  const [activation, setActivation] = useState<ActivationState | null>(null);
+  const [activationKeyInput, setActivationKeyInput] = useState('');
+  const [activationLoaded, setActivationLoaded] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
+  const [activationMessage, setActivationMessage] = useState('Para usar o app, ative sua key.');
   const [notice, setNotice] = useState('Ative o Modo Avançado para liberar boost real.');
+  const optimizationTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const ready = !!advanced?.canRunPrivilegedActions;
+  const activationReady = isActivationUsable(activation);
+
+  useEffect(() => {
+    return () => {
+      if (optimizationTimer.current) {
+        clearInterval(optimizationTimer.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    loadStoredActivation();
+  }, []);
+
   useEffect(() => {
     refreshAll();
     const subscription = AppState.addEventListener('change', (state) => {
@@ -135,6 +261,23 @@ export default function App() {
 
     return () => subscription.remove();
   }, []);
+
+  async function loadStoredActivation() {
+    try {
+      const state = await loadMobileState();
+      if (isActivationUsable(state.activation)) {
+        setActivation(state.activation ?? null);
+        setActivationMessage('Key ativa.');
+      } else {
+        setActivation(state.activation ?? null);
+        setActivationMessage(state.activation?.message ?? 'Para usar o app, ative sua key.');
+      }
+    } catch {
+      setActivationMessage('Não foi possível carregar a ativação.');
+    } finally {
+      setActivationLoaded(true);
+    }
+  }
 
   useEffect(() => {
     refreshPerformanceSnapshot();
@@ -206,6 +349,11 @@ export default function App() {
       return;
     }
 
+    if (!activationReady) {
+      setActivationMessage('Para usar esta função, ative sua key.');
+      return;
+    }
+
     if (!ready) {
       setNotice('Conclua o Modo Avançado antes de executar otimizações.');
       return;
@@ -213,6 +361,7 @@ export default function App() {
 
     setRunningAction(actionId);
     setLastAction(null);
+    startOptimizationProgress(actionId);
     if (actionId.startsWith('profile-')) {
       setSelectedProfile(actionId);
     }
@@ -221,6 +370,7 @@ export default function App() {
     try {
       const result = await runOptimizerAction(actionId, selectedGame ?? undefined);
       setLastAction(result);
+      finishOptimizationProgress(result, actionId);
       if (result.ok) {
         setAppliedActionCount((count) => count + 1);
       }
@@ -235,13 +385,107 @@ export default function App() {
       setAdvanced(nextAdvanced);
       setPerformance(await getPerformanceSnapshot(selectedGame ?? undefined));
     } catch (error) {
+      failOptimizationProgress(actionId);
       setNotice(error instanceof Error ? error.message : 'Ative o Modo Avançado para continuar.');
     } finally {
       setRunningAction(null);
     }
   }
 
+  function startOptimizationProgress(actionId: string) {
+    const steps = plannedSteps[actionId] ?? plannedSteps['game-boost'];
+    if (optimizationTimer.current) {
+      clearInterval(optimizationTimer.current);
+    }
+
+    setOptimizationProgress({
+      actionId,
+      title: actionNames[actionId] ?? 'Otimizando',
+      percent: 6,
+      currentStep: steps[0],
+      processedItems: [selectedGame?.label ?? 'Sistema Android'],
+      done: false,
+      failed: false,
+    });
+
+    optimizationTimer.current = setInterval(() => {
+      setOptimizationProgress((current) => {
+        if (!current || current.done) {
+          return current;
+        }
+
+        const actionSteps = plannedSteps[current.actionId] ?? steps;
+        const nextPercent = Math.min(88, current.percent + 7);
+        const stepIndex = Math.min(
+          actionSteps.length - 1,
+          Math.floor((nextPercent / 100) * actionSteps.length)
+        );
+        const nextItems = current.processedItems.length >= actionSteps.length
+          ? current.processedItems
+          : [...current.processedItems, actionSteps[stepIndex]];
+
+        return {
+          ...current,
+          percent: nextPercent,
+          currentStep: actionSteps[stepIndex],
+          processedItems: Array.from(new Set(nextItems)).slice(-5),
+        };
+      });
+    }, 420);
+  }
+
+  function finishOptimizationProgress(result: OptimizerActionResult, actionId: string) {
+    if (optimizationTimer.current) {
+      clearInterval(optimizationTimer.current);
+      optimizationTimer.current = null;
+    }
+
+    const completedSteps = result.steps
+      .map((step) => step.title)
+      .filter(Boolean)
+      .slice(-5);
+    setOptimizationProgress((current) => ({
+      actionId,
+      title: actionNames[actionId] ?? current?.title ?? 'Otimização',
+      percent: 100,
+      currentStep: result.ok ? 'Otimização concluída' : 'Algumas etapas falharam',
+      processedItems: completedSteps.length > 0 ? completedSteps : current?.processedItems ?? [],
+      done: true,
+      failed: !result.ok,
+    }));
+
+    setTimeout(() => {
+      setOptimizationProgress(null);
+    }, 1300);
+  }
+
+  function failOptimizationProgress(actionId: string) {
+    if (optimizationTimer.current) {
+      clearInterval(optimizationTimer.current);
+      optimizationTimer.current = null;
+    }
+
+    setOptimizationProgress((current) => ({
+      actionId,
+      title: actionNames[actionId] ?? current?.title ?? 'Otimização',
+      percent: current?.percent ?? 0,
+      currentStep: 'Não foi possível concluir',
+      processedItems: current?.processedItems ?? [],
+      done: true,
+      failed: true,
+    }));
+
+    setTimeout(() => {
+      setOptimizationProgress(null);
+    }, 1600);
+  }
+
   async function boostAndOpen() {
+    if (!activationReady) {
+      setActivationMessage('Para iniciar o jogo com boost, ative sua key.');
+      return;
+    }
+
     if (!ready) {
       setNotice('Ative o Modo Avançado antes de iniciar o boost.');
       return;
@@ -253,6 +497,20 @@ export default function App() {
     }
 
     await runAction('game-boost');
+
+    try {
+      const overlayAllowed = await canDrawOverlays();
+      if (overlayAllowed) {
+        await startGameOverlay(selectedGame);
+      } else {
+        setNotice('Permita o overlay para usar a bolha de boost durante o jogo.');
+        await openOverlaySettings();
+        return;
+      }
+    } catch {
+      setNotice('Não foi possível iniciar o overlay. O jogo será aberto sem a bolha.');
+    }
+
     await launchGame(selectedGame);
   }
 
@@ -311,78 +569,123 @@ export default function App() {
     }
   }
 
+  async function activateKey() {
+    const key = activationKeyInput.trim();
+    if (!key) {
+      setActivationMessage('Informe sua key de acesso.');
+      return;
+    }
+
+    setIsActivating(true);
+    setActivationMessage('Validando key...');
+    try {
+      const result = await validateActivationKey(key);
+      setActivation(result);
+      setActivationMessage(result.message);
+      if (result.valid) {
+        await saveActivationState(result);
+        setActivationKeyInput('');
+      }
+    } catch {
+      setActivationMessage('Não foi possível validar a key no momento.');
+    } finally {
+      setIsActivating(false);
+    }
+  }
+
+  function openPurchasePage() {
+    Linking.openURL('https://nexxsensi.com/').catch(() => {
+      setActivationMessage('Não foi possível abrir a página de compra.');
+    });
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="light" />
       <View style={styles.app}>
-        {activeTab === 'home' && (
-          <HomeScreen
-            selectedGame={selectedGame}
-            games={games}
-            metrics={metrics}
-            ping={ping}
-            advanced={advanced}
-            ready={ready}
-            notice={notice}
-            runningAction={runningAction}
-            setSelectedGame={setSelectedGame}
-            runAction={runAction}
-            selectedProfile={selectedProfile}
-            boostAndOpen={boostAndOpen}
-            refreshAll={refreshAll}
-            openAppPicker={openAppPicker}
-            installPermissionComponent={installPermissionComponent}
-            requestPermissionAndRefresh={requestPermissionAndRefresh}
+        {!activationReady ? (
+          <ActivationScreen
+            activationLoaded={activationLoaded}
+            activationKeyInput={activationKeyInput}
+            activationMessage={activationMessage}
+            isActivating={isActivating}
+            setActivationKeyInput={setActivationKeyInput}
+            activateKey={activateKey}
+            openPurchasePage={openPurchasePage}
           />
+        ) : (
+          <>
+            {activeTab === 'home' && (
+              <HomeScreen
+                selectedGame={selectedGame}
+                games={games}
+                metrics={metrics}
+                ping={ping}
+                advanced={advanced}
+                ready={ready}
+                notice={notice}
+                runningAction={runningAction}
+                setSelectedGame={setSelectedGame}
+                runAction={runAction}
+                selectedProfile={selectedProfile}
+                boostAndOpen={boostAndOpen}
+                refreshAll={refreshAll}
+                openAppPicker={openAppPicker}
+                installPermissionComponent={installPermissionComponent}
+                requestPermissionAndRefresh={requestPermissionAndRefresh}
+              />
+            )}
+            {activeTab === 'performance' && (
+              <PerformanceScreen
+                metrics={metrics}
+                performance={performance}
+                ping={ping}
+                lastAction={lastAction}
+                refreshAll={refreshAll}
+                runAction={runAction}
+                runningAction={runningAction}
+                ready={ready}
+                selectedGame={selectedGame}
+                selectedProfile={selectedProfile}
+              />
+            )}
+            {activeTab === 'games' && (
+              <GamesScreen
+                games={games}
+                selectedGame={selectedGame}
+                ready={ready}
+                runningAction={runningAction}
+                setSelectedGame={setSelectedGame}
+                runAction={runAction}
+                boostAndOpen={boostAndOpen}
+                refreshAll={refreshAll}
+                openAppPicker={openAppPicker}
+                appCandidates={appCandidates}
+                appSearch={appSearch}
+                isPickingApp={isPickingApp}
+                setAppSearch={setAppSearch}
+                setIsPickingApp={setIsPickingApp}
+                addManualGame={addManualGame}
+                carouselIndex={gameCarouselIndex}
+                setCarouselIndex={setGameCarouselIndex}
+              />
+            )}
+            {activeTab === 'tools' && (
+              <ToolsScreen ready={ready} runningAction={runningAction} runAction={runAction} />
+            )}
+            {activeTab === 'profile' && (
+              <ProfileScreen
+                advanced={advanced}
+                refreshAll={refreshAll}
+                installPermissionComponent={installPermissionComponent}
+                requestPermissionAndRefresh={requestPermissionAndRefresh}
+                appliedActionCount={appliedActionCount}
+              />
+            )}
+            {optimizationProgress && <OptimizationOverlay progress={optimizationProgress} />}
+            <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+          </>
         )}
-        {activeTab === 'performance' && (
-          <PerformanceScreen
-            metrics={metrics}
-            performance={performance}
-            ping={ping}
-            lastAction={lastAction}
-            refreshAll={refreshAll}
-            runAction={runAction}
-            runningAction={runningAction}
-            ready={ready}
-            selectedGame={selectedGame}
-            selectedProfile={selectedProfile}
-          />
-        )}
-        {activeTab === 'games' && (
-          <GamesScreen
-            games={games}
-            selectedGame={selectedGame}
-            ready={ready}
-            runningAction={runningAction}
-            setSelectedGame={setSelectedGame}
-            runAction={runAction}
-            boostAndOpen={boostAndOpen}
-            refreshAll={refreshAll}
-            openAppPicker={openAppPicker}
-            appCandidates={appCandidates}
-            appSearch={appSearch}
-            isPickingApp={isPickingApp}
-            setAppSearch={setAppSearch}
-            setIsPickingApp={setIsPickingApp}
-            addManualGame={addManualGame}
-            carouselIndex={gameCarouselIndex}
-            setCarouselIndex={setGameCarouselIndex}
-          />
-        )}
-        {activeTab === 'tools' && (
-          <ToolsScreen ready={ready} runningAction={runningAction} runAction={runAction} />
-        )}
-        {activeTab === 'profile' && (
-          <ProfileScreen
-            advanced={advanced}
-            refreshAll={refreshAll}
-            installPermissionComponent={installPermissionComponent}
-            requestPermissionAndRefresh={requestPermissionAndRefresh}
-            appliedActionCount={appliedActionCount}
-          />
-        )}
-        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
       </View>
     </SafeAreaView>
   );
@@ -426,7 +729,7 @@ function HomeScreen({
   return (
     <Screen>
       <AppHeader refreshAll={refreshAll} />
-      <HomeBanner source={banners.home} />
+      {/* <HomeBanner source={banners.home} /> */}
 
       <View style={styles.hero}>
         <View style={styles.heroBeam} />
@@ -545,6 +848,62 @@ function HomeScreen({
   );
 }
 
+function ActivationScreen({
+  activationLoaded,
+  activationKeyInput,
+  activationMessage,
+  isActivating,
+  setActivationKeyInput,
+  activateKey,
+  openPurchasePage,
+}: {
+  activationLoaded: boolean;
+  activationKeyInput: string;
+  activationMessage: string;
+  isActivating: boolean;
+  setActivationKeyInput: (value: string) => void;
+  activateKey: () => void;
+  openPurchasePage: () => void;
+}) {
+  return (
+    <View style={styles.activationScreen}>
+      <View style={styles.activationCard}>
+        <Image source={banners.logo} resizeMode="contain" style={styles.activationLogo} />
+        <Text style={styles.activationTitle}>Ativar Nexxsensi</Text>
+        <Text style={styles.activationText}>
+          Insira sua key de acesso para liberar o otimizador mobile.
+        </Text>
+        <TextInput
+          value={activationKeyInput}
+          onChangeText={(value) => setActivationKeyInput(value.toUpperCase())}
+          editable={activationLoaded && !isActivating}
+          autoCapitalize="characters"
+          placeholder="SUA-KEY-DE-ACESSO"
+          placeholderTextColor={colors.dim}
+          style={styles.activationInput}
+        />
+        <Text style={styles.activationMessage}>
+          {activationLoaded ? activationMessage : 'Carregando ativação...'}
+        </Text>
+        <Pressable
+          style={[styles.activationPrimary, (!activationLoaded || isActivating) && styles.disabled]}
+          disabled={!activationLoaded || isActivating}
+          onPress={activateKey}
+        >
+          <AppIcon name="key" size={17} color={colors.text} />
+          <Text style={styles.activationPrimaryText}>
+            {isActivating ? 'Validando...' : 'Ativar key'}
+          </Text>
+        </Pressable>
+        <Pressable style={styles.activationSecondary} onPress={openPurchasePage}>
+          <AppIcon name="bag" size={16} color={colors.text} />
+          <Text style={styles.activationSecondaryText}>Comprar key</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function AppHeader({ refreshAll }: { refreshAll: () => void }) {
   return (
     <View style={styles.topHeader}>
@@ -556,6 +915,74 @@ function AppHeader({ refreshAll }: { refreshAll: () => void }) {
         <View style={styles.redDot} />
         <AppIcon name="notifications" size={21} color={colors.text} />
       </Pressable>
+    </View>
+  );
+}
+
+function OptimizationOverlay({ progress }: { progress: OptimizationProgress }) {
+  const spin = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 950,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [spin]);
+
+  const rotation = spin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+  const statusColor = progress.failed ? colors.red : progress.done ? colors.green : colors.purple;
+  const progressWidth = `${Math.max(6, Math.min(100, progress.percent))}%` as `${number}%`;
+
+  return (
+    <View pointerEvents="none" style={styles.optimizationLayer}>
+      <View style={styles.optimizationCard}>
+        <View style={styles.optimizationTop}>
+          <View style={styles.optimizationRingWrap}>
+            <Animated.View
+              style={[
+                styles.optimizationRing,
+                { borderTopColor: statusColor, borderRightColor: statusColor, transform: [{ rotate: rotation }] },
+              ]}
+            />
+            <View style={styles.optimizationRingInner}>
+              <Text style={styles.optimizationPercent}>{progress.percent}%</Text>
+            </View>
+          </View>
+          <View style={styles.optimizationCopy}>
+            <Text style={styles.optimizationEyebrow}>
+              {progress.done ? (progress.failed ? 'ATENÇÃO' : 'CONCLUÍDO') : 'OTIMIZANDO'}
+            </Text>
+            <Text numberOfLines={1} style={styles.optimizationTitle}>{progress.title}</Text>
+            <Text numberOfLines={2} style={styles.optimizationStep}>{progress.currentStep}</Text>
+          </View>
+        </View>
+
+        <View style={styles.optimizationTrack}>
+          <View style={[styles.optimizationFill, { width: progressWidth, backgroundColor: statusColor }]} />
+        </View>
+
+        <View style={styles.optimizationList}>
+          {progress.processedItems.map((item, index) => (
+            <View key={`${item}-${index}`} style={styles.optimizationItem}>
+              <AppIcon
+                name={progress.failed && index === progress.processedItems.length - 1 ? 'alert-circle' : 'checkmark-circle'}
+                size={14}
+                color={progress.failed && index === progress.processedItems.length - 1 ? colors.red : colors.green}
+              />
+              <Text numberOfLines={1} style={styles.optimizationItemText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
     </View>
   );
 }
@@ -687,7 +1114,7 @@ function PerformanceScreen({
   return (
     <Screen>
       <PageHeader title="Desempenho" icon="chevron-back" actionIcon="settings" onAction={refreshAll} />
-      <PerformanceBanner profile={profileLabel(selectedProfile)} game={selectedGame?.label ?? 'Nenhum jogo selecionado'} />
+      {/* <PerformanceBanner profile={profileLabel(selectedProfile)} game={selectedGame?.label ?? 'Nenhum jogo selecionado'} /> */}
       <View style={styles.fpsCard}>
         <View style={styles.connectTop}>
           <View>
@@ -791,7 +1218,7 @@ function GamesScreen({
   return (
     <Screen>
       <PageHeader title="Jogos" icon="chevron-back" actionIcon="refresh" onAction={refreshAll} />
-      <GameCarousel index={carouselIndex} setIndex={setCarouselIndex} />
+      {/* <GameCarousel index={carouselIndex} setIndex={setCarouselIndex} /> */}
       <Pressable style={styles.searchGamesButton} onPress={openAppPicker}>
         <AppIcon name="search" size={15} color={colors.text} />
         <Text style={styles.searchGamesText}>Buscar app</Text>
@@ -835,7 +1262,8 @@ function GamesScreen({
       )}
       {selectedGame ? (
       <View style={styles.featuredGame}>
-        <ImageBackground source={gameBannerFor(selectedGame)} resizeMode="cover" style={styles.featuredGameImage}>
+        {/* <ImageBackground source={gameBannerFor(selectedGame)} resizeMode="cover" style={styles.featuredGameImage}> */}
+        <View style={styles.featuredGameImage}>
           <View style={styles.featuredOverlay}>
             <View style={styles.featuredTopRow}>
               <AppBadge app={selectedGame} size={44} />
@@ -863,7 +1291,8 @@ function GamesScreen({
               </Pressable>
             </View>
           </View>
-        </ImageBackground>
+        </View>
+        {/* </ImageBackground> */}
       </View>
       ) : (
         <EmptyState
@@ -1562,10 +1991,200 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
+  optimizationLayer: {
+    alignItems: 'center',
+    bottom: bottomNavHeight + 10,
+    left: 0,
+    paddingHorizontal: 14,
+    position: 'absolute',
+    right: 0,
+    zIndex: 30,
+  },
+  optimizationCard: {
+    backgroundColor: 'rgba(8, 12, 22, 0.96)',
+    borderColor: '#263047',
+    borderRadius: 18,
+    borderWidth: 1,
+    maxWidth: 430,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.45,
+    shadowRadius: 24,
+    width: '100%',
+  },
+  optimizationTop: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 13,
+  },
+  optimizationRingWrap: {
+    alignItems: 'center',
+    height: 76,
+    justifyContent: 'center',
+    width: 76,
+  },
+  optimizationRing: {
+    borderBottomColor: '#1A2233',
+    borderLeftColor: '#1A2233',
+    borderRadius: 999,
+    borderRightColor: colors.purple,
+    borderTopColor: colors.purple,
+    borderWidth: 5,
+    height: 76,
+    position: 'absolute',
+    width: 76,
+  },
+  optimizationRingInner: {
+    alignItems: 'center',
+    backgroundColor: '#0B0F19',
+    borderRadius: 999,
+    height: 58,
+    justifyContent: 'center',
+    width: 58,
+  },
+  optimizationPercent: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  optimizationCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  optimizationEyebrow: {
+    color: colors.purple,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+  },
+  optimizationTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  optimizationStep: {
+    color: '#AEB6C5',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  optimizationTrack: {
+    backgroundColor: '#1A2233',
+    borderRadius: 999,
+    height: 7,
+    marginTop: 13,
+    overflow: 'hidden',
+  },
+  optimizationFill: {
+    borderRadius: 999,
+    height: '100%',
+  },
+  optimizationList: {
+    gap: 6,
+    marginTop: 12,
+  },
+  optimizationItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 7,
+  },
+  optimizationItemText: {
+    color: '#D7DCE7',
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '700',
+  },
   content: {
     gap: 16,
     padding: 16,
     paddingBottom: bottomNavHeight + 50,
+  },
+  activationScreen: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 18,
+  },
+  activationCard: {
+    alignItems: 'center',
+    backgroundColor: '#0B0F19',
+    borderColor: colors.purple,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 22,
+    width: '100%',
+  },
+  activationLogo: {
+    height: 72,
+    marginBottom: 16,
+    width: 120,
+  },
+  activationTitle: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  activationText: {
+    color: '#AEB6C5',
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 9,
+    textAlign: 'center',
+  },
+  activationInput: {
+    backgroundColor: '#070B12',
+    borderColor: '#202A3D',
+    borderRadius: 13,
+    borderWidth: 1,
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '800',
+    height: 52,
+    marginTop: 22,
+    paddingHorizontal: 14,
+    textAlign: 'center',
+    width: '100%',
+  },
+  activationMessage: {
+    color: colors.amber,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 12,
+    minHeight: 34,
+    textAlign: 'center',
+  },
+  activationPrimary: {
+    alignItems: 'center',
+    backgroundColor: colors.purple,
+    borderRadius: 13,
+    flexDirection: 'row',
+    gap: 8,
+    height: 48,
+    justifyContent: 'center',
+    marginTop: 8,
+    width: '100%',
+  },
+  activationPrimaryText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  activationSecondary: {
+    alignItems: 'center',
+    borderColor: '#273147',
+    borderRadius: 13,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    height: 46,
+    justifyContent: 'center',
+    marginTop: 10,
+    width: '100%',
+  },
+  activationSecondaryText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
   },
   topHeader: {
     alignItems: 'center',

@@ -69,6 +69,10 @@ type NexxsensiNativeModule = {
   runOptimizerAction(actionId: string, packageName?: string): Promise<OptimizerActionResult>;
   openShizuku(): Promise<boolean>;
   requestShizukuPermission(): Promise<boolean>;
+  canDrawOverlays(): Promise<boolean>;
+  openOverlaySettings(): Promise<boolean>;
+  startGameOverlay(packageName?: string): Promise<boolean>;
+  stopGameOverlay(): Promise<boolean>;
 };
 
 const nativeModule = NativeModules.NexxsensiNative as NexxsensiNativeModule | undefined;
@@ -163,6 +167,38 @@ export async function requestShizukuPermission(): Promise<boolean> {
   }
 
   return nativeModule.requestShizukuPermission();
+}
+
+export async function canDrawOverlays(): Promise<boolean> {
+  if (Platform.OS !== 'android' || !nativeModule) {
+    return false;
+  }
+
+  return nativeModule.canDrawOverlays();
+}
+
+export async function openOverlaySettings(): Promise<boolean> {
+  if (Platform.OS !== 'android' || !nativeModule) {
+    return false;
+  }
+
+  return nativeModule.openOverlaySettings();
+}
+
+export async function startGameOverlay(game?: InstalledGame): Promise<boolean> {
+  if (Platform.OS !== 'android' || !nativeModule) {
+    return false;
+  }
+
+  return nativeModule.startGameOverlay(game?.packageName);
+}
+
+export async function stopGameOverlay(): Promise<boolean> {
+  if (Platform.OS !== 'android' || !nativeModule) {
+    return false;
+  }
+
+  return nativeModule.stopGameOverlay();
 }
 
 const unavailableMetrics: DeviceMetrics = {

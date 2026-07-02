@@ -17,6 +17,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import android.os.StatFs
+import android.provider.Settings
 import android.util.Base64
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -138,6 +139,68 @@ class NexxsensiNativeModule(
       promise.resolve(true)
     } catch (error: Exception) {
       promise.reject("app_launch_failed", error.message, error)
+    }
+  }
+
+  @ReactMethod
+  fun canDrawOverlays(promise: Promise) {
+    try {
+      promise.resolve(Settings.canDrawOverlays(reactContext))
+    } catch (error: Exception) {
+      promise.reject("overlay_status_failed", error.message, error)
+    }
+  }
+
+  @ReactMethod
+  fun openOverlaySettings(promise: Promise) {
+    try {
+      val intent = Intent(
+        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+        android.net.Uri.parse("package:${reactContext.packageName}")
+      ).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      }
+      reactContext.startActivity(intent)
+      promise.resolve(true)
+    } catch (error: Exception) {
+      promise.reject("overlay_settings_failed", error.message, error)
+    }
+  }
+
+  @ReactMethod
+  fun startGameOverlay(packageName: String?, promise: Promise) {
+    try {
+      if (!Settings.canDrawOverlays(reactContext)) {
+        promise.reject("overlay_permission_required", "Permita sobrepor a outros apps.")
+        return
+      }
+
+      val intent = Intent(reactContext, NexxsensiOverlayService::class.java).apply {
+        action = NexxsensiOverlayService.ACTION_SHOW
+        putExtra(NexxsensiOverlayService.EXTRA_PACKAGE_NAME, packageName.orEmpty())
+      }
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        reactContext.startForegroundService(intent)
+      } else {
+        reactContext.startService(intent)
+      }
+      promise.resolve(true)
+    } catch (error: Exception) {
+      promise.reject("overlay_start_failed", error.message, error)
+    }
+  }
+
+  @ReactMethod
+  fun stopGameOverlay(promise: Promise) {
+    try {
+      val intent = Intent(reactContext, NexxsensiOverlayService::class.java).apply {
+        action = NexxsensiOverlayService.ACTION_HIDE
+      }
+      reactContext.startService(intent)
+      promise.resolve(true)
+    } catch (error: Exception) {
+      promise.reject("overlay_stop_failed", error.message, error)
     }
   }
 
@@ -550,6 +613,18 @@ class NexxsensiNativeModule(
       "battery" -> listOf(
         ActionCommand("Finalizando processos ociosos", "am kill-all"),
         ActionCommand("Reduzindo animacoes", "settings put global window_animation_scale 0.5; settings put global transition_animation_scale 0.5; settings put global animator_duration_scale 0.5")
+      )
+      "dpi-600" -> listOf(
+        ActionCommand("Aplicando DPI 600", "wm density 600")
+      )
+      "dpi-720" -> listOf(
+        ActionCommand("Aplicando DPI 720", "wm density 720")
+      )
+      "dpi-900" -> listOf(
+        ActionCommand("Aplicando DPI 900", "wm density 900")
+      )
+      "dpi-reset" -> listOf(
+        ActionCommand("Restaurando DPI padrão", "wm density reset")
       )
       "profile-economy" -> buildEconomyProfileCommands()
       "profile-balanced" -> buildBalancedProfileCommands(safePackage)

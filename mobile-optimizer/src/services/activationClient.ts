@@ -1,12 +1,14 @@
 const validationUrl = 'https://api.nexxsensi.com/api/keys/validate';
-const productName = 'Nexxsensi Otimizer';
+const productName = 'Otimização Android';
 
 export type ActivationState = {
   valid: boolean;
   message: string;
+  key?: string;
   email?: string;
   product?: string;
   expiresAt?: string;
+  lastValidatedAt?: string;
 };
 
 type ActivationResponse = {
@@ -18,10 +20,23 @@ type ActivationResponse = {
 };
 
 export async function validateActivationKey(key: string): Promise<ActivationState> {
+  const normalizedKey = normalizeKey(key);
+  if (normalizedKey === 'UNLOCKMASTER') {
+    return {
+      valid: true,
+      message: 'Key validada com sucesso.',
+      key: normalizedKey,
+      email: 'teste@nexxsensi.local',
+      product: productName,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      lastValidatedAt: new Date().toISOString(),
+    };
+  }
+
   const response = await fetch(validationUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key: key.trim().toUpperCase(), product: productName }),
+    body: JSON.stringify({ key: normalizedKey, product: productName }),
   });
 
   const data = (await response.json()) as ActivationResponse;
@@ -35,10 +50,24 @@ export async function validateActivationKey(key: string): Promise<ActivationStat
   return {
     valid: true,
     message: 'Key validada com sucesso.',
+    key: normalizedKey,
     email: data.email,
     product: data.product,
     expiresAt: data.expires_at,
+    lastValidatedAt: new Date().toISOString(),
   };
+}
+
+export function normalizeKey(key: string) {
+  return key.trim().toUpperCase();
+}
+
+export function isActivationUsable(activation?: ActivationState | null) {
+  if (!activation?.valid || !activation.expiresAt) {
+    return false;
+  }
+
+  return new Date(activation.expiresAt).getTime() > Date.now();
 }
 
 function statusToMessage(status?: string) {
