@@ -28,6 +28,7 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import java.io.File
@@ -38,8 +39,8 @@ import rikka.shizuku.Shizuku
 class NexxsensiOverlayService : Service() {
   private lateinit var windowManager: WindowManager
   private var bubbleView: View? = null
-  private var leftPanelView: LinearLayout? = null
-  private var rightPanelView: LinearLayout? = null
+  private var leftPanelView: View? = null
+  private var rightPanelView: View? = null
   private var bubbleParams: WindowManager.LayoutParams? = null
   private var shellService: INexxsensiShellService? = null
   private var shellBinding = false
@@ -170,14 +171,16 @@ class NexxsensiOverlayService : Service() {
     val leftPanel = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
       setPadding(dp(22), dp(18), dp(18), dp(18))
-      background = panelBackground(true, alpha)
-      this.alpha = alpha
-      scaleX = scale
-      scaleY = scale
       addView(sectionTitle("Otimizações"))
       addView(actionButton("Reboost", "FPS e resposta", true) { runOverlayAction("game-boost") })
       addView(actionButton("Liberar RAM", "Fecha processos ociosos", false) { runOverlayAction("ram") })
       addView(actionButton("Resfriar", "Reduz carga em segundo plano", false) { runOverlayAction("cool") })
+      addView(sectionTitle("Replay"))
+      addView(actionButton("Replay 3 min", "Ativar buffer circular", false) { startReplayPermission() })
+      addView(actionButton("Salvar replay", "Guardar últimos minutos", false) { sendReplayAction(NexxsensiReplayService.ACTION_SAVE) })
+      addView(actionButton("Abrir replay", "Ver último vídeo salvo", false) { sendReplayAction(NexxsensiReplayService.ACTION_OPEN_LAST) })
+      addView(actionButton("Compartilhar", "Enviar último replay", false) { sendReplayAction(NexxsensiReplayService.ACTION_SHARE_LAST) })
+      addView(actionButton("Parar replay", "Encerrar gravação", false) { sendReplayAction(NexxsensiReplayService.ACTION_STOP) })
       addView(sectionTitle("DPI Gamer"))
       addView(dpiButtons())
       addView(toggleRow("Doze Isolation", "Mata processos", true) { enabled ->
@@ -212,6 +215,14 @@ class NexxsensiOverlayService : Service() {
       addView(actionButton("Fechar overlay", "Ocultar bolha e painéis", false) { stopSelf() })
     }
 
+    val leftScroll = ScrollView(this).apply {
+      background = panelBackground(true, alpha)
+      this.alpha = alpha
+      scaleX = scale
+      scaleY = scale
+      addView(leftPanel)
+    }
+
     val rightPanel = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
       setPadding(dp(18), dp(18), dp(22), dp(18))
@@ -227,9 +238,9 @@ class NexxsensiOverlayService : Service() {
       rightPanel.addView(statRow(stat.first, stat.second, stat.third))
     }
 
-    leftPanelView = leftPanel
+    leftPanelView = leftScroll
     rightPanelView = rightPanel
-    windowManager.addView(leftPanel, sideParams(panelWidth, Gravity.START))
+    windowManager.addView(leftScroll, sideParams(panelWidth, Gravity.START))
     windowManager.addView(rightPanel, sideParams(panelWidth, Gravity.END))
   }
 
@@ -569,6 +580,24 @@ class NexxsensiOverlayService : Service() {
       } catch (_: Throwable) {
       }
     }.start()
+  }
+
+  private fun startReplayPermission() {
+    val intent = Intent(this, NexxsensiReplayPermissionActivity::class.java).apply {
+      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    startActivity(intent)
+  }
+
+  private fun sendReplayAction(action: String) {
+    val intent = Intent(this, NexxsensiReplayService::class.java).apply {
+      this.action = action
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && action == NexxsensiReplayService.ACTION_START) {
+      startForegroundService(intent)
+    } else {
+      startService(intent)
+    }
   }
 
   private fun buildCommands(actionId: String): List<String> {

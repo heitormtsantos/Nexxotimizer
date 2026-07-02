@@ -7,6 +7,7 @@ export type ActivationState = {
   key?: string;
   email?: string;
   product?: string;
+  startsAt?: string;
   expiresAt?: string;
   lastValidatedAt?: string;
 };
@@ -16,6 +17,7 @@ type ActivationResponse = {
   status?: string;
   email?: string;
   product?: string;
+  starts_at?: string;
   expires_at?: string;
 };
 
@@ -28,6 +30,7 @@ export async function validateActivationKey(key: string): Promise<ActivationStat
       key: normalizedKey,
       email: 'teste@nexxsensi.local',
       product: productName,
+      startsAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
       lastValidatedAt: new Date().toISOString(),
     };
@@ -53,6 +56,7 @@ export async function validateActivationKey(key: string): Promise<ActivationStat
     key: normalizedKey,
     email: data.email,
     product: data.product,
+    startsAt: data.starts_at,
     expiresAt: data.expires_at,
     lastValidatedAt: new Date().toISOString(),
   };

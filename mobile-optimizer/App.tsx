@@ -27,7 +27,10 @@ import {
 } from './src/services/activationClient';
 import {
   loadMobileState,
+  MobileHistoryItem,
+  MobilePreferences,
   saveActivationState,
+  saveMobilePreferences,
 } from './src/services/mobileStorage';
 import {
   DeviceMetrics,
@@ -67,6 +70,7 @@ type QuickAction = {
 type OptimizationProgress = {
   actionId: string;
   title: string;
+  subtitle: string;
   percent: number;
   currentStep: string;
   processedItems: string[];
@@ -119,6 +123,7 @@ const banners = {
   fortnite: require('./assets/banners/GameFortnite.png'),
   clash: require('./assets/banners/GameClash.png'),
   logo: require('./assets/banners/logo-cropped.png'),
+  splashLogo: require('./assets/splash-logo.png'),
 };
 
 const gameCarouselImages = [
@@ -129,7 +134,7 @@ const gameCarouselImages = [
 ];
 
 const actionNames: Record<string, string> = {
-  'game-boost': 'Boost do jogo',
+  'game-boost': 'Boost geral',
   ram: 'Liberando RAM',
   cache: 'Limpando cache',
   cool: 'Resfriando sistema',
@@ -143,6 +148,79 @@ const actionNames: Record<string, string> = {
   'profile-economy': 'Perfil economia',
   'profile-balanced': 'Perfil equilibrado',
   'profile-performance': 'Perfil desempenho',
+};
+
+const actionProgressCopy: Record<string, { running: string; done: string; subtitle: string }> = {
+  'game-boost': {
+    running: 'Otimizando aparelho...',
+    done: 'Aparelho otimizado',
+    subtitle: 'Aplicando boost, rede, memória e perfil gamer.',
+  },
+  ram: {
+    running: 'Liberando RAM...',
+    done: 'RAM liberada',
+    subtitle: 'Fechando processos ociosos e atualizando a leitura de memória.',
+  },
+  cache: {
+    running: 'Limpando cache...',
+    done: 'Cache limpo',
+    subtitle: 'Removendo arquivos temporários e recalculando armazenamento.',
+  },
+  cool: {
+    running: 'Resfriando sistema...',
+    done: 'Sistema resfriado',
+    subtitle: 'Reduzindo carga em segundo plano para baixar a temperatura.',
+  },
+  stutter: {
+    running: 'Reduzindo travadas...',
+    done: 'Travadas reduzidas',
+    subtitle: 'Ajustando animações e resposta visual do Android.',
+  },
+  battery: {
+    running: 'Ativando economia...',
+    done: 'Economia ativa',
+    subtitle: 'Aplicando perfil de menor consumo para uso prolongado.',
+  },
+  revert: {
+    running: 'Revertendo ajustes...',
+    done: 'Ajustes revertidos',
+    subtitle: 'Restaurando configurações para o padrão do aparelho.',
+  },
+  'dpi-600': {
+    running: 'Aplicando DPI 600...',
+    done: 'DPI 600 aplicado',
+    subtitle: 'Ajustando densidade da tela para sensibilidade gamer.',
+  },
+  'dpi-720': {
+    running: 'Aplicando DPI 720...',
+    done: 'DPI 720 aplicado',
+    subtitle: 'Ajustando densidade da tela para resposta mais rápida.',
+  },
+  'dpi-900': {
+    running: 'Aplicando DPI 900...',
+    done: 'DPI 900 aplicado',
+    subtitle: 'Aplicando densidade extrema para jogos de mira e toque.',
+  },
+  'dpi-reset': {
+    running: 'Revertendo DPI...',
+    done: 'DPI restaurado',
+    subtitle: 'Voltando a densidade visual original do Android.',
+  },
+  'profile-economy': {
+    running: 'Aplicando economia...',
+    done: 'Perfil economia ativo',
+    subtitle: 'Priorizando bateria e estabilidade.',
+  },
+  'profile-balanced': {
+    running: 'Aplicando equilíbrio...',
+    done: 'Perfil equilibrado ativo',
+    subtitle: 'Balanceando desempenho, bateria e temperatura.',
+  },
+  'profile-performance': {
+    running: 'Aplicando desempenho...',
+    done: 'Perfil desempenho ativo',
+    subtitle: 'Priorizando FPS e resposta do aparelho.',
+  },
 };
 
 const plannedSteps: Record<string, string[]> = {
@@ -207,7 +285,7 @@ const plannedSteps: Record<string, string[]> = {
 
 const topInset = Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : 0;
 const bottomInset = Platform.OS === 'android' ? 22 : 0;
-const bottomNavHeight = 78 + bottomInset;
+const bottomNavHeight = 98 + bottomInset;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -216,13 +294,20 @@ export default function App() {
   const [appCandidates, setAppCandidates] = useState<InstalledGame[]>([]);
   const [appSearch, setAppSearch] = useState('');
   const [isPickingApp, setIsPickingApp] = useState(false);
+  const [showOverlayPreview, setShowOverlayPreview] = useState(false);
   const [selectedGame, setSelectedGame] = useState<InstalledGame | null>(null);
+  const [selectedGamePackage, setSelectedGamePackage] = useState<string | null>(null);
+  const [favoriteGamePackages, setFavoriteGamePackages] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<DeviceMetrics | null>(null);
   const [performance, setPerformance] = useState<PerformanceSnapshot | null>(null);
+  const [lastPerformanceReading, setLastPerformanceReading] = useState<MobilePreferences['lastPerformance'] | null>(null);
   const [ping, setPing] = useState<PingResult | null>(null);
   const [advanced, setAdvanced] = useState<NativeAdvancedStatus | null>(null);
+  const [overlayAllowed, setOverlayAllowed] = useState(Platform.OS !== 'android');
+  const [startupPermissionsLoaded, setStartupPermissionsLoaded] = useState(false);
   const [lastAction, setLastAction] = useState<OptimizerActionResult | null>(null);
   const [appliedActionCount, setAppliedActionCount] = useState(0);
+  const [history, setHistory] = useState<MobileHistoryItem[]>([]);
   const [runningAction, setRunningAction] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState('profile-balanced');
   const [gameCarouselIndex, setGameCarouselIndex] = useState(0);
@@ -230,13 +315,40 @@ export default function App() {
   const [activation, setActivation] = useState<ActivationState | null>(null);
   const [activationKeyInput, setActivationKeyInput] = useState('');
   const [activationLoaded, setActivationLoaded] = useState(false);
+  const [splashElapsed, setSplashElapsed] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [activationMessage, setActivationMessage] = useState('Para usar o app, ative sua key.');
   const [notice, setNotice] = useState('Ative o Modo Avançado para liberar boost real.');
   const optimizationTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const ready = !!advanced?.canRunPrivilegedActions;
-  const activationReady = isActivationUsable(activation);
+  const startupPermissionsReady = Platform.OS !== 'android' || (overlayAllowed && ready);
+  const activationReady = Platform.OS === 'web' || isActivationUsable(activation);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || !activationLoaded || !activation?.valid || !activation.expiresAt) {
+      return;
+    }
+
+    const checkExpiration = () => {
+      if (new Date(activation.expiresAt!).getTime() > Date.now()) {
+        return;
+      }
+
+      const expiredActivation: ActivationState = {
+        ...activation,
+        valid: false,
+        message: 'Sua key expirou.',
+      };
+      setActivation(expiredActivation);
+      setActivationMessage('Sua key expirou. Insira uma nova key para continuar.');
+      saveActivationState(expiredActivation).catch(() => undefined);
+    };
+
+    checkExpiration();
+    const interval = setInterval(checkExpiration, 5000);
+    return () => clearInterval(interval);
+  }, [activation, activationLoaded]);
 
   useEffect(() => {
     return () => {
@@ -248,6 +360,14 @@ export default function App() {
 
   useEffect(() => {
     loadStoredActivation();
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSplashElapsed(true);
+    }, 2400);
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -272,6 +392,14 @@ export default function App() {
         setActivation(state.activation ?? null);
         setActivationMessage(state.activation?.message ?? 'Para usar o app, ative sua key.');
       }
+      if (state.preferences) {
+        setSelectedGamePackage(state.preferences.selectedGamePackage ?? null);
+        setSelectedProfile(state.preferences.selectedProfile ?? 'profile-balanced');
+        setFavoriteGamePackages(state.preferences.favoriteGamePackages ?? []);
+        setLastPerformanceReading(state.preferences.lastPerformance ?? null);
+        setHistory(state.preferences.history ?? []);
+        setAppliedActionCount(state.preferences.history?.filter((item) => item.ok).length ?? 0);
+      }
     } catch {
       setActivationMessage('Não foi possível carregar a ativação.');
     } finally {
@@ -291,12 +419,34 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!activationLoaded) {
+      return;
+    }
+
+    saveMobilePreferences({
+      selectedGamePackage: selectedGamePackage ?? undefined,
+      selectedProfile,
+      favoriteGamePackages,
+      lastPerformance: lastPerformanceReading ?? undefined,
+      history,
+    }).catch(() => undefined);
+  }, [
+    activationLoaded,
+    favoriteGamePackages,
+    history,
+    lastPerformanceReading,
+    selectedGamePackage,
+    selectedProfile,
+  ]);
+
   async function refreshAll() {
-    const [gamesResult, metricsResult, pingResult, advancedResult] = await Promise.allSettled([
+    const [gamesResult, metricsResult, pingResult, advancedResult, overlayResult] = await Promise.allSettled([
       getInstalledGames(),
       getDeviceMetrics(),
       runPing(),
       getNativeAdvancedStatus(),
+      canDrawOverlays(),
     ]);
     const nextAdvanced =
       advancedResult.status === 'fulfilled' ? advancedResult.value : advanced;
@@ -306,16 +456,25 @@ export default function App() {
       metricsResult.status === 'fulfilled' ? metricsResult.value : metrics;
     const nextPing =
       pingResult.status === 'fulfilled' ? pingResult.value : ping;
+    const nextOverlayAllowed =
+      overlayResult.status === 'fulfilled' ? overlayResult.value : overlayAllowed;
     const mergedGames = mergeByPackage(nextGames, manualGames);
-    const nextSelected =
+    const savedSelected = selectedGamePackage
+      ? mergedGames.find((game) => game.packageName === selectedGamePackage) ?? null
+      : null;
+    const currentSelected =
       selectedGame && mergedGames.some((game) => game.packageName === selectedGame.packageName)
         ? selectedGame
-        : mergedGames[0] ?? null;
-    const hasFailure = [gamesResult, metricsResult, pingResult, advancedResult]
+        : null;
+    const nextSelected = savedSelected ?? currentSelected ?? mergedGames[0] ?? null;
+    const hasFailure = [gamesResult, metricsResult, pingResult, advancedResult, overlayResult]
       .some((result) => result.status === 'rejected');
 
     setGames(mergedGames);
     setSelectedGame(nextSelected);
+    if (nextSelected && nextSelected.packageName !== selectedGamePackage) {
+      setSelectedGamePackage(nextSelected.packageName);
+    }
     if (nextMetrics) {
       setMetrics(normalizeMetrics(nextMetrics));
     }
@@ -325,9 +484,13 @@ export default function App() {
     if (nextAdvanced) {
       setAdvanced(nextAdvanced);
     }
+    setOverlayAllowed(nextOverlayAllowed);
+    setStartupPermissionsLoaded(true);
 
     try {
-      setPerformance(await getPerformanceSnapshot(nextSelected ?? undefined));
+      const nextPerformance = await getPerformanceSnapshot(nextSelected ?? undefined);
+      setPerformance(nextPerformance);
+      updateLastPerformanceReading(nextPerformance, nextSelected);
     } catch {
       setPerformance(null);
     }
@@ -341,6 +504,45 @@ export default function App() {
     } else {
       setNotice('Ative o Modo Avançado para liberar boost real.');
     }
+  }
+
+  function selectGame(game: InstalledGame | null) {
+    setSelectedGame(game);
+    setSelectedGamePackage(game?.packageName ?? null);
+  }
+
+  function toggleFavoriteGame(game: InstalledGame) {
+    setFavoriteGamePackages((current) =>
+      current.includes(game.packageName)
+        ? current.filter((packageName) => packageName !== game.packageName)
+        : [game.packageName, ...current].slice(0, 20)
+    );
+  }
+
+  function recordHistory(actionId: string, result: OptimizerActionResult) {
+    const item: MobileHistoryItem = {
+      id: `${Date.now()}-${actionId}`,
+      actionId,
+      title: actionNames[actionId] ?? actionId,
+      ok: result.ok,
+      gameLabel: selectedGame?.label,
+      createdAt: new Date().toISOString(),
+    };
+    setHistory((current) => [item, ...current].slice(0, 30));
+  }
+
+  function updateLastPerformanceReading(snapshot: PerformanceSnapshot | null, game?: InstalledGame | null) {
+    if (!snapshot) {
+      return;
+    }
+
+    setLastPerformanceReading({
+      fps: snapshot.fpsAvailable ? Math.round(snapshot.fps) : undefined,
+      fpsAvailable: snapshot.fpsAvailable,
+      fpsSource: snapshot.fpsSource,
+      gameLabel: game?.label,
+      capturedAt: new Date().toISOString(),
+    });
   }
 
   async function runAction(actionId: string) {
@@ -370,6 +572,7 @@ export default function App() {
     try {
       const result = await runOptimizerAction(actionId, selectedGame ?? undefined);
       setLastAction(result);
+      recordHistory(actionId, result);
       finishOptimizationProgress(result, actionId);
       if (result.ok) {
         setAppliedActionCount((count) => count + 1);
@@ -383,7 +586,9 @@ export default function App() {
       setMetrics(normalizeMetrics(nextMetrics));
       setPing(nextPing);
       setAdvanced(nextAdvanced);
-      setPerformance(await getPerformanceSnapshot(selectedGame ?? undefined));
+      const nextPerformance = await getPerformanceSnapshot(selectedGame ?? undefined);
+      setPerformance(nextPerformance);
+      updateLastPerformanceReading(nextPerformance, selectedGame);
     } catch (error) {
       failOptimizationProgress(actionId);
       setNotice(error instanceof Error ? error.message : 'Ative o Modo Avançado para continuar.');
@@ -394,13 +599,19 @@ export default function App() {
 
   function startOptimizationProgress(actionId: string) {
     const steps = plannedSteps[actionId] ?? plannedSteps['game-boost'];
+    const copy = actionProgressCopy[actionId] ?? {
+      running: actionNames[actionId] ?? 'Otimizando...',
+      done: 'Concluído',
+      subtitle: 'Aplicando ajustes no aparelho.',
+    };
     if (optimizationTimer.current) {
       clearInterval(optimizationTimer.current);
     }
 
     setOptimizationProgress({
       actionId,
-      title: actionNames[actionId] ?? 'Otimizando',
+      title: actionId === 'game-boost' && selectedGame ? 'Otimizando jogo...' : copy.running,
+      subtitle: copy.subtitle,
       percent: 6,
       currentStep: steps[0],
       processedItems: [selectedGame?.label ?? 'Sistema Android'],
@@ -444,11 +655,21 @@ export default function App() {
       .map((step) => step.title)
       .filter(Boolean)
       .slice(-5);
+    const copy = actionProgressCopy[actionId] ?? {
+      running: actionNames[actionId] ?? 'Otimização',
+      done: 'Concluído',
+      subtitle: 'Ajustes aplicados no aparelho.',
+    };
     setOptimizationProgress((current) => ({
       actionId,
-      title: actionNames[actionId] ?? current?.title ?? 'Otimização',
+      title: result.ok
+        ? actionId === 'game-boost' && current?.processedItems?.[0] !== 'Sistema Android'
+          ? 'Jogo otimizado'
+          : copy.done
+        : 'Algumas etapas falharam',
+      subtitle: copy.subtitle,
       percent: 100,
-      currentStep: result.ok ? 'Otimização concluída' : 'Algumas etapas falharam',
+      currentStep: result.ok ? copy.done : 'Algumas etapas falharam',
       processedItems: completedSteps.length > 0 ? completedSteps : current?.processedItems ?? [],
       done: true,
       failed: !result.ok,
@@ -465,9 +686,15 @@ export default function App() {
       optimizationTimer.current = null;
     }
 
+    const copy = actionProgressCopy[actionId] ?? {
+      running: actionNames[actionId] ?? 'Otimização',
+      done: 'Falhou',
+      subtitle: 'Não foi possível aplicar os ajustes.',
+    };
     setOptimizationProgress((current) => ({
       actionId,
-      title: actionNames[actionId] ?? current?.title ?? 'Otimização',
+      title: 'Não foi possível concluir',
+      subtitle: copy.subtitle,
       percent: current?.percent ?? 0,
       currentStep: 'Não foi possível concluir',
       processedItems: current?.processedItems ?? [],
@@ -516,7 +743,9 @@ export default function App() {
 
   async function refreshPerformanceSnapshot() {
     try {
-      setPerformance(await getPerformanceSnapshot(selectedGame ?? undefined));
+      const snapshot = await getPerformanceSnapshot(selectedGame ?? undefined);
+      setPerformance(snapshot);
+      updateLastPerformanceReading(snapshot, selectedGame);
     } catch {
       setPerformance(null);
     }
@@ -538,7 +767,7 @@ export default function App() {
     const taggedApp = { ...app, category: app.category === 'game' ? app.category : 'manual' };
     setManualGames((current) => mergeByPackage(current, [taggedApp]));
     setGames((current) => mergeByPackage(current, [taggedApp]));
-    setSelectedGame(taggedApp);
+    selectGame(taggedApp);
     setIsPickingApp(false);
     setAppSearch('');
     setNotice(`${app.label} adicionado para otimização.`);
@@ -555,6 +784,17 @@ export default function App() {
       );
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Não foi possível abrir o Shizuku.');
+    }
+  }
+
+  async function requestOverlayAndRefresh() {
+    try {
+      setNotice('Abrindo permissão de sobreposição...');
+      await openOverlaySettings();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Não foi possível abrir a permissão de overlay.');
+    } finally {
+      await refreshAll();
     }
   }
 
@@ -603,7 +843,19 @@ export default function App() {
     <SafeAreaView style={styles.safe}>
       <StatusBar style="light" />
       <View style={styles.app}>
-        {!activationReady ? (
+        {!activationLoaded || !splashElapsed ? (
+          <SplashScreen />
+        ) : !startupPermissionsReady ? (
+          <StartupPermissionScreen
+            advanced={advanced}
+            overlayAllowed={overlayAllowed}
+            startupPermissionsLoaded={startupPermissionsLoaded}
+            installPermissionComponent={installPermissionComponent}
+            requestPermissionAndRefresh={requestPermissionAndRefresh}
+            requestOverlayAndRefresh={requestOverlayAndRefresh}
+            refreshAll={refreshAll}
+          />
+        ) : !activationReady ? (
           <ActivationScreen
             activationLoaded={activationLoaded}
             activationKeyInput={activationKeyInput}
@@ -625,10 +877,9 @@ export default function App() {
                 ready={ready}
                 notice={notice}
                 runningAction={runningAction}
-                setSelectedGame={setSelectedGame}
+                setSelectedGame={selectGame}
                 runAction={runAction}
                 selectedProfile={selectedProfile}
-                boostAndOpen={boostAndOpen}
                 refreshAll={refreshAll}
                 openAppPicker={openAppPicker}
                 installPermissionComponent={installPermissionComponent}
@@ -641,12 +892,14 @@ export default function App() {
                 performance={performance}
                 ping={ping}
                 lastAction={lastAction}
+                lastPerformanceReading={lastPerformanceReading}
                 refreshAll={refreshAll}
                 runAction={runAction}
                 runningAction={runningAction}
                 ready={ready}
                 selectedGame={selectedGame}
                 selectedProfile={selectedProfile}
+                goHome={() => setActiveTab('home')}
               />
             )}
             {activeTab === 'games' && (
@@ -655,7 +908,9 @@ export default function App() {
                 selectedGame={selectedGame}
                 ready={ready}
                 runningAction={runningAction}
-                setSelectedGame={setSelectedGame}
+                setSelectedGame={selectGame}
+                favoriteGamePackages={favoriteGamePackages}
+                toggleFavoriteGame={toggleFavoriteGame}
                 runAction={runAction}
                 boostAndOpen={boostAndOpen}
                 refreshAll={refreshAll}
@@ -668,10 +923,18 @@ export default function App() {
                 addManualGame={addManualGame}
                 carouselIndex={gameCarouselIndex}
                 setCarouselIndex={setGameCarouselIndex}
+                showOverlayPreview={showOverlayPreview}
+                setShowOverlayPreview={setShowOverlayPreview}
+                goHome={() => setActiveTab('home')}
               />
             )}
             {activeTab === 'tools' && (
-              <ToolsScreen ready={ready} runningAction={runningAction} runAction={runAction} />
+              <ToolsScreen
+                ready={ready}
+                runningAction={runningAction}
+                runAction={runAction}
+                goHome={() => setActiveTab('home')}
+              />
             )}
             {activeTab === 'profile' && (
               <ProfileScreen
@@ -680,9 +943,20 @@ export default function App() {
                 installPermissionComponent={installPermissionComponent}
                 requestPermissionAndRefresh={requestPermissionAndRefresh}
                 appliedActionCount={appliedActionCount}
+                activation={activation}
+                history={history}
+                lastPerformanceReading={lastPerformanceReading}
+                goHome={() => setActiveTab('home')}
               />
             )}
             {optimizationProgress && <OptimizationOverlay progress={optimizationProgress} />}
+            {showOverlayPreview && (
+              <GameOverlayPreview
+                selectedGame={selectedGame}
+                setShowOverlayPreview={setShowOverlayPreview}
+                runAction={runAction}
+              />
+            )}
             <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
           </>
         )}
@@ -703,7 +977,6 @@ function HomeScreen({
   setSelectedGame,
   runAction,
   selectedProfile,
-  boostAndOpen,
   refreshAll,
   openAppPicker,
   installPermissionComponent,
@@ -720,7 +993,6 @@ function HomeScreen({
   setSelectedGame: (game: InstalledGame | null) => void;
   runAction: (actionId: string) => void;
   selectedProfile: string;
-  boostAndOpen: () => void;
   refreshAll: () => void;
   openAppPicker: () => void;
   installPermissionComponent: () => void;
@@ -736,10 +1008,12 @@ function HomeScreen({
         <View style={styles.heroCopy}>
           <Text style={styles.heroLabel}>MODO</Text>
           <Text numberOfLines={2} adjustsFontSizeToFit style={styles.gameName}>
-            {selectedGame ? `${selectedGame.label}\nTURBO` : 'Nenhum jogo\nselecionado'}
+            Otimização{'\n'}Geral
           </Text>
-          <Text numberOfLines={2} style={styles.heroText}>{notice}</Text>
-          <Pressable style={[styles.primaryButton, (!ready || !selectedGame) && styles.disabled]} onPress={boostAndOpen}>
+          <Text numberOfLines={2} style={styles.heroText}>
+            {ready ? 'Modo Avançado pronto para otimizar o aparelho.' : notice}
+          </Text>
+          <Pressable style={[styles.primaryButton, !ready && styles.disabled]} onPress={() => runAction('game-boost')}>
             <AppIcon name="rocket" size={15} color={colors.text} />
             <Text style={styles.primaryButtonText}>
               {runningAction === 'game-boost' ? 'OTIMIZANDO...' : 'OTIMIZAR AGORA'}
@@ -848,6 +1122,234 @@ function HomeScreen({
   );
 }
 
+function SplashScreen() {
+  const logoScale = useRef(new Animated.Value(0.86)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const ringRotation = useRef(new Animated.Value(0)).current;
+  const progress = useRef(new Animated.Value(0.16)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(logoScale, {
+        toValue: 1,
+        damping: 11,
+        stiffness: 95,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 560,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.loop(
+        Animated.timing(ringRotation, {
+          toValue: 1,
+          duration: 2200,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ),
+      Animated.timing(progress, {
+        toValue: 0.86,
+        duration: 2100,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [logoOpacity, logoScale, progress, ringRotation]);
+
+  const spin = ringRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const progressWidth = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
+  return (
+    <View style={styles.splashScreen}>
+      <View style={styles.splashGlow} />
+      <View style={styles.splashDiagonalOne} />
+      <View style={styles.splashDiagonalTwo} />
+      <View style={styles.splashCenter}>
+        <View style={styles.splashLogoShell}>
+          <Animated.View style={[styles.splashRing, { transform: [{ rotate: spin }] }]} />
+          <Animated.Image
+            source={banners.splashLogo}
+            resizeMode="contain"
+            style={[
+              styles.splashLogo,
+              {
+                opacity: logoOpacity,
+                transform: [{ scale: logoScale }],
+              },
+            ]}
+          />
+        </View>
+        <View style={styles.splashTag}>
+          <Text style={styles.splashTagText}>GAME BOOSTER ANDROID</Text>
+        </View>
+        <Text style={styles.splashTitle}>Nexxsensi</Text>
+        <Text style={styles.splashText}>
+          Preparando modo avançado, dados reais e painel gamer.
+        </Text>
+      </View>
+
+      <View style={styles.splashBottom}>
+        <View style={styles.splashLoaderCard}>
+          <View style={styles.splashLoaderHead}>
+            <Text style={styles.splashLoaderLabel}>Inicializando otimizações</Text>
+            <Text style={styles.splashLoaderValue}>72%</Text>
+          </View>
+          <View style={styles.splashProgressTrack}>
+            <Animated.View style={[styles.splashProgressFill, { width: progressWidth }]} />
+          </View>
+        </View>
+        <View style={styles.splashChecks}>
+          <View style={styles.splashCheck}>
+            <Text style={styles.splashCheckText}>Perfil{'\n'}gamer</Text>
+          </View>
+          <View style={styles.splashCheck}>
+            <Text style={styles.splashCheckText}>Dados{'\n'}reais</Text>
+          </View>
+          <View style={styles.splashCheck}>
+            <Text style={styles.splashCheckText}>Overlay{'\n'}pronto</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function StartupPermissionScreen({
+  advanced,
+  overlayAllowed,
+  startupPermissionsLoaded,
+  installPermissionComponent,
+  requestPermissionAndRefresh,
+  requestOverlayAndRefresh,
+  refreshAll,
+}: {
+  advanced: NativeAdvancedStatus | null;
+  overlayAllowed: boolean;
+  startupPermissionsLoaded: boolean;
+  installPermissionComponent: () => void;
+  requestPermissionAndRefresh: () => void;
+  requestOverlayAndRefresh: () => void;
+  refreshAll: () => void;
+}) {
+  const shizukuInstalled = !!advanced?.shizukuInstalled;
+  const shizukuAlive = !!advanced?.shizukuAlive;
+  const shizukuPermission = !!advanced?.shizukuPermission;
+  const canContinue = overlayAllowed && shizukuPermission;
+
+  return (
+    <View style={styles.permissionGateScreen}>
+      <View style={styles.permissionGateCard}>
+        <Image source={banners.splashLogo} resizeMode="contain" style={styles.permissionGateLogo} />
+        <Text style={styles.permissionGateKicker}>CONFIGURAÇÃO INICIAL</Text>
+        <Text style={styles.permissionGateTitle}>Permissões obrigatórias</Text>
+        <Text style={styles.permissionGateText}>
+          Libere as permissões para o otimizador funcionar com overlay, boost e painel durante o jogo.
+        </Text>
+
+        <View style={styles.permissionChecklist}>
+          <PermissionGateRow
+            done={overlayAllowed}
+            title="Sobrepor a outros apps"
+            text="Necessário para abrir a bolha e os painéis sobre o jogo."
+            action="Permitir overlay"
+            onPress={requestOverlayAndRefresh}
+          />
+          <PermissionGateRow
+            done={shizukuInstalled}
+            title="Componente Shizuku"
+            text="Necessário para executar comandos avançados sem computador."
+            action={shizukuInstalled ? 'Abrir Shizuku' : 'Instalar Shizuku'}
+            onPress={installPermissionComponent}
+          />
+          <PermissionGateRow
+            done={shizukuAlive}
+            title="Shizuku rodando"
+            text="Inicie pelo pareamento/depuração sem fio dentro do Shizuku."
+            action="Verificar"
+            onPress={refreshAll}
+          />
+          <PermissionGateRow
+            done={shizukuPermission}
+            title="Autorizar este app"
+            text="Permite que o Nexxsensi use o Shizuku para otimizações reais."
+            action="Autorizar"
+            onPress={requestPermissionAndRefresh}
+          />
+          <PermissionGateRow
+            done
+            title="Replay de tela"
+            text="O Android solicita essa permissão somente quando você ativar Replay 3 min."
+            action="Depois"
+            disabled
+          />
+        </View>
+
+        <Pressable style={styles.permissionGateRefresh} onPress={refreshAll}>
+          <AppIcon name="refresh" size={16} color={colors.text} />
+          <Text style={styles.permissionGateRefreshText}>
+            {startupPermissionsLoaded ? 'Verificar novamente' : 'Verificando...'}
+          </Text>
+        </Pressable>
+
+        {!canContinue && (
+          <Text style={styles.permissionGateWarning}>
+            O app continuará pedindo essas permissões até todas ficarem prontas.
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function PermissionGateRow({
+  done,
+  title,
+  text,
+  action,
+  onPress,
+  disabled = false,
+}: {
+  done: boolean;
+  title: string;
+  text: string;
+  action: string;
+  onPress?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <View style={styles.permissionGateRow}>
+      <View style={[styles.permissionGateStatus, done ? styles.permissionGateStatusOk : styles.permissionGateStatusPending]}>
+        <AppIcon name={done ? 'checkmark' : 'alert'} size={13} color={done ? '#031D13' : colors.amber} />
+      </View>
+      <View style={styles.permissionGateCopy}>
+        <Text style={styles.permissionGateRowTitle}>{title}</Text>
+        <Text style={styles.permissionGateRowText}>{text}</Text>
+      </View>
+      <Pressable
+        style={[
+          styles.permissionGateAction,
+          done && styles.permissionGateActionDone,
+          disabled && styles.disabled,
+        ]}
+        disabled={disabled}
+        onPress={onPress}
+      >
+        <Text style={styles.permissionGateActionText}>{done ? 'OK' : action}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function ActivationScreen({
   activationLoaded,
   activationKeyInput,
@@ -921,6 +1423,7 @@ function AppHeader({ refreshAll }: { refreshAll: () => void }) {
 
 function OptimizationOverlay({ progress }: { progress: OptimizationProgress }) {
   const spin = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -931,9 +1434,29 @@ function OptimizationOverlay({ progress }: { progress: OptimizationProgress }) {
         useNativeDriver: true,
       })
     );
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 950,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 950,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ])
+    );
     loop.start();
-    return () => loop.stop();
-  }, [spin]);
+    pulseLoop.start();
+    return () => {
+      loop.stop();
+      pulseLoop.stop();
+    };
+  }, [pulse, spin]);
 
   const rotation = spin.interpolate({
     inputRange: [0, 1],
@@ -941,48 +1464,213 @@ function OptimizationOverlay({ progress }: { progress: OptimizationProgress }) {
   });
   const statusColor = progress.failed ? colors.red : progress.done ? colors.green : colors.purple;
   const progressWidth = `${Math.max(6, Math.min(100, progress.percent))}%` as `${number}%`;
+  const pulseScale = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.96, 1.08],
+  });
+  const pulseOpacity = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.38, 0.78],
+  });
+  const visibleItems = progress.processedItems.slice(-5);
 
   return (
-    <View pointerEvents="none" style={styles.optimizationLayer}>
-      <View style={styles.optimizationCard}>
-        <View style={styles.optimizationTop}>
-          <View style={styles.optimizationRingWrap}>
-            <Animated.View
-              style={[
-                styles.optimizationRing,
-                { borderTopColor: statusColor, borderRightColor: statusColor, transform: [{ rotate: rotation }] },
-              ]}
-            />
-            <View style={styles.optimizationRingInner}>
-              <Text style={styles.optimizationPercent}>{progress.percent}%</Text>
-            </View>
+    <View style={styles.optimizationLayer}>
+      <View style={styles.optimizationGlow} />
+      <View style={styles.optimizationDiagonalOne} />
+      <View style={styles.optimizationDiagonalTwo} />
+      <View style={styles.optimizationLogoWrap}>
+        <Image source={banners.splashLogo} resizeMode="contain" style={styles.optimizationLogo} />
+      </View>
+
+      <View style={styles.optimizationStage}>
+        <View style={styles.optimizationRingWrap}>
+          <Animated.View
+            style={[
+              styles.optimizationPulse,
+              {
+                opacity: pulseOpacity,
+                transform: [{ scale: pulseScale }],
+              },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.optimizationRing,
+              {
+                borderTopColor: statusColor,
+                borderRightColor: statusColor,
+                transform: [{ rotate: rotation }],
+              },
+            ]}
+          />
+          <View style={styles.optimizationRingInner}>
+            <Text style={styles.optimizationPercent}>{progress.percent}%</Text>
           </View>
-          <View style={styles.optimizationCopy}>
-            <Text style={styles.optimizationEyebrow}>
-              {progress.done ? (progress.failed ? 'ATENÇÃO' : 'CONCLUÍDO') : 'OTIMIZANDO'}
-            </Text>
-            <Text numberOfLines={1} style={styles.optimizationTitle}>{progress.title}</Text>
-            <Text numberOfLines={2} style={styles.optimizationStep}>{progress.currentStep}</Text>
+          <View style={styles.optimizationRocket}>
+            <AppIcon name="arrow-up" size={20} color="#00F0FF" />
           </View>
         </View>
 
-        <View style={styles.optimizationTrack}>
-          <View style={[styles.optimizationFill, { width: progressWidth, backgroundColor: statusColor }]} />
+        <Text style={styles.optimizationTitle}>{progress.title}</Text>
+        <Text style={styles.optimizationSubtitle}>{progress.subtitle}</Text>
+
+        <View style={styles.optimizationCurrentCard}>
+          <Text style={styles.optimizationEyebrow}>
+            {progress.done ? (progress.failed ? 'ATENÇÃO' : 'FINALIZADO') : 'ETAPA ATUAL'}
+          </Text>
+          <Text numberOfLines={2} style={styles.optimizationStep}>{progress.currentStep}</Text>
+          <View style={styles.optimizationTrack}>
+            <View style={[styles.optimizationFill, { width: progressWidth, backgroundColor: statusColor }]} />
+          </View>
         </View>
 
         <View style={styles.optimizationList}>
-          {progress.processedItems.map((item, index) => (
-            <View key={`${item}-${index}`} style={styles.optimizationItem}>
-              <AppIcon
-                name={progress.failed && index === progress.processedItems.length - 1 ? 'alert-circle' : 'checkmark-circle'}
-                size={14}
-                color={progress.failed && index === progress.processedItems.length - 1 ? colors.red : colors.green}
-              />
+          {visibleItems.map((item, index) => {
+            const isLast = index === visibleItems.length - 1;
+            const isActive = !progress.done && isLast;
+            const isFailed = progress.failed && isLast;
+            return (
+            <View
+              key={`${item}-${index}`}
+              style={[styles.optimizationItem, isActive && styles.optimizationItemActive]}
+            >
+              <View
+                style={[
+                  styles.optimizationItemBadge,
+                  isActive && styles.optimizationItemBadgeActive,
+                  isFailed && styles.optimizationItemBadgeFailed,
+                ]}
+              >
+                <AppIcon
+                  name={isFailed ? 'alert-circle' : isActive ? 'sync' : 'checkmark'}
+                  size={isActive ? 13 : 12}
+                  color={isFailed ? colors.red : isActive ? '#22BDFF' : '#031D13'}
+                />
+              </View>
               <Text numberOfLines={1} style={styles.optimizationItemText}>{item}</Text>
             </View>
-          ))}
+          );})}
         </View>
       </View>
+
+      <View style={styles.optimizationFooter}>
+        <View style={styles.optimizationCancel}>
+          <Text style={styles.optimizationCancelText}>Cancelar</Text>
+        </View>
+        <Text style={styles.optimizationHint}>
+          A otimização continua apenas enquanto esta tela estiver aberta.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function GameOverlayPreview({
+  selectedGame,
+  setShowOverlayPreview,
+  runAction,
+}: {
+  selectedGame: InstalledGame | null;
+  setShowOverlayPreview: (value: boolean) => void;
+  runAction: (actionId: string) => void;
+}) {
+  const gameName = selectedGame?.label ?? 'Jogo selecionado';
+
+  return (
+    <View style={styles.gameOverlayPreviewLayer}>
+      <View style={styles.gameOverlayStage}>
+        <View style={styles.gameOverlayBackdrop}>
+          <View style={styles.gameOverlayTopBadge}>
+            <View style={styles.overlayLiveDot} />
+            <Text style={styles.gameOverlayTopText}>NEXXSENSI BOOST ATIVO</Text>
+            <Text style={styles.gameOverlayTopMuted}>{gameName} • DPI 900</Text>
+          </View>
+
+          <View style={[styles.overlaySidePanel, styles.overlayLeftPanel]}>
+            <Text style={styles.overlayKicker}>Otimização</Text>
+            <Text style={styles.overlayPanelTitle}>Turbo em execução</Text>
+            <Text style={styles.overlayPanelText}>Ajustes rápidos sem sair do jogo.</Text>
+            <Pressable style={styles.overlayPrimaryButton} onPress={() => runAction('game-boost')}>
+              <Text style={styles.overlayPrimaryText}>Reotimizar agora</Text>
+            </Pressable>
+            <OverlayToggle title="Boost de jogo" subtitle="Prioridade para o app atual" active />
+            <OverlayToggle title="RAM limpa" subtitle="Processos em segundo plano" active />
+            <OverlayToggle title="DPI gamer" subtitle="900 dpi aplicado" active />
+            <View style={styles.overlayButtonRow}>
+              <OverlayMiniButton label="600" onPress={() => runAction('dpi-600')} />
+              <OverlayMiniButton label="900" onPress={() => runAction('dpi-900')} />
+              <OverlayMiniButton label="Reset" onPress={() => runAction('dpi-reset')} />
+            </View>
+            <Text style={styles.overlayKicker}>Replay</Text>
+            <View style={styles.overlayButtonRow}>
+              <OverlayMiniButton label="Ativar" />
+              <OverlayMiniButton label="Salvar" />
+              <OverlayMiniButton label="Parar" />
+            </View>
+          </View>
+
+          <View style={styles.overlayCenter}>
+            <Text style={styles.overlayGameText}>{gameName}</Text>
+            <Text style={styles.overlayGameSub}>Área transparente simulando o jogo aberto</Text>
+          </View>
+
+          <View style={[styles.overlaySidePanel, styles.overlayRightPanel]}>
+            <Text style={styles.overlayKicker}>Painel ao vivo</Text>
+            <Text style={styles.overlayPanelTitle}>Estatísticas</Text>
+            <OverlayMetric label="FPS" value="59" />
+            <OverlayMetric label="Ping" value="22 ms" />
+            <OverlayMetric label="RAM livre" value="5.1 GB" />
+            <OverlayMetric label="Temperatura" value="33°C" />
+          </View>
+
+          <Pressable style={styles.overlayFloatingBubble} onPress={() => setShowOverlayPreview(false)}>
+            <Text style={styles.overlayBubbleText}>N</Text>
+          </Pressable>
+          <Pressable style={styles.overlayCloseButton} onPress={() => setShowOverlayPreview(false)}>
+            <AppIcon name="close" size={18} color={colors.text} />
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function OverlayToggle({
+  title,
+  subtitle,
+  active,
+}: {
+  title: string;
+  subtitle: string;
+  active: boolean;
+}) {
+  return (
+    <View style={styles.overlayToggle}>
+      <View style={styles.overlayToggleCopy}>
+        <Text style={styles.overlayToggleTitle}>{title}</Text>
+        <Text style={styles.overlayToggleSub}>{subtitle}</Text>
+      </View>
+      <View style={[styles.overlaySwitch, active && styles.overlaySwitchActive]}>
+        <View style={[styles.overlaySwitchKnob, active && styles.overlaySwitchKnobActive]} />
+      </View>
+    </View>
+  );
+}
+
+function OverlayMiniButton({ label, onPress }: { label: string; onPress?: () => void }) {
+  return (
+    <Pressable style={styles.overlayMiniButton} onPress={onPress}>
+      <Text style={styles.overlayMiniButtonText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function OverlayMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.overlayMetric}>
+      <Text style={styles.overlayMetricLabel}>{label}</Text>
+      <Text style={styles.overlayMetricValue}>{value}</Text>
     </View>
   );
 }
@@ -1078,30 +1766,42 @@ function PerformanceScreen({
   performance,
   ping,
   lastAction,
+  lastPerformanceReading,
   refreshAll,
   runAction,
   runningAction,
   ready,
   selectedGame,
   selectedProfile,
+  goHome,
 }: {
   metrics: DeviceMetrics | null;
   performance: PerformanceSnapshot | null;
   ping: PingResult | null;
   lastAction: OptimizerActionResult | null;
+  lastPerformanceReading: MobilePreferences['lastPerformance'] | null;
   refreshAll: () => void;
   runAction: (actionId: string) => void;
   runningAction: string | null;
   ready: boolean;
   selectedGame: InstalledGame | null;
   selectedProfile: string;
+  goHome: () => void;
 }) {
   const ramPercent = safePercent(metrics?.ramUsedPercent);
   const temp = metrics?.temperatureCelsius ? Math.round(metrics.temperatureCelsius) : null;
   const pingLabel = ping?.ok && ping.latencyMs > 0 ? `${ping.latencyMs} ms` : 'Sem leitura';
   const fpsAvailable = !!performance?.fpsAvailable;
-  const fpsValue = fpsAvailable ? Math.round(performance.fps).toString() : '--';
-  const fpsStatus = fpsAvailable ? 'Leitura real' : 'Sem leitura';
+  const fpsValue = fpsAvailable
+    ? Math.round(performance.fps).toString()
+    : lastPerformanceReading?.fpsAvailable && lastPerformanceReading.fps
+      ? lastPerformanceReading.fps.toString()
+      : '--';
+  const fpsStatus = fpsAvailable
+    ? 'Leitura real'
+    : lastPerformanceReading?.fpsAvailable
+      ? 'Última leitura'
+      : 'Sem leitura';
   const cpuValue =
     typeof performance?.cpuUsedPercent === 'number'
       ? `${Math.round(performance.cpuUsedPercent)}%`
@@ -1113,7 +1813,13 @@ function PerformanceScreen({
 
   return (
     <Screen>
-      <PageHeader title="Desempenho" icon="chevron-back" actionIcon="settings" onAction={refreshAll} />
+      <PageHeader
+        title="Desempenho"
+        icon="chevron-back"
+        onBack={goHome}
+        actionIcon="refresh"
+        onAction={refreshAll}
+      />
       {/* <PerformanceBanner profile={profileLabel(selectedProfile)} game={selectedGame?.label ?? 'Nenhum jogo selecionado'} /> */}
       <View style={styles.fpsCard}>
         <View style={styles.connectTop}>
@@ -1171,6 +1877,8 @@ function GamesScreen({
   ready,
   runningAction,
   setSelectedGame,
+  favoriteGamePackages,
+  toggleFavoriteGame,
   runAction,
   boostAndOpen,
   refreshAll,
@@ -1183,12 +1891,17 @@ function GamesScreen({
   addManualGame,
   carouselIndex,
   setCarouselIndex,
+  showOverlayPreview,
+  setShowOverlayPreview,
+  goHome,
 }: {
   games: InstalledGame[];
   selectedGame: InstalledGame | null;
   ready: boolean;
   runningAction: string | null;
   setSelectedGame: (game: InstalledGame | null) => void;
+  favoriteGamePackages: string[];
+  toggleFavoriteGame: (game: InstalledGame) => void;
   runAction: (actionId: string) => void;
   boostAndOpen: () => void;
   refreshAll: () => void;
@@ -1201,6 +1914,9 @@ function GamesScreen({
   addManualGame: (app: InstalledGame) => void;
   carouselIndex: number;
   setCarouselIndex: (index: number) => void;
+  showOverlayPreview: boolean;
+  setShowOverlayPreview: (value: boolean) => void;
+  goHome: () => void;
 }) {
   const normalizedSearch = appSearch.trim().toLowerCase();
   const gamePackageNames = new Set(games.map((game) => game.packageName));
@@ -1214,15 +1930,35 @@ function GamesScreen({
       return `${app.label} ${app.packageName}`.toLowerCase().includes(normalizedSearch);
     })
     .slice(0, 40);
+  const sortedGames = [...games].sort((left, right) => {
+    const leftFavorite = favoriteGamePackages.includes(left.packageName) ? 0 : 1;
+    const rightFavorite = favoriteGamePackages.includes(right.packageName) ? 0 : 1;
+    return leftFavorite - rightFavorite || left.label.localeCompare(right.label);
+  });
 
   return (
     <Screen>
-      <PageHeader title="Jogos" icon="chevron-back" actionIcon="refresh" onAction={refreshAll} />
+      <PageHeader
+        title="Jogos"
+        icon="chevron-back"
+        onBack={goHome}
+        actionIcon="refresh"
+        onAction={refreshAll}
+      />
       {/* <GameCarousel index={carouselIndex} setIndex={setCarouselIndex} /> */}
       <Pressable style={styles.searchGamesButton} onPress={openAppPicker}>
         <AppIcon name="search" size={15} color={colors.text} />
         <Text style={styles.searchGamesText}>Buscar app</Text>
       </Pressable>
+      {Platform.OS === 'web' && (
+        <Pressable
+          style={styles.overlayPreviewButton}
+          onPress={() => setShowOverlayPreview(!showOverlayPreview)}
+        >
+          <AppIcon name="phone-landscape" size={16} color={colors.text} />
+          <Text style={styles.overlayPreviewButtonText}>Prévia do overlay</Text>
+        </Pressable>
+      )}
       {isPickingApp && (
         <View style={styles.appPickerCard}>
           <View style={styles.sectionHeader}>
@@ -1306,7 +2042,9 @@ function GamesScreen({
       <Text style={[styles.groupTitle, styles.gamesGroupTitle]}>Jogos detectados</Text>
       {games.length > 0 ? (
       <View style={styles.gameGrid}>
-        {games.map((game) => (
+        {sortedGames.map((game) => {
+          const isFavorite = favoriteGamePackages.includes(game.packageName);
+          return (
           <Pressable
             key={game.packageName}
             style={[
@@ -1319,14 +2057,17 @@ function GamesScreen({
             <View style={styles.gameCardCopy}>
               <Text numberOfLines={1} style={styles.gameCardTitle}>{game.label}</Text>
               <Text style={styles.gameCardSub}>
-                {selectedGame?.packageName === game.packageName ? 'Selecionado' : game.game ? 'Jogo detectado' : 'Adicionado'}
+                {isFavorite ? 'Favorito' : selectedGame?.packageName === game.packageName ? 'Selecionado' : game.game ? 'Jogo detectado' : 'Adicionado'}
               </Text>
             </View>
+            <Pressable style={styles.favoriteButton} onPress={() => toggleFavoriteGame(game)}>
+              <AppIcon name={isFavorite ? 'star' : 'star-outline'} size={18} color={isFavorite ? colors.amber : '#667085'} />
+            </Pressable>
             {selectedGame?.packageName === game.packageName && (
               <AppIcon name="checkmark-circle" size={19} color={colors.green} />
             )}
           </Pressable>
-        ))}
+        );})}
       </View>
       ) : (
         <EmptyState
@@ -1345,14 +2086,33 @@ function ToolsScreen({
   ready,
   runningAction,
   runAction,
+  goHome,
 }: {
   ready: boolean;
   runningAction: string | null;
   runAction: (actionId: string) => void;
+  goHome: () => void;
 }) {
   return (
     <Screen>
-      <PageHeader title="Ferramentas" icon="chevron-back" actionIcon="help-circle" />
+      <PageHeader title="Ferramentas" icon="chevron-back" onBack={goHome} />
+      <Pressable
+        style={[styles.revertAllCard, !ready && styles.lockedRow]}
+        onPress={() => runAction('revert')}
+      >
+        <View style={styles.revertAllIcon}>
+          <AppIcon name="refresh" size={22} color={colors.green} />
+        </View>
+        <View style={styles.revertAllCopy}>
+          <Text style={styles.revertAllTitle}>Reverter tudo</Text>
+          <Text style={styles.revertAllText}>
+            Restaura DPI, animações e ajustes aplicados para o padrão do aparelho.
+          </Text>
+        </View>
+        <Text style={styles.revertAllAction}>
+          {runningAction === 'revert' ? 'Revertendo...' : 'Executar'}
+        </Text>
+      </Pressable>
       <ToolSection title="Otimização" actions={optimizationTools} ready={ready} runningAction={runningAction} runAction={runAction} />
       <ToolSection title="Sistema" actions={systemTools} ready={ready} runningAction={runningAction} runAction={runAction} />
     </Screen>
@@ -1400,12 +2160,20 @@ function ToolSection({
 function ProfileScreen({
   advanced,
   appliedActionCount,
+  activation,
+  history,
+  lastPerformanceReading,
+  goHome,
   refreshAll,
   installPermissionComponent,
   requestPermissionAndRefresh,
 }: {
   advanced: NativeAdvancedStatus | null;
   appliedActionCount: number;
+  activation: ActivationState | null;
+  history: MobileHistoryItem[];
+  lastPerformanceReading: MobilePreferences['lastPerformance'] | null;
+  goHome: () => void;
   refreshAll: () => void;
   installPermissionComponent: () => void;
   requestPermissionAndRefresh: () => void;
@@ -1418,10 +2186,20 @@ function ProfileScreen({
         ? 'Instalado'
         : 'Não instalado';
   const wirelessStatus = advanced?.supportsWirelessDebugging ? 'Disponível' : 'Indisponível';
+  const lastHistory = history.slice(0, 4);
+  const keyStartedAt = formatDateTime(activation?.startsAt);
+  const keyExpiresAt = formatDateTime(activation?.expiresAt);
+  const keyTimeLeft = formatTimeLeft(activation?.expiresAt);
 
   return (
     <Screen>
-      <PageHeader title="Perfil" icon="person" actionIcon="refresh" onAction={refreshAll} />
+      <PageHeader
+        title="Perfil"
+        icon="chevron-back"
+        onBack={goHome}
+        actionIcon="refresh"
+        onAction={refreshAll}
+      />
       <View style={styles.avatar}>
         <AppIcon name="person" size={32} color={colors.text} />
         <View style={styles.avatarEdit}>
@@ -1433,6 +2211,14 @@ function ProfileScreen({
       <View style={styles.profileStats}>
         <ProfileStat icon="rocket" value={`${appliedActionCount}`} label="Otimizações executadas" />
         <ProfileStat icon="hardware-chip" value="Indisponível" label="RAM economizada" />
+      </View>
+      <Text style={styles.profileSectionTitle}>Key de acesso</Text>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Status da key</Text>
+        <StatusInfoRow label="Produto" value={activation?.product ?? 'Otimização Android'} tone="ok" />
+        <StatusInfoRow label="Início" value={keyStartedAt} tone={activation?.startsAt ? 'ok' : 'neutral'} />
+        <StatusInfoRow label="Final" value={keyExpiresAt} tone={activation?.expiresAt ? 'ok' : 'neutral'} />
+        <StatusInfoRow label="Tempo restante" value={keyTimeLeft} tone={activation?.expiresAt ? 'pending' : 'neutral'} />
       </View>
       <Text style={styles.profileSectionTitle}>Configuração rápida</Text>
       <ConnectionCard
@@ -1447,6 +2233,21 @@ function ProfileScreen({
         <StatusInfoRow label="Android" value={advanced?.androidVersion ?? 'Indisponível'} tone={advanced?.androidVersion ? 'ok' : 'neutral'} />
         <StatusInfoRow label="Depuração sem fio" value={wirelessStatus} tone={advanced?.supportsWirelessDebugging ? 'ok' : 'neutral'} />
         <StatusInfoRow label="Componente Shizuku" value={shizukuLabel} tone={advanced?.shizukuPermission ? 'ok' : advanced?.shizukuInstalled ? 'pending' : 'neutral'} />
+        <StatusInfoRow label="Último FPS" value={lastPerformanceReading?.fps ? `${lastPerformanceReading.fps} FPS` : 'Sem leitura'} tone={lastPerformanceReading?.fps ? 'ok' : 'neutral'} />
+      </View>
+      <Text style={styles.profileSectionTitle}>Histórico recente</Text>
+      <View style={styles.card}>
+        {lastHistory.length > 0 ? (
+          lastHistory.map((item) => (
+            <InfoRow
+              key={item.id}
+              label={item.gameLabel ? `${item.title} • ${item.gameLabel}` : item.title}
+              value={item.ok ? 'OK' : 'Falhou'}
+            />
+          ))
+        ) : (
+          <Text style={styles.emptyText}>Nenhuma otimização executada ainda.</Text>
+        )}
       </View>
     </Screen>
   );
@@ -1455,23 +2256,33 @@ function ProfileScreen({
 function PageHeader({
   title,
   icon,
+  onBack,
   actionIcon,
   onAction,
 }: {
   title: string;
-  icon: IconName;
-  actionIcon: IconName;
+  icon?: IconName;
+  onBack?: () => void;
+  actionIcon?: IconName;
   onAction?: () => void;
 }) {
   return (
     <View style={styles.pageHeader}>
-      <View style={styles.headerIcon}>
-        <AppIcon name={icon} size={22} color={colors.text} />
-      </View>
+      {icon && onBack ? (
+        <Pressable style={styles.headerIcon} onPress={onBack}>
+          <AppIcon name={icon} size={22} color={colors.text} />
+        </Pressable>
+      ) : (
+        <View style={styles.headerSideSpacer} />
+      )}
       <Text style={styles.pageTitle}>{title}</Text>
-      <Pressable style={styles.headerIcon} onPress={onAction}>
-        <AppIcon name={actionIcon} size={21} color={colors.text} />
-      </Pressable>
+      {actionIcon && onAction ? (
+        <Pressable style={styles.headerIcon} onPress={onAction}>
+          <AppIcon name={actionIcon} size={21} color={colors.text} />
+        </Pressable>
+      ) : (
+        <View style={styles.headerSideSpacer} />
+      )}
     </View>
   );
 }
@@ -1485,18 +2296,34 @@ function BottomNav({
 }) {
   return (
     <View style={styles.bottomNav}>
-      {tabs.map((tab) => (
-        <Pressable key={tab.id} style={styles.navItem} onPress={() => setActiveTab(tab.id)}>
-          <View style={[styles.navIconWrap, activeTab === tab.id && styles.navIconWrapActive]}>
+      {tabs.map((tab) => {
+        const isCenter = tab.id === 'games';
+        const isActive = activeTab === tab.id;
+        return (
+        <Pressable
+          key={tab.id}
+          style={[styles.navItem, isCenter && styles.navItemCenter]}
+          onPress={() => setActiveTab(tab.id)}
+        >
+          <View
+            style={[
+              styles.navIconWrap,
+              isActive && styles.navIconWrapActive,
+              isCenter && styles.navIconWrapCenter,
+              isCenter && isActive && styles.navIconWrapCenterActive,
+            ]}
+          >
             <AppIcon
               name={tab.icon}
-              size={19}
-              color={activeTab === tab.id ? colors.text : '#858B99'}
+              size={isCenter ? 24 : 19}
+              color={isCenter ? '#FFFFFF' : isActive ? colors.text : '#8F98AD'}
             />
           </View>
-          <Text style={[styles.navText, activeTab === tab.id && styles.navTextActive]}>{tab.label}</Text>
+          {!isCenter && (
+            <Text style={[styles.navText, isActive && styles.navTextActive]}>{tab.label}</Text>
+          )}
         </Pressable>
-      ))}
+      );})}
     </View>
   );
 }
@@ -1883,6 +2710,56 @@ function formatBytes(value?: number) {
   return gb >= 1 ? `${gb.toFixed(1)} GB` : `${Math.round(value / 1024 / 1024)} MB`;
 }
 
+function formatDateTime(value?: string) {
+  if (!value) {
+    return 'Indisponível';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'Indisponível';
+  }
+
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatTimeLeft(value?: string) {
+  if (!value) {
+    return 'Indisponível';
+  }
+
+  const expiresAt = new Date(value).getTime();
+  if (!Number.isFinite(expiresAt)) {
+    return 'Indisponível';
+  }
+
+  const diffMs = expiresAt - Date.now();
+  if (diffMs <= 0) {
+    return 'Expirada';
+  }
+
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}min`;
+  }
+
+  return `${minutes}min`;
+}
+
 function toneColor(tone: Tone) {
   return tone === 'green'
     ? colors.green
@@ -1993,84 +2870,162 @@ const styles = StyleSheet.create({
   },
   optimizationLayer: {
     alignItems: 'center',
-    bottom: bottomNavHeight + 10,
+    backgroundColor: '#02050B',
+    bottom: 0,
+    justifyContent: 'space-between',
     left: 0,
-    paddingHorizontal: 14,
+    overflow: 'hidden',
+    paddingBottom: 28 + bottomInset,
+    paddingHorizontal: 22,
+    paddingTop: 34 + topInset,
     position: 'absolute',
     right: 0,
-    zIndex: 30,
+    top: 0,
+    zIndex: 80,
   },
-  optimizationCard: {
-    backgroundColor: 'rgba(8, 12, 22, 0.96)',
-    borderColor: '#263047',
-    borderRadius: 18,
+  optimizationGlow: {
+    backgroundColor: 'rgba(34, 189, 255, 0.045)',
+    borderColor: 'rgba(34, 189, 255, 0.16)',
+    borderRadius: 150,
     borderWidth: 1,
-    maxWidth: 430,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.45,
-    shadowRadius: 24,
+    height: 300,
+    left: '50%',
+    marginLeft: -150,
+    opacity: 1,
+    position: 'absolute',
+    top: '10%',
+    width: 300,
+  },
+  optimizationDiagonalOne: {
+    backgroundColor: 'rgba(34, 189, 255, 0.12)',
+    height: 2,
+    left: -48,
+    position: 'absolute',
+    top: '32%',
+    transform: [{ rotate: '-55deg' }],
+    width: 520,
+  },
+  optimizationDiagonalTwo: {
+    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    height: 2,
+    position: 'absolute',
+    right: -86,
+    top: '58%',
+    transform: [{ rotate: '-55deg' }],
+    width: 520,
+  },
+  optimizationLogoWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 72,
     width: '100%',
   },
-  optimizationTop: {
+  optimizationLogo: {
+    height: 62,
+    width: 132,
+  },
+  optimizationStage: {
     alignItems: 'center',
-    flexDirection: 'row',
-    gap: 13,
+    justifyContent: 'center',
+    width: '100%',
   },
   optimizationRingWrap: {
     alignItems: 'center',
-    height: 76,
+    height: 214,
     justifyContent: 'center',
-    width: 76,
+    marginBottom: 22,
+    position: 'relative',
+    width: 214,
+  },
+  optimizationPulse: {
+    backgroundColor: 'rgba(34, 189, 255, 0.08)',
+    borderColor: 'rgba(34, 189, 255, 0.18)',
+    borderWidth: 1,
+    borderRadius: 107,
+    height: 214,
+    position: 'absolute',
+    width: 214,
+  },
+  optimizationRocket: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(34, 189, 255, 0.12)',
+    borderColor: 'rgba(34, 189, 255, 0.22)',
+    borderRadius: 21,
+    borderWidth: 1,
+    height: 42,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 30,
+    top: 14,
+    width: 42,
   },
   optimizationRing: {
     borderBottomColor: '#1A2233',
     borderLeftColor: '#1A2233',
     borderRadius: 999,
-    borderRightColor: colors.purple,
-    borderTopColor: colors.purple,
-    borderWidth: 5,
-    height: 76,
+    borderRightColor: '#22BDFF',
+    borderTopColor: '#22BDFF',
+    borderWidth: 10,
+    height: 190,
     position: 'absolute',
-    width: 76,
+    width: 190,
   },
   optimizationRingInner: {
     alignItems: 'center',
-    backgroundColor: '#0B0F19',
+    backgroundColor: 'rgba(4, 9, 18, 0.97)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 999,
-    height: 58,
+    borderWidth: 1,
+    height: 166,
     justifyContent: 'center',
-    width: 58,
+    width: 166,
   },
   optimizationPercent: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 44,
     fontWeight: '900',
-  },
-  optimizationCopy: {
-    flex: 1,
-    gap: 3,
   },
   optimizationEyebrow: {
-    color: colors.purple,
+    color: '#00F0FF',
     fontSize: 10,
     fontWeight: '900',
-    letterSpacing: 0.6,
+    letterSpacing: 0.9,
   },
   optimizationTitle: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 30,
     fontWeight: '900',
+    lineHeight: 34,
+    textAlign: 'center',
+  },
+  optimizationSubtitle: {
+    color: '#92A7BD',
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 9,
+    maxWidth: 290,
+    textAlign: 'center',
+  },
+  optimizationCurrentCard: {
+    backgroundColor: 'rgba(8, 15, 28, 0.78)',
+    borderColor: 'rgba(34, 189, 255, 0.24)',
+    borderRadius: 20,
+    borderWidth: 1,
+    marginTop: 22,
+    padding: 15,
+    width: '100%',
   },
   optimizationStep: {
-    color: '#AEB6C5',
-    fontSize: 12,
-    lineHeight: 17,
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+    lineHeight: 20,
+    marginTop: 5,
   },
   optimizationTrack: {
-    backgroundColor: '#1A2233',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 999,
-    height: 7,
+    height: 9,
     marginTop: 13,
     overflow: 'hidden',
   },
@@ -2079,24 +3034,369 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   optimizationList: {
-    gap: 6,
-    marginTop: 12,
+    backgroundColor: 'rgba(8, 15, 28, 0.92)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 9,
+    marginTop: 18,
+    padding: 16,
+    width: '100%',
   },
   optimizationItem: {
     alignItems: 'center',
+    borderRadius: 12,
     flexDirection: 'row',
-    gap: 7,
+    gap: 10,
+    minHeight: 34,
+  },
+  optimizationItemActive: {
+    backgroundColor: 'rgba(34, 189, 255, 0.08)',
+    paddingHorizontal: 8,
+  },
+  optimizationItemBadge: {
+    alignItems: 'center',
+    backgroundColor: '#00F7A1',
+    borderRadius: 9,
+    height: 18,
+    justifyContent: 'center',
+    width: 18,
+  },
+  optimizationItemBadgeActive: {
+    backgroundColor: 'transparent',
+    borderColor: '#22BDFF',
+    borderTopColor: 'transparent',
+    borderWidth: 2,
+  },
+  optimizationItemBadgeFailed: {
+    backgroundColor: 'transparent',
+    borderColor: colors.red,
+    borderWidth: 1,
   },
   optimizationItemText: {
     color: '#D7DCE7',
     flex: 1,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  optimizationFooter: {
+    gap: 12,
+    width: '100%',
+  },
+  optimizationCancel: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 63, 109, 0.05)',
+    borderColor: 'rgba(255, 63, 109, 0.55)',
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    width: '100%',
+  },
+  optimizationCancelText: {
+    color: colors.red,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+  },
+  optimizationHint: {
+    color: 'rgba(245, 251, 255, 0.58)',
     fontSize: 11,
-    fontWeight: '700',
+    textAlign: 'center',
   },
   content: {
     gap: 16,
     padding: 16,
     paddingBottom: bottomNavHeight + 50,
+  },
+  splashScreen: {
+    backgroundColor: '#02050B',
+    flex: 1,
+    overflow: 'hidden',
+    paddingBottom: 34 + bottomInset,
+    paddingHorizontal: 30,
+    paddingTop: 58 + topInset,
+  },
+  splashGlow: {
+    backgroundColor: 'rgba(34, 189, 255, 0.045)',
+    borderColor: 'rgba(34, 189, 255, 0.16)',
+    borderRadius: 150,
+    borderWidth: 1,
+    height: 300,
+    left: '50%',
+    marginLeft: -150,
+    opacity: 1,
+    position: 'absolute',
+    top: '20%',
+    width: 300,
+  },
+  splashDiagonalOne: {
+    backgroundColor: 'rgba(34, 189, 255, 0.13)',
+    height: 2,
+    left: -50,
+    position: 'absolute',
+    top: '34%',
+    transform: [{ rotate: '-55deg' }],
+    width: 520,
+  },
+  splashDiagonalTwo: {
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+    height: 2,
+    position: 'absolute',
+    right: -90,
+    top: '52%',
+    transform: [{ rotate: '-55deg' }],
+    width: 520,
+  },
+  splashCenter: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    transform: [{ translateY: -10 }],
+  },
+  splashLogoShell: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(3, 8, 17, 0.28)',
+    borderColor: 'rgba(34, 189, 255, 0.12)',
+    borderRadius: 116,
+    borderWidth: 1,
+    height: 232,
+    justifyContent: 'center',
+    position: 'relative',
+    width: 232,
+  },
+  splashRing: {
+    borderColor: 'rgba(0, 247, 161, 0.14)',
+    borderRadius: 104,
+    borderRightColor: 'transparent',
+    borderTopColor: '#22BDFF',
+    borderWidth: 1,
+    height: 208,
+    position: 'absolute',
+    width: 208,
+  },
+  splashLogo: {
+    height: 210,
+    width: 210,
+  },
+  splashTag: {
+    backgroundColor: 'rgba(5, 13, 25, 0.72)',
+    borderColor: 'rgba(41, 185, 255, 0.26)',
+    borderRadius: 999,
+    borderWidth: 1,
+    marginTop: 20,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  splashTagText: {
+    color: '#00F0FF',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  splashTitle: {
+    color: colors.text,
+    fontSize: 26,
+    fontWeight: '900',
+    marginTop: 14,
+  },
+  splashText: {
+    color: '#90A7BE',
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 10,
+    maxWidth: 280,
+    textAlign: 'center',
+  },
+  splashBottom: {
+    gap: 16,
+  },
+  splashLoaderCard: {
+    backgroundColor: 'rgba(7, 15, 29, 0.72)',
+    borderColor: 'rgba(34, 189, 255, 0.2)',
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 16,
+  },
+  splashLoaderHead: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  splashLoaderLabel: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  splashLoaderValue: {
+    color: colors.green,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  splashProgressTrack: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 999,
+    height: 9,
+    marginTop: 13,
+    overflow: 'hidden',
+  },
+  splashProgressFill: {
+    backgroundColor: colors.blue,
+    borderRadius: 999,
+    height: '100%',
+  },
+  splashChecks: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  splashCheck: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(7, 15, 29, 0.62)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 16,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 52,
+    padding: 8,
+  },
+  splashCheckText: {
+    color: '#C8D8E8',
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 13,
+    textAlign: 'center',
+  },
+  permissionGateScreen: {
+    alignItems: 'center',
+    backgroundColor: '#02050B',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 18,
+  },
+  permissionGateCard: {
+    backgroundColor: '#0B0F19',
+    borderColor: 'rgba(154, 53, 255, 0.46)',
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 12,
+    maxWidth: 520,
+    padding: 18,
+    width: '100%',
+  },
+  permissionGateLogo: {
+    alignSelf: 'center',
+    height: 72,
+    width: 150,
+  },
+  permissionGateKicker: {
+    color: colors.purple,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  permissionGateTitle: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  permissionGateText: {
+    color: '#AEB6C5',
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  permissionChecklist: {
+    gap: 9,
+    marginTop: 4,
+  },
+  permissionGateRow: {
+    alignItems: 'center',
+    backgroundColor: '#090D16',
+    borderColor: '#171F30',
+    borderRadius: 13,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: 70,
+    padding: 10,
+  },
+  permissionGateStatus: {
+    alignItems: 'center',
+    borderRadius: 999,
+    height: 26,
+    justifyContent: 'center',
+    width: 26,
+  },
+  permissionGateStatusOk: {
+    backgroundColor: colors.green,
+  },
+  permissionGateStatusPending: {
+    backgroundColor: '#2A2414',
+    borderColor: colors.amber,
+    borderWidth: 1,
+  },
+  permissionGateCopy: {
+    flex: 1,
+  },
+  permissionGateRowTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  permissionGateRowText: {
+    color: '#99A4B6',
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 3,
+  },
+  permissionGateAction: {
+    alignItems: 'center',
+    backgroundColor: colors.purple,
+    borderRadius: 999,
+    justifyContent: 'center',
+    minHeight: 34,
+    minWidth: 92,
+    paddingHorizontal: 12,
+  },
+  permissionGateActionDone: {
+    backgroundColor: colors.greenSoft,
+    borderColor: colors.green,
+    borderWidth: 1,
+  },
+  permissionGateActionText: {
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  permissionGateRefresh: {
+    alignItems: 'center',
+    backgroundColor: '#101522',
+    borderColor: '#222B3F',
+    borderRadius: 13,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    height: 46,
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  permissionGateRefreshText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  permissionGateWarning: {
+    color: colors.amber,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
   },
   activationScreen: {
     alignItems: 'center',
@@ -2934,6 +4234,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
   },
+  overlayPreviewButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.purpleDark,
+    borderColor: colors.purple,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 7,
+    minHeight: 38,
+    paddingHorizontal: 14,
+  },
+  overlayPreviewButtonText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+  },
   appPickerCard: {
     backgroundColor: '#0B0F19',
     borderColor: '#182133',
@@ -3075,8 +4392,301 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
   },
+  favoriteButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
   primaryButtonTextBright: {
     color: '#FFFFFF',
+  },
+  gameOverlayPreviewLayer: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.84)',
+    bottom: 0,
+    justifyContent: 'center',
+    left: 0,
+    padding: 16,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 120,
+  },
+  gameOverlayStage: {
+    aspectRatio: 16 / 9,
+    maxHeight: '82%',
+    maxWidth: 980,
+    width: '100%',
+  },
+  gameOverlayBackdrop: {
+    backgroundColor: '#06101E',
+    borderColor: '#1B2940',
+    borderRadius: 22,
+    borderWidth: 1,
+    flex: 1,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  gameOverlayTopBadge: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(3, 8, 17, 0.82)',
+    borderColor: 'rgba(34, 189, 255, 0.28)',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 34,
+    paddingHorizontal: 13,
+    position: 'absolute',
+    top: 14,
+    zIndex: 3,
+  },
+  overlayLiveDot: {
+    backgroundColor: colors.green,
+    borderRadius: 4,
+    height: 8,
+    width: 8,
+  },
+  gameOverlayTopText: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  gameOverlayTopMuted: {
+    color: '#92A7BD',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  overlaySidePanel: {
+    backgroundColor: 'rgba(8, 15, 28, 0.88)',
+    borderColor: 'rgba(34, 189, 255, 0.22)',
+    borderWidth: 1,
+    bottom: 18,
+    padding: 16,
+    position: 'absolute',
+    top: 52,
+    width: '29%',
+    zIndex: 2,
+  },
+  overlayLeftPanel: {
+    borderBottomRightRadius: 26,
+    borderTopRightRadius: 26,
+    left: 18,
+  },
+  overlayRightPanel: {
+    borderBottomLeftRadius: 26,
+    borderTopLeftRadius: 26,
+    right: 18,
+  },
+  overlayKicker: {
+    color: '#22BDFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  overlayPanelTitle: {
+    color: colors.text,
+    fontSize: 19,
+    fontWeight: '900',
+    marginTop: 4,
+  },
+  overlayPanelText: {
+    color: '#92A7BD',
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 4,
+  },
+  overlayPrimaryButton: {
+    alignItems: 'center',
+    backgroundColor: '#22BDFF',
+    borderRadius: 13,
+    justifyContent: 'center',
+    marginTop: 12,
+    minHeight: 40,
+  },
+  overlayPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  overlayToggle: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.055)',
+    borderRadius: 13,
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 9,
+    minHeight: 48,
+    padding: 10,
+  },
+  overlayToggleCopy: {
+    flex: 1,
+  },
+  overlayToggleTitle: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  overlayToggleSub: {
+    color: '#92A7BD',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  overlaySwitch: {
+    backgroundColor: '#5B5E69',
+    borderRadius: 999,
+    height: 24,
+    padding: 3,
+    width: 44,
+  },
+  overlaySwitchActive: {
+    backgroundColor: '#22BDFF',
+  },
+  overlaySwitchKnob: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 9,
+    height: 18,
+    width: 18,
+  },
+  overlaySwitchKnobActive: {
+    marginLeft: 20,
+  },
+  overlayButtonRow: {
+    flexDirection: 'row',
+    gap: 7,
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  overlayMiniButton: {
+    alignItems: 'center',
+    backgroundColor: '#111824',
+    borderColor: '#253045',
+    borderRadius: 10,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 34,
+  },
+  overlayMiniButtonText: {
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  overlayCenter: {
+    alignItems: 'center',
+    bottom: 0,
+    justifyContent: 'center',
+    left: '31%',
+    position: 'absolute',
+    right: '31%',
+    top: 0,
+  },
+  overlayGameText: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  overlayGameSub: {
+    color: '#92A7BD',
+    fontSize: 12,
+    marginTop: 7,
+    textAlign: 'center',
+  },
+  overlayMetric: {
+    backgroundColor: 'rgba(255, 255, 255, 0.055)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 13,
+    borderWidth: 1,
+    marginTop: 10,
+    padding: 11,
+  },
+  overlayMetricLabel: {
+    color: '#92A7BD',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  overlayMetricValue: {
+    color: colors.text,
+    fontSize: 21,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+  overlayFloatingBubble: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(6, 14, 28, 0.76)',
+    borderColor: '#22BDFF',
+    borderRadius: 28,
+    borderWidth: 1,
+    bottom: 18,
+    height: 56,
+    justifyContent: 'center',
+    left: '50%',
+    marginLeft: -28,
+    position: 'absolute',
+    width: 56,
+    zIndex: 4,
+  },
+  overlayBubbleText: {
+    color: colors.text,
+    fontSize: 23,
+    fontWeight: '900',
+  },
+  overlayCloseButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(8, 15, 28, 0.92)',
+    borderColor: '#253045',
+    borderRadius: 18,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 14,
+    top: 14,
+    width: 36,
+    zIndex: 5,
+  },
+  revertAllCard: {
+    alignItems: 'center',
+    backgroundColor: '#0B1410',
+    borderColor: 'rgba(48, 242, 140, 0.35)',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 86,
+    padding: 14,
+  },
+  revertAllIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.greenSoft,
+    borderRadius: 999,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  revertAllCopy: {
+    flex: 1,
+  },
+  revertAllTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  revertAllText: {
+    color: '#AEB6C5',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  revertAllAction: {
+    color: colors.green,
+    fontSize: 11,
+    fontWeight: '900',
   },
   toolList: {
     gap: 10,
@@ -3190,36 +4800,68 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     alignItems: 'center',
-    backgroundColor: '#120D22',
-    borderTopColor: '#241842',
-    borderTopWidth: 1,
-    bottom: 0,
+    backgroundColor: 'rgba(18, 13, 34, 0.96)',
+    borderColor: 'rgba(154, 53, 255, 0.28)',
+    borderRadius: 28,
+    borderWidth: 1,
+    bottom: 14 + bottomInset,
     flexDirection: 'row',
-    height: bottomNavHeight,
-    left: 0,
-    paddingBottom: 7 + bottomInset,
+    height: 72,
+    justifyContent: 'space-between',
+    left: 12,
+    paddingHorizontal: 10,
     position: 'absolute',
-    right: 0,
+    right: 12,
+    shadowColor: '#9A35FF',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
   },
   navItem: {
     alignItems: 'center',
+    flexDirection: 'column',
     flex: 1,
-    gap: 4,
+    gap: 3,
+    height: '100%',
+    justifyContent: 'center',
+    minWidth: 58,
+  },
+  navItemCenter: {
+    flex: 0.78,
+    minWidth: 62,
   },
   navIconWrap: {
     alignItems: 'center',
     borderRadius: 999,
-    height: 32,
+    height: 30,
     justifyContent: 'center',
-    width: 40,
+    width: 34,
   },
   navIconWrapActive: {
-    backgroundColor: '#2A164B',
+    backgroundColor: 'rgba(154, 53, 255, 0.18)',
+  },
+  navIconWrapCenter: {
+    backgroundColor: colors.purple,
+    borderColor: '#2A164B',
+    borderRadius: 999,
+    borderWidth: 4,
+    height: 58,
+    marginTop: -30,
+    shadowColor: '#5D43FF',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.34,
+    shadowRadius: 18,
+    width: 58,
+  },
+  navIconWrapCenterActive: {
+    backgroundColor: colors.purple,
   },
   navText: {
-    color: '#A3AAB8',
-    fontSize: 10,
+    color: '#8F98AD',
+    fontSize: 8,
     fontWeight: '800',
+    maxWidth: 58,
+    textAlign: 'center',
   },
   navTextActive: {
     color: colors.text,

@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nexxsensi - Otimizando aparelho</title>
+  <style>
+    :root {
+      --bg: #02050b;
+      --panel: rgba(8, 15, 28, 0.92);
+      --line: rgba(34, 189, 255, 0.24);
+      --blue: #22bdff;
+      --blue-2: #006eff;
+      --cyan: #00f0ff;
+      --green: #00f7a1;
+      --red: #ff3f6d;
+      --text: #f5fbff;
+      --muted: #92a7bd;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 16%, rgba(34, 189, 255, 0.28), transparent 28%),
+        radial-gradient(circle at 22% 76%, rgba(0, 247, 161, 0.1), transparent 24%),
+        linear-gradient(145deg, #010208, #071120 48%, #02050c);
+      color: var(--text);
+      font-family: "Segoe UI", "Bahnschrift", sans-serif;
+      overflow: hidden;
+    }
+
+    .phone {
+      width: min(430px, 94vw);
+      aspect-ratio: 9 / 19.5;
+      position: relative;
+      overflow: hidden;
+      border: 9px solid #121820;
+      border-radius: 42px;
+      background: var(--bg);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.72), inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(126deg, transparent 0 34%, rgba(34, 189, 255, 0.12) 35%, transparent 37%),
+        linear-gradient(294deg, transparent 0 58%, rgba(0, 240, 255, 0.08) 59%, transparent 61%),
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.022), rgba(255,255,255,0.022) 1px, transparent 1px, transparent 5px);
+      opacity: 0.95;
+    }
+
+    .content {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 34px 22px 28px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 72px;
+    }
+
+    .logo {
+      width: 132px;
+      height: 62px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 18px rgba(34, 189, 255, 0.58));
+    }
+
+    .stage {
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      text-align: center;
+      padding-bottom: 18px;
+    }
+
+    .ring-wrap {
+      width: 214px;
+      height: 214px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      margin-bottom: 22px;
+    }
+
+    .ring-wrap::before {
+      content: "";
+      position: absolute;
+      inset: -14px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(34, 189, 255, 0.24), transparent 66%);
+      animation: breathe 2s ease-in-out infinite;
+    }
+
+    .ring {
+      --value: 72deg;
+      width: 190px;
+      height: 190px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: conic-gradient(var(--blue) var(--value), rgba(255, 255, 255, 0.1) 0);
+      animation: charge 4.6s ease-in-out infinite;
+      position: relative;
+      box-shadow: 0 0 44px rgba(34, 189, 255, 0.24);
+    }
+
+    .ring::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border-radius: 50%;
+      background: rgba(4, 9, 18, 0.97);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .ring span {
+      position: relative;
+      z-index: 1;
+      font-size: 44px;
+      font-weight: 950;
+      color: #fff;
+      text-shadow: 0 0 24px rgba(34, 189, 255, 0.84);
+    }
+
+    .rocket {
+      position: absolute;
+      top: 14px;
+      right: 34px;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--cyan);
+      background: rgba(34, 189, 255, 0.12);
+      border: 1px solid rgba(34, 189, 255, 0.22);
+      font-size: 22px;
+      animation: float 1.9s ease-in-out infinite;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .current {
+      width: 100%;
+      margin-top: 22px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(8, 15, 28, 0.78);
+      text-align: left;
+    }
+
+    .current small {
+      display: block;
+      color: var(--cyan);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+    }
+
+    .current strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 15px;
+    }
+
+    .bar {
+      height: 9px;
+      margin-top: 13px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .bar i {
+      display: block;
+      width: 72%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue-2), var(--blue), var(--green));
+      animation: fill 4.6s ease-in-out infinite;
+    }
+
+    .list {
+      display: grid;
+      gap: 9px;
+      margin-top: 18px;
+      width: 100%;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      background: var(--panel);
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 34px;
+      color: #d7e2ef;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .check {
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      flex: 0 0 auto;
+      background: var(--green);
+      color: #022314;
+      font-size: 12px;
+      font-weight: 950;
+      box-shadow: 0 0 14px rgba(0, 247, 161, 0.42);
+    }
+
+    .active .check {
+      background: transparent;
+      border: 2px solid var(--blue);
+      border-top-color: transparent;
+      animation: spin 0.9s linear infinite;
+    }
+
+    .active {
+      color: #fff;
+    }
+
+    footer {
+      display: grid;
+      gap: 12px;
+    }
+
+    .cancel {
+      width: 100%;
+      border: 1px solid rgba(255, 63, 109, 0.55);
+      border-radius: 16px;
+      padding: 15px 16px;
+      color: var(--red);
+      background: rgba(255, 63, 109, 0.05);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+    }
+
+    .hint {
+      color: rgba(245, 251, 255, 0.58);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    @keyframes charge {
+      0% { --value: 34deg; }
+      45% { --value: 205deg; }
+      78% { --value: 302deg; }
+      100% { --value: 352deg; }
+    }
+
+    @keyframes fill {
+      0% { width: 18%; }
+      45% { width: 62%; }
+      100% { width: 94%; }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-7px); }
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 0.58; transform: scale(0.96); }
+      50% { opacity: 1; transform: scale(1.08); }
+    }
+  </style>
+</head>
+<body>
+  <main class="phone" aria-label="Preview da tela de carregamento de otimização">
+    <section class="content">
+      <header>
+        <img class="logo" src="assets/splash-logo.png" alt="Nexxsensi" />
+      </header>
+
+      <section class="stage">
+        <div class="ring-wrap">
+          <div class="ring"><span>72%</span></div>
+          <div class="rocket">↗</div>
+        </div>
+
+        <h1>Otimizando...</h1>
+        <p class="sub">Não feche o app enquanto aplicamos os ajustes no aparelho.</p>
+
+        <div class="current">
+          <small>Etapa atual</small>
+          <strong>Aplicando perfil gamer ao sistema</strong>
+          <div class="bar"><i></i></div>
+        </div>
+
+        <div class="list">
+          <div class="row"><span class="check">✓</span><span>Finalizando processos em segundo plano</span></div>
+          <div class="row"><span class="check">✓</span><span>Liberando memória RAM</span></div>
+          <div class="row"><span class="check">✓</span><span>Limpando cache temporário</span></div>
+          <div class="row active"><span class="check"></span><span>Aplicando perfil gamer ao sistema</span></div>
+          <div class="row"><span class="check" style="background: rgba(255,255,255,0.12); color: transparent; box-shadow: none;">•</span><span>Atualizando leitura do dispositivo</span></div>
+        </div>
+      </section>
+
+      <footer>
+        <button class="cancel">Cancelar</button>
+        <div class="hint">A otimização continua apenas enquanto esta tela estiver aberta.</div>
+      </footer>
+    </section>
+  </main>
+</body>
+</html>
