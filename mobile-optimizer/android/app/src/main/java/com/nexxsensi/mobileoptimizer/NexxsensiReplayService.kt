@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -15,13 +16,16 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.media.MediaRecorder
+import android.media.MediaScannerConnection
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import java.io.File
@@ -30,6 +34,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.core.content.FileProvider
+
+private data class SavedReplay(
+  val uri: Uri,
+  val displayName: String
+)
 
 class NexxsensiReplayService : Service() {
   private val handler = Handler(Looper.getMainLooper())
@@ -43,13 +52,18 @@ class NexxsensiReplayService : Service() {
   private var height = 720
   private var density = 1
 
-  private val rotateRunnable = object : Runnable {
+  private val projectionCallback = object : MediaProjection.Callback() {
+    override fun onStop() {
+      stopReplay(false)
+    }
+  }
+
+  private val autoSaveRunnable = object : Runnable {
     override fun run() {
       if (!isRecording) {
         return
       }
-      rotateSegment()
-      handler.postDelayed(this, SEGMENT_MS)
+      saveReplay()
     }
   }
 
@@ -62,18 +76,22 @@ class NexxsensiReplayService : Service() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    when (intent?.action) {
-      ACTION_START -> {
-        val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, 0)
-        val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
-        if (resultCode != 0 && resultData != null) {
-          startReplay(resultCode, resultData)
+    try {
+      when (intent?.action) {
+        ACTION_START -> {
+          val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, 0)
+          val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
+          if (resultCode != 0 && resultData != null) {
+            startReplay(resultCode, resultData)
+          }
         }
+        ACTION_SAVE -> saveReplay()
+        ACTION_OPEN_LAST -> openLastReplay()
+        ACTION_SHARE_LAST -> shareLastReplay()
+        ACTION_STOP -> stopReplay(true)
       }
-      ACTION_SAVE -> saveReplay()
-      ACTION_OPEN_LAST -> openLastReplay()
-      ACTION_SHARE_LAST -> shareLastReplay()
-      ACTION_STOP -> stopReplay(true)
+    } catch (_: Throwable) {
+      stopReplay(true)
     }
 
     return START_STICKY
@@ -89,18 +107,14 @@ class NexxsensiReplayService : Service() {
       return
     }
 
+    startForegroundCompat(replayNotification("Replay dos ÃƒÂºltimos 3 min ativo"))
     val projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-    mediaProjection = projectionManager.getMediaProjection(resultCode, data)
+    mediaProjection = projectionManager.getMediaProjection(resultCode, data)?.apply {
+      registerCallback(projectionCallback, handler)
+    }
     isRecording = true
-    startForegroundCompat(replayNotification("Replay dos últimos 3 min ativo"))
     startNewSegment()
-    handler.postDelayed(rotateRunnable, SEGMENT_MS)
-  }
-
-  private fun rotateSegment() {
-    stopCurrentSegment()
-    pruneOldSegments()
-    startNewSegment()
+    handler.postDelayed(autoSaveRunnable, MAX_REPLAY_MS)
   }
 
   private fun startNewSegment() {
@@ -164,7 +178,7 @@ class NexxsensiReplayService : Service() {
   }
 
   private fun pruneOldSegments() {
-    while (segments.size > MAX_SEGMENTS) {
+    while (segments.size > 1) {
       segments.removeFirstOrNull()?.delete()
     }
   }
@@ -176,31 +190,89 @@ class NexxsensiReplayService : Service() {
 
     stopCurrentSegment()
     pruneOldSegments()
-    val outputFile = File(
-      getExternalFilesDir(Environment.DIRECTORY_MOVIES),
-      "Nexxsensi_Replays/replay_${timestamp()}.mp4"
-    )
-    outputFile.parentFile?.mkdirs()
-    val saved = try {
-      mergeSegmentsToSingleVideo(segments.toList(), outputFile)
-      saveLastReplay(outputFile)
-      true
-    } catch (_: Throwable) {
-      outputFile.delete()
-      false
+    val sourceFile = segments.lastOrNull()
+    if (sourceFile == null || !sourceFile.exists() || sourceFile.length() <= 0L) {
+      stopReplay(true)
+      return
     }
-    startNewSegment()
+
+    val savedReplay = saveReplayToGallery(sourceFile)
+
     startForegroundCompat(
       replayNotification(
-        if (saved) "Replay salvo: ${outputFile.name}" else "Não foi possível salvar o replay"
+        if (savedReplay != null) {
+          "Replay salvo na galeria: ${savedReplay.displayName}"
+        } else {
+          "Nao foi possivel salvar o replay"
+        }
       )
     )
+    stopReplay(false)
+  }
+
+  private fun saveReplayToGallery(sourceFile: File): SavedReplay? {
+    val displayName = "replay_${timestamp()}.mp4"
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      saveReplayWithMediaStore(sourceFile, displayName)
+    } else {
+      saveReplayToPublicMovies(sourceFile, displayName)
+    }
+  }
+
+  private fun saveReplayWithMediaStore(sourceFile: File, displayName: String): SavedReplay? {
+    val values = ContentValues().apply {
+      put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
+      put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+      put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/Nexxsensi_Replays")
+      put(MediaStore.Video.Media.IS_PENDING, 1)
+    }
+    val collection = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+    val uri = contentResolver.insert(collection, values) ?: return null
+
+    return try {
+      contentResolver.openOutputStream(uri)?.use { output ->
+        sourceFile.inputStream().use { input -> input.copyTo(output) }
+      } ?: throw IllegalStateException("Nao foi possivel abrir o arquivo de destino.")
+
+      values.clear()
+      values.put(MediaStore.Video.Media.IS_PENDING, 0)
+      contentResolver.update(uri, values, null, null)
+      saveLastReplay(uri.toString())
+      SavedReplay(uri, displayName)
+    } catch (_: Throwable) {
+      contentResolver.delete(uri, null, null)
+      null
+    }
+  }
+
+  private fun saveReplayToPublicMovies(sourceFile: File, displayName: String): SavedReplay? {
+    val directory = File(
+      Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
+      "Nexxsensi_Replays"
+    )
+    directory.mkdirs()
+    val outputFile = File(directory, displayName)
+
+    return try {
+      sourceFile.copyTo(outputFile, overwrite = true)
+      MediaScannerConnection.scanFile(
+        this,
+        arrayOf(outputFile.absolutePath),
+        arrayOf("video/mp4"),
+        null
+      )
+      saveLastReplay(outputFile.absolutePath)
+      SavedReplay(replayUri(outputFile), displayName)
+    } catch (_: Throwable) {
+      outputFile.delete()
+      null
+    }
   }
 
   private fun mergeSegmentsToSingleVideo(inputSegments: List<File>, outputFile: File) {
     val validSegments = inputSegments.filter { it.exists() && it.length() > 0L }
     if (validSegments.isEmpty()) {
-      throw IllegalStateException("Nenhum segmento de replay disponível.")
+      throw IllegalStateException("Nenhum segmento de replay disponÃƒÂ­vel.")
     }
 
     val firstExtractor = MediaExtractor()
@@ -209,7 +281,7 @@ class NexxsensiReplayService : Service() {
       firstExtractor.setDataSource(validSegments.first().absolutePath)
       val sourceTrack = findVideoTrack(firstExtractor)
       if (sourceTrack < 0) {
-        throw IllegalStateException("Replay sem faixa de vídeo.")
+        throw IllegalStateException("Replay sem faixa de vÃƒÂ­deo.")
       }
 
       val format = firstExtractor.getTrackFormat(sourceTrack)
@@ -296,8 +368,12 @@ class NexxsensiReplayService : Service() {
 
   private fun stopReplay(removeTemp: Boolean) {
     isRecording = false
-    handler.removeCallbacks(rotateRunnable)
+    handler.removeCallbacks(autoSaveRunnable)
     stopCurrentSegment()
+    try {
+      mediaProjection?.unregisterCallback(projectionCallback)
+    } catch (_: Throwable) {
+    }
     try {
       mediaProjection?.stop()
     } catch (_: Throwable) {
@@ -367,8 +443,7 @@ class NexxsensiReplayService : Service() {
   }
 
   private fun openLastReplay() {
-    val file = lastReplayFile() ?: return
-    val uri = replayUri(file)
+    val uri = lastReplayUri() ?: return
     val intent = Intent(Intent.ACTION_VIEW).apply {
       setDataAndType(uri, "video/mp4")
       addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -378,8 +453,7 @@ class NexxsensiReplayService : Service() {
   }
 
   private fun shareLastReplay() {
-    val file = lastReplayFile() ?: return
-    val uri = replayUri(file)
+    val uri = lastReplayUri() ?: return
     val intent = Intent(Intent.ACTION_SEND).apply {
       type = "video/mp4"
       putExtra(Intent.EXTRA_STREAM, uri)
@@ -395,18 +469,24 @@ class NexxsensiReplayService : Service() {
     file
   )
 
-  private fun saveLastReplay(file: File) {
+  private fun saveLastReplay(uriOrPath: String) {
     getSharedPreferences(PREFS, Context.MODE_PRIVATE)
       .edit()
-      .putString(KEY_LAST_REPLAY, file.absolutePath)
+      .putString(KEY_LAST_REPLAY, uriOrPath)
       .apply()
   }
 
-  private fun lastReplayFile(): File? {
-    val path = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+  private fun lastReplayUri(): Uri? {
+    val value = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
       .getString(KEY_LAST_REPLAY, null)
       ?: return null
-    return File(path).takeIf { it.exists() && it.length() > 0L }
+
+    if (value.startsWith("content://") || value.startsWith("file://")) {
+      return Uri.parse(value)
+    }
+
+    val file = File(value).takeIf { it.exists() && it.length() > 0L } ?: return null
+    return replayUri(file)
   }
 
   private fun updateDisplayMetrics() {
@@ -461,8 +541,7 @@ class NexxsensiReplayService : Service() {
     const val EXTRA_RESULT_DATA = "resultData"
     private const val CHANNEL_ID = "nexxsensi_replay"
     private const val NOTIFICATION_ID = 9520
-    private const val SEGMENT_MS = 15_000L
-    private const val MAX_SEGMENTS = 12
+    private const val MAX_REPLAY_MS = 180_000L
     private const val FRAME_DURATION_US = 33_333L
     private const val PREFS = "nexxsensi_replay"
     private const val KEY_LAST_REPLAY = "lastReplay"

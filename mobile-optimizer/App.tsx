@@ -49,6 +49,7 @@ import {
   PerformanceSnapshot,
   PingResult,
   requestShizukuPermission,
+  requestNotificationPermission,
   runOptimizerAction,
   runPing,
   startGameOverlay,
@@ -58,6 +59,7 @@ import { colors } from './src/theme/colors';
 type IconName = keyof typeof Ionicons.glyphMap;
 type TabId = 'home' | 'performance' | 'games' | 'tools' | 'profile';
 type Tone = 'purple' | 'green' | 'red' | 'blue';
+type WebSetupPreview = 'android' | 'shizuku' | null;
 
 type QuickAction = {
   id: string;
@@ -295,6 +297,7 @@ export default function App() {
   const [appSearch, setAppSearch] = useState('');
   const [isPickingApp, setIsPickingApp] = useState(false);
   const [showOverlayPreview, setShowOverlayPreview] = useState(false);
+  const [webSetupPreview, setWebSetupPreview] = useState<WebSetupPreview>(null);
   const [selectedGame, setSelectedGame] = useState<InstalledGame | null>(null);
   const [selectedGamePackage, setSelectedGamePackage] = useState<string | null>(null);
   const [favoriteGamePackages, setFavoriteGamePackages] = useState<string[]>([]);
@@ -304,6 +307,7 @@ export default function App() {
   const [ping, setPing] = useState<PingResult | null>(null);
   const [advanced, setAdvanced] = useState<NativeAdvancedStatus | null>(null);
   const [overlayAllowed, setOverlayAllowed] = useState(Platform.OS !== 'android');
+  const [notificationAllowed, setNotificationAllowed] = useState(Platform.OS !== 'android');
   const [startupPermissionsLoaded, setStartupPermissionsLoaded] = useState(false);
   const [lastAction, setLastAction] = useState<OptimizerActionResult | null>(null);
   const [appliedActionCount, setAppliedActionCount] = useState(0);
@@ -322,7 +326,8 @@ export default function App() {
   const optimizationTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const ready = !!advanced?.canRunPrivilegedActions;
-  const startupPermissionsReady = Platform.OS !== 'android' || (overlayAllowed && ready);
+  const startupPermissionsReady =
+    Platform.OS !== 'android' || (overlayAllowed && notificationAllowed && ready);
   const activationReady = Platform.OS === 'web' || isActivationUsable(activation);
 
   useEffect(() => {
@@ -441,12 +446,20 @@ export default function App() {
   ]);
 
   async function refreshAll() {
-    const [gamesResult, metricsResult, pingResult, advancedResult, overlayResult] = await Promise.allSettled([
+    const [
+      gamesResult,
+      metricsResult,
+      pingResult,
+      advancedResult,
+      overlayResult,
+      notificationResult,
+    ] = await Promise.allSettled([
       getInstalledGames(),
       getDeviceMetrics(),
       runPing(),
       getNativeAdvancedStatus(),
       canDrawOverlays(),
+      requestNotificationPermission(),
     ]);
     const nextAdvanced =
       advancedResult.status === 'fulfilled' ? advancedResult.value : advanced;
@@ -458,6 +471,8 @@ export default function App() {
       pingResult.status === 'fulfilled' ? pingResult.value : ping;
     const nextOverlayAllowed =
       overlayResult.status === 'fulfilled' ? overlayResult.value : overlayAllowed;
+    const nextNotificationAllowed =
+      notificationResult.status === 'fulfilled' ? notificationResult.value : notificationAllowed;
     const mergedGames = mergeByPackage(nextGames, manualGames);
     const savedSelected = selectedGamePackage
       ? mergedGames.find((game) => game.packageName === selectedGamePackage) ?? null
@@ -467,7 +482,14 @@ export default function App() {
         ? selectedGame
         : null;
     const nextSelected = savedSelected ?? currentSelected ?? mergedGames[0] ?? null;
-    const hasFailure = [gamesResult, metricsResult, pingResult, advancedResult, overlayResult]
+    const hasFailure = [
+      gamesResult,
+      metricsResult,
+      pingResult,
+      advancedResult,
+      overlayResult,
+      notificationResult,
+    ]
       .some((result) => result.status === 'rejected');
 
     setGames(mergedGames);
@@ -485,6 +507,7 @@ export default function App() {
       setAdvanced(nextAdvanced);
     }
     setOverlayAllowed(nextOverlayAllowed);
+    setNotificationAllowed(nextNotificationAllowed);
     setStartupPermissionsLoaded(true);
 
     try {
@@ -809,6 +832,17 @@ export default function App() {
     }
   }
 
+  async function requestNotificationAndRefresh() {
+    try {
+      const granted = await requestNotificationPermission();
+      await refreshAll();
+      setNotice(granted ? 'Notificações autorizadas.' : 'Autorize notificações para overlay e replay.');
+    } catch (error) {
+      await refreshAll();
+      setNotice(error instanceof Error ? error.message : 'Não foi possível solicitar notificações.');
+    }
+  }
+
   async function activateKey() {
     const key = activationKeyInput.trim();
     if (!key) {
@@ -845,16 +879,6 @@ export default function App() {
       <View style={styles.app}>
         {!activationLoaded || !splashElapsed ? (
           <SplashScreen />
-        ) : !startupPermissionsReady ? (
-          <StartupPermissionScreen
-            advanced={advanced}
-            overlayAllowed={overlayAllowed}
-            startupPermissionsLoaded={startupPermissionsLoaded}
-            installPermissionComponent={installPermissionComponent}
-            requestPermissionAndRefresh={requestPermissionAndRefresh}
-            requestOverlayAndRefresh={requestOverlayAndRefresh}
-            refreshAll={refreshAll}
-          />
         ) : !activationReady ? (
           <ActivationScreen
             activationLoaded={activationLoaded}
@@ -864,6 +888,18 @@ export default function App() {
             setActivationKeyInput={setActivationKeyInput}
             activateKey={activateKey}
             openPurchasePage={openPurchasePage}
+          />
+        ) : !startupPermissionsReady ? (
+          <StartupPermissionScreen
+            advanced={advanced}
+            overlayAllowed={overlayAllowed}
+            notificationAllowed={notificationAllowed}
+            startupPermissionsLoaded={startupPermissionsLoaded}
+            installPermissionComponent={installPermissionComponent}
+            requestPermissionAndRefresh={requestPermissionAndRefresh}
+            requestOverlayAndRefresh={requestOverlayAndRefresh}
+            requestNotificationAndRefresh={requestNotificationAndRefresh}
+            refreshAll={refreshAll}
           />
         ) : (
           <>
@@ -884,6 +920,7 @@ export default function App() {
                 openAppPicker={openAppPicker}
                 installPermissionComponent={installPermissionComponent}
                 requestPermissionAndRefresh={requestPermissionAndRefresh}
+                setWebSetupPreview={setWebSetupPreview}
               />
             )}
             {activeTab === 'performance' && (
@@ -950,6 +987,35 @@ export default function App() {
               />
             )}
             {optimizationProgress && <OptimizationOverlay progress={optimizationProgress} />}
+            {Platform.OS === 'web' && webSetupPreview && (
+              <View style={styles.setupPreviewLayer}>
+                <StartupPermissionScreen
+                  advanced={
+                    webSetupPreview === 'shizuku'
+                      ? {
+                          platform: 'web',
+                          sdk: null,
+                          androidVersion: 'Preview Web',
+                          supportsWirelessDebugging: true,
+                          shizukuInstalled: true,
+                          shizukuAlive: false,
+                          shizukuPermission: false,
+                          canRunPrivilegedActions: false,
+                        }
+                      : advanced
+                  }
+                  overlayAllowed={webSetupPreview === 'shizuku'}
+                  notificationAllowed={webSetupPreview === 'shizuku'}
+                  startupPermissionsLoaded
+                  installPermissionComponent={() => undefined}
+                  requestPermissionAndRefresh={() => undefined}
+                  requestOverlayAndRefresh={() => undefined}
+                  requestNotificationAndRefresh={() => undefined}
+                  refreshAll={() => undefined}
+                  onClose={() => setWebSetupPreview(null)}
+                />
+              </View>
+            )}
             {showOverlayPreview && (
               <GameOverlayPreview
                 selectedGame={selectedGame}
@@ -981,6 +1047,7 @@ function HomeScreen({
   openAppPicker,
   installPermissionComponent,
   requestPermissionAndRefresh,
+  setWebSetupPreview,
 }: {
   selectedGame: InstalledGame | null;
   games: InstalledGame[];
@@ -997,6 +1064,7 @@ function HomeScreen({
   openAppPicker: () => void;
   installPermissionComponent: () => void;
   requestPermissionAndRefresh: () => void;
+  setWebSetupPreview: (preview: WebSetupPreview) => void;
 }) {
   return (
     <Screen>
@@ -1031,6 +1099,25 @@ function HomeScreen({
           installPermissionComponent={installPermissionComponent}
           requestPermissionAndRefresh={requestPermissionAndRefresh}
         />
+      )}
+
+      {Platform.OS === 'web' && (
+        <View style={styles.webPreviewPanel}>
+          <Text style={styles.webPreviewTitle}>Prévia de configuração</Text>
+          <Text style={styles.webPreviewText}>
+            Use estes botões para revisar as telas que aparecem no Android depois da key.
+          </Text>
+          <View style={styles.webPreviewActions}>
+            <Pressable style={styles.webPreviewButton} onPress={() => setWebSetupPreview('android')}>
+              <AppIcon name="phone-portrait" size={15} color={colors.text} />
+              <Text style={styles.webPreviewButtonText}>Permissões Android</Text>
+            </Pressable>
+            <Pressable style={styles.webPreviewButton} onPress={() => setWebSetupPreview('shizuku')}>
+              <AppIcon name="flash" size={15} color={colors.text} />
+              <Text style={styles.webPreviewButtonText}>Explicação Shizuku</Text>
+            </Pressable>
+          </View>
+        </View>
       )}
 
       <View style={styles.roundActions}>
@@ -1171,7 +1258,6 @@ function SplashScreen() {
 
   return (
     <View style={styles.splashScreen}>
-      <View style={styles.splashGlow} />
       <View style={styles.splashDiagonalOne} />
       <View style={styles.splashDiagonalTwo} />
       <View style={styles.splashCenter}>
@@ -1227,72 +1313,148 @@ function SplashScreen() {
 function StartupPermissionScreen({
   advanced,
   overlayAllowed,
+  notificationAllowed,
   startupPermissionsLoaded,
   installPermissionComponent,
   requestPermissionAndRefresh,
   requestOverlayAndRefresh,
+  requestNotificationAndRefresh,
   refreshAll,
+  onClose,
 }: {
   advanced: NativeAdvancedStatus | null;
   overlayAllowed: boolean;
+  notificationAllowed: boolean;
   startupPermissionsLoaded: boolean;
   installPermissionComponent: () => void;
   requestPermissionAndRefresh: () => void;
   requestOverlayAndRefresh: () => void;
+  requestNotificationAndRefresh: () => void;
   refreshAll: () => void;
+  onClose?: () => void;
 }) {
   const shizukuInstalled = !!advanced?.shizukuInstalled;
   const shizukuAlive = !!advanced?.shizukuAlive;
   const shizukuPermission = !!advanced?.shizukuPermission;
-  const canContinue = overlayAllowed && shizukuPermission;
+  const androidPermissionsReady = overlayAllowed && notificationAllowed;
+  const shizukuPrimaryAction = !shizukuInstalled || !shizukuAlive
+    ? installPermissionComponent
+    : requestPermissionAndRefresh;
+  const shizukuPrimaryText = !shizukuInstalled
+    ? 'Instalar Shizuku'
+    : !shizukuAlive
+      ? 'Abrir Shizuku'
+      : 'Autorizar Nexxsensi';
+
+  if (!androidPermissionsReady) {
+    return (
+      <ScrollView
+        contentContainerStyle={styles.permissionGateScreen}
+        style={styles.permissionGateScroll}
+      >
+        <View style={styles.permissionGateCard}>
+          {onClose && (
+            <Pressable style={styles.permissionGateClose} onPress={onClose}>
+              <AppIcon name="close" size={18} color={colors.text} />
+            </Pressable>
+          )}
+          <Image source={banners.splashLogo} resizeMode="contain" style={styles.permissionGateLogo} />
+          <Text style={styles.permissionGateKicker}>CONFIGURAÇÃO INICIAL</Text>
+          <Text style={styles.permissionGateTitle}>Permissões do Android</Text>
+          <Text style={styles.permissionGateText}>
+            Primeiro libere o que o Android exige para manter a bolha, o painel e o replay funcionando.
+          </Text>
+
+          <View style={styles.permissionChecklist}>
+            <PermissionGateRow
+              done={overlayAllowed}
+              title="Sobrepor a outros apps"
+              text="Mostra a bolha e o painel por cima do jogo sem fechar a partida."
+              action="Permitir overlay"
+              onPress={requestOverlayAndRefresh}
+            />
+            <PermissionGateRow
+              done={notificationAllowed}
+              title="Notificações"
+              text="Mantém overlay e replay ativos em segundo plano."
+              action="Permitir"
+              onPress={requestNotificationAndRefresh}
+            />
+            <PermissionGateRow
+              done
+              title="Replay de tela"
+              text="Será solicitado pelo Android somente quando você tocar em Gravar 3 min."
+              action="Depois"
+              disabled
+            />
+          </View>
+
+          <Pressable style={styles.permissionGateRefresh} onPress={refreshAll}>
+            <AppIcon name="refresh" size={16} color={colors.text} />
+            <Text style={styles.permissionGateRefreshText}>
+              {startupPermissionsLoaded ? 'Verificar novamente' : 'Verificando...'}
+            </Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    );
+  }
 
   return (
-    <View style={styles.permissionGateScreen}>
+    <ScrollView
+      contentContainerStyle={styles.permissionGateScreen}
+      style={styles.permissionGateScroll}
+    >
       <View style={styles.permissionGateCard}>
+        {onClose && (
+          <Pressable style={styles.permissionGateClose} onPress={onClose}>
+            <AppIcon name="close" size={18} color={colors.text} />
+          </Pressable>
+        )}
         <Image source={banners.splashLogo} resizeMode="contain" style={styles.permissionGateLogo} />
-        <Text style={styles.permissionGateKicker}>CONFIGURAÇÃO INICIAL</Text>
-        <Text style={styles.permissionGateTitle}>Permissões obrigatórias</Text>
+        <Text style={styles.permissionGateKicker}>MODO AVANÇADO</Text>
+        <Text style={styles.permissionGateTitle}>Ativar Shizuku</Text>
         <Text style={styles.permissionGateText}>
-          Libere as permissões para o otimizador funcionar com overlay, boost e painel durante o jogo.
+          O Shizuku faz a depuração Wi-Fi para o Nexxsensi executar otimizações reais sem computador.
+          Você configura no Shizuku uma vez e depois autoriza este app.
         </Text>
+
+        <View style={styles.shizukuGuideBox}>
+          <Text style={styles.shizukuGuideTitle}>Como ativar</Text>
+          <Text style={styles.shizukuGuideText}>1. Instale e abra o Shizuku.</Text>
+          <Text style={styles.shizukuGuideText}>2. Toque em Começar pela Depuração via Wireless.</Text>
+          <Text style={styles.shizukuGuideText}>3. Faça o pareamento no próprio Shizuku e volte para o Nexxsensi.</Text>
+          <Text style={styles.shizukuGuideText}>4. Toque em Autorizar Nexxsensi.</Text>
+        </View>
 
         <View style={styles.permissionChecklist}>
           <PermissionGateRow
-            done={overlayAllowed}
-            title="Sobrepor a outros apps"
-            text="Necessário para abrir a bolha e os painéis sobre o jogo."
-            action="Permitir overlay"
-            onPress={requestOverlayAndRefresh}
-          />
-          <PermissionGateRow
             done={shizukuInstalled}
-            title="Componente Shizuku"
-            text="Necessário para executar comandos avançados sem computador."
+            title="Shizuku instalado"
+            text="Aplicativo responsável pela permissão avançada."
             action={shizukuInstalled ? 'Abrir Shizuku' : 'Instalar Shizuku'}
             onPress={installPermissionComponent}
           />
           <PermissionGateRow
             done={shizukuAlive}
             title="Shizuku rodando"
-            text="Inicie pelo pareamento/depuração sem fio dentro do Shizuku."
-            action="Verificar"
-            onPress={refreshAll}
+            text="Depois do pareamento Wi-Fi, o status precisa ficar ativo."
+            action="Abrir Shizuku"
+            onPress={installPermissionComponent}
           />
           <PermissionGateRow
             done={shizukuPermission}
-            title="Autorizar este app"
-            text="Permite que o Nexxsensi use o Shizuku para otimizações reais."
+            title="Nexxsensi autorizado"
+            text="Libera boost, DPI, cache, RAM e comandos reais."
             action="Autorizar"
             onPress={requestPermissionAndRefresh}
           />
-          <PermissionGateRow
-            done
-            title="Replay de tela"
-            text="O Android solicita essa permissão somente quando você ativar Replay 3 min."
-            action="Depois"
-            disabled
-          />
         </View>
+
+        <Pressable style={styles.permissionGatePrimary} onPress={shizukuPrimaryAction}>
+          <AppIcon name={shizukuPermission ? 'checkmark-circle' : 'flash'} size={18} color={colors.text} />
+          <Text style={styles.permissionGatePrimaryText}>{shizukuPermission ? 'Shizuku pronto' : shizukuPrimaryText}</Text>
+        </Pressable>
 
         <Pressable style={styles.permissionGateRefresh} onPress={refreshAll}>
           <AppIcon name="refresh" size={16} color={colors.text} />
@@ -1301,13 +1463,13 @@ function StartupPermissionScreen({
           </Text>
         </Pressable>
 
-        {!canContinue && (
+        {!shizukuPermission && (
           <Text style={styles.permissionGateWarning}>
-            O app continuará pedindo essas permissões até todas ficarem prontas.
+            O app não usa conexão ADB própria. O pareamento Wi-Fi fica no Shizuku; aqui você só verifica e autoriza.
           </Text>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -1422,93 +1584,57 @@ function AppHeader({ refreshAll }: { refreshAll: () => void }) {
 }
 
 function OptimizationOverlay({ progress }: { progress: OptimizationProgress }) {
-  const spin = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.timing(spin, {
-        toValue: 1,
-        duration: 950,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 950,
-          easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 950,
-          easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    loop.start();
-    pulseLoop.start();
-    return () => {
-      loop.stop();
-      pulseLoop.stop();
-    };
-  }, [pulse, spin]);
-
-  const rotation = spin.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
   const statusColor = progress.failed ? colors.red : progress.done ? colors.green : colors.purple;
+  const percent = Math.max(0, Math.min(100, progress.percent));
+  const orbitAngle = (percent / 100) * Math.PI * 2 - Math.PI / 2;
+  const orbitRadius = 101;
+  const orbitCenter = 115;
+  const badgeSize = 58;
+  const ringSegments = 56;
+  const activeSegments = Math.round((percent / 100) * ringSegments);
+  const percentBadgePosition = {
+    left: orbitCenter + Math.cos(orbitAngle) * orbitRadius - badgeSize / 2,
+    top: orbitCenter + Math.sin(orbitAngle) * orbitRadius - badgeSize / 2,
+  };
   const progressWidth = `${Math.max(6, Math.min(100, progress.percent))}%` as `${number}%`;
-  const pulseScale = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.96, 1.08],
-  });
-  const pulseOpacity = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.38, 0.78],
-  });
   const visibleItems = progress.processedItems.slice(-5);
 
   return (
     <View style={styles.optimizationLayer}>
-      <View style={styles.optimizationGlow} />
       <View style={styles.optimizationDiagonalOne} />
       <View style={styles.optimizationDiagonalTwo} />
-      <View style={styles.optimizationLogoWrap}>
-        <Image source={banners.splashLogo} resizeMode="contain" style={styles.optimizationLogo} />
-      </View>
 
       <View style={styles.optimizationStage}>
         <View style={styles.optimizationRingWrap}>
-          <Animated.View
-            style={[
-              styles.optimizationPulse,
-              {
-                opacity: pulseOpacity,
-                transform: [{ scale: pulseScale }],
-              },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.optimizationRing,
-              {
-                borderTopColor: statusColor,
-                borderRightColor: statusColor,
-                transform: [{ rotate: rotation }],
-              },
-            ]}
-          />
+          <View style={styles.optimizationRingTrack} />
+          {Array.from({ length: ringSegments }).map((_, index) => {
+            const angle = (index / ringSegments) * Math.PI * 2 - Math.PI / 2;
+            const segmentRadius = 102;
+            const segmentLeft = orbitCenter + Math.cos(angle) * segmentRadius - 3;
+            const segmentTop = orbitCenter + Math.sin(angle) * segmentRadius - 9;
+            const active = index < activeSegments;
+            return (
+              <View
+                key={`ring-${index}`}
+                style={[
+                  styles.optimizationRingSegment,
+                  {
+                    backgroundColor: active ? statusColor : '#1A2233',
+                    left: segmentLeft,
+                    top: segmentTop,
+                    transform: [{ rotate: `${(index / ringSegments) * 360}deg` }],
+                  },
+                ]}
+              />
+            );
+          })}
           <View style={styles.optimizationRingInner}>
-            <Text style={styles.optimizationPercent}>{progress.percent}%</Text>
+            <Image source={banners.splashLogo} resizeMode="contain" style={styles.optimizationRingLogo} />
           </View>
-          <View style={styles.optimizationRocket}>
-            <AppIcon name="arrow-up" size={20} color="#00F0FF" />
+          <View style={styles.optimizationPercentOrbit}>
+            <View style={[styles.optimizationPercentBadge, percentBadgePosition, { borderColor: statusColor }]}>
+              <Text style={styles.optimizationPercent}>{percent}%</Text>
+            </View>
           </View>
         </View>
 
@@ -1569,13 +1695,19 @@ function OptimizationOverlay({ progress }: { progress: OptimizationProgress }) {
 function GameOverlayPreview({
   selectedGame,
   setShowOverlayPreview,
-  runAction,
 }: {
   selectedGame: InstalledGame | null;
   setShowOverlayPreview: (value: boolean) => void;
   runAction: (actionId: string) => void;
 }) {
   const gameName = selectedGame?.label ?? 'Jogo selecionado';
+  const [overlayNotice, setOverlayNotice] = useState('');
+
+  function simulateOverlayAction(message: string, doneMessage = 'Ajuste aplicado no overlay.') {
+    setOverlayNotice(message);
+    setTimeout(() => setOverlayNotice(doneMessage), 650);
+    setTimeout(() => setOverlayNotice(''), 1900);
+  }
 
   return (
     <View style={styles.gameOverlayPreviewLayer}>
@@ -1584,29 +1716,61 @@ function GameOverlayPreview({
           <View style={styles.gameOverlayTopBadge}>
             <View style={styles.overlayLiveDot} />
             <Text style={styles.gameOverlayTopText}>NEXXSENSI BOOST ATIVO</Text>
-            <Text style={styles.gameOverlayTopMuted}>{gameName} • DPI 900</Text>
+            <Text style={styles.gameOverlayTopMuted}>120 FPS • 1.04 MB/s • 78%</Text>
           </View>
+          {!!overlayNotice && (
+            <View style={styles.overlayPreviewNotice}>
+              <AppIcon name="flash" size={14} color="#06131D" />
+              <Text style={styles.overlayPreviewNoticeText}>{overlayNotice}</Text>
+            </View>
+          )}
 
           <View style={[styles.overlaySidePanel, styles.overlayLeftPanel]}>
-            <Text style={styles.overlayKicker}>Otimização</Text>
-            <Text style={styles.overlayPanelTitle}>Turbo em execução</Text>
-            <Text style={styles.overlayPanelText}>Ajustes rápidos sem sair do jogo.</Text>
-            <Pressable style={styles.overlayPrimaryButton} onPress={() => runAction('game-boost')}>
+            <View style={[styles.overlayWingSpine, styles.overlayWingSpineLeft]} />
+            <View style={[styles.overlayWingClaw, styles.overlayWingClawLeft]} />
+            <OverlayHudHeader
+              title="Desempenho"
+              subtitle="Modo extremo"
+              onMinimize={() => setShowOverlayPreview(false)}
+            />
+            <Pressable
+              style={styles.overlayBoostActionCard}
+              onPress={() => simulateOverlayAction('Aplicando Reboost...')}
+            >
+              <View style={styles.overlayBoostActionIcon}>
+                <AppIcon name="rocket" size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.overlayBoostActionCopy}>
+                <Text style={styles.overlayBoostActionTitle}>Reboost agora</Text>
+                <Text style={styles.overlayBoostActionSub}>Prioriza o jogo, RAM, cache e resposta.</Text>
+              </View>
+              <Text style={styles.overlayBoostActionStatus}>ATIVO</Text>
+            </Pressable>
+            <OverlayMetric label="CPU" value="82%" detail="Uso alto" compact />
+            <OverlayMetric label="RAM" value="5.1 GB" detail="Livre" compact />
+            <OverlayMetric label="Temp." value="33°C" detail="Resfriamento" compact />
+            <Text style={styles.overlayKicker}>Ações</Text>
+            <Pressable
+              style={styles.overlayPrimaryButton}
+              onPress={() => simulateOverlayAction('Reotimizando jogo...')}
+            >
               <Text style={styles.overlayPrimaryText}>Reotimizar agora</Text>
             </Pressable>
-            <OverlayToggle title="Boost de jogo" subtitle="Prioridade para o app atual" active />
-            <OverlayToggle title="RAM limpa" subtitle="Processos em segundo plano" active />
-            <OverlayToggle title="DPI gamer" subtitle="900 dpi aplicado" active />
+            <OverlayMiniAction
+              title="Liberar RAM"
+              subtitle="Processos ociosos"
+              onPress={() => simulateOverlayAction('Liberando RAM...')}
+            />
+            <OverlayMiniAction
+              title="Resfriar"
+              subtitle="Reduzir carga da CPU"
+              onPress={() => simulateOverlayAction('Reduzindo carga da CPU...')}
+            />
+            <Text style={styles.overlayKicker}>DPI Gamer</Text>
             <View style={styles.overlayButtonRow}>
-              <OverlayMiniButton label="600" onPress={() => runAction('dpi-600')} />
-              <OverlayMiniButton label="900" onPress={() => runAction('dpi-900')} />
-              <OverlayMiniButton label="Reset" onPress={() => runAction('dpi-reset')} />
-            </View>
-            <Text style={styles.overlayKicker}>Replay</Text>
-            <View style={styles.overlayButtonRow}>
-              <OverlayMiniButton label="Ativar" />
-              <OverlayMiniButton label="Salvar" />
-              <OverlayMiniButton label="Parar" />
+              <OverlayMiniButton label="600" onPress={() => simulateOverlayAction('Aplicando DPI 600...')} />
+              <OverlayMiniButton label="900" onPress={() => simulateOverlayAction('Aplicando DPI 900...')} />
+              <OverlayMiniButton label="Reset" onPress={() => simulateOverlayAction('Restaurando DPI...')} />
             </View>
           </View>
 
@@ -1616,19 +1780,40 @@ function GameOverlayPreview({
           </View>
 
           <View style={[styles.overlaySidePanel, styles.overlayRightPanel]}>
-            <Text style={styles.overlayKicker}>Painel ao vivo</Text>
-            <Text style={styles.overlayPanelTitle}>Estatísticas</Text>
-            <OverlayMetric label="FPS" value="59" />
-            <OverlayMetric label="Ping" value="22 ms" />
-            <OverlayMetric label="RAM livre" value="5.1 GB" />
-            <OverlayMetric label="Temperatura" value="33°C" />
+            <View style={[styles.overlayWingSpine, styles.overlayWingSpineRight]} />
+            <View style={[styles.overlayWingClaw, styles.overlayWingClawRight]} />
+            <OverlayHudHeader
+              title="Ferramentas"
+              subtitle="Controle ao vivo"
+              onMinimize={() => setShowOverlayPreview(false)}
+            />
+            <View style={styles.overlayToolGrid}>
+              <OverlayToolTile title="Toque" subtitle="Resposta ultra" icon="locate" onPress={() => simulateOverlayAction('Otimizando resposta ao toque...')} />
+              <OverlayToolTile title="Sensi" subtitle="Máxima" icon="finger-print" onPress={() => simulateOverlayAction('Aplicando sensibilidade...')} />
+              <OverlayToolTile title="Visual" subtitle="Sem animação" icon="pulse" onPress={() => simulateOverlayAction('Reduzindo travadas visuais...')} />
+              <OverlayToolTile title="Brilho" subtitle="Máximo" icon="sunny" onPress={() => simulateOverlayAction('Ajuste visual acionado.')} />
+            </View>
+            <Text style={styles.overlayKicker}>Gravação</Text>
+            <OverlayMiniAction
+              title="Gravar 3 min"
+              subtitle="1080p • 60 FPS"
+              icon="radio-button-on"
+              onPress={() => simulateOverlayAction('Solicitando gravação...', 'Replay ativo no overlay.')}
+            />
+            <OverlayMiniAction
+              title="Salvar e parar"
+              subtitle="Gerar vídeo único"
+              icon="download"
+              onPress={() => simulateOverlayAction('Salvando replay...', 'Replay salvo.')}
+            />
+            <Text style={styles.overlayKicker}>Rede</Text>
+            <OverlayMetric label="Ping" value="22 ms" detail="Baixa latência" compact />
+            <OverlayMetric label="Bateria" value="86%" detail="Carga atual" compact />
+            <OverlayMetric label="Livre" value="81 GB" detail="Armazenamento" compact />
           </View>
 
           <Pressable style={styles.overlayFloatingBubble} onPress={() => setShowOverlayPreview(false)}>
             <Text style={styles.overlayBubbleText}>N</Text>
-          </Pressable>
-          <Pressable style={styles.overlayCloseButton} onPress={() => setShowOverlayPreview(false)}>
-            <AppIcon name="close" size={18} color={colors.text} />
           </Pressable>
         </View>
       </View>
@@ -1658,6 +1843,74 @@ function OverlayToggle({
   );
 }
 
+function OverlayHudHeader({
+  title,
+  subtitle,
+  onMinimize,
+}: {
+  title: string;
+  subtitle: string;
+  onMinimize?: () => void;
+}) {
+  return (
+    <View style={styles.overlayHudHeader}>
+      <Image source={banners.logo} style={styles.overlayHudLogo} />
+      <View style={styles.overlayHudCopy}>
+        <Text style={styles.overlayKicker}>{title}</Text>
+        <Text style={styles.overlayHudSubtitle}>{subtitle}</Text>
+      </View>
+      {onMinimize && (
+        <Pressable style={styles.overlayHudMinimize} onPress={onMinimize}>
+          <Text style={styles.overlayHudMinimizeText}>MIN</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function OverlayMiniAction({
+  title,
+  subtitle,
+  icon,
+  onPress,
+}: {
+  title: string;
+  subtitle: string;
+  icon?: IconName;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable style={styles.overlayMiniAction} onPress={onPress}>
+      {icon && <AppIcon name={icon} size={17} color="#22BDFF" />}
+      <View style={styles.overlayMiniActionCopy}>
+        <Text style={styles.overlayMiniActionTitle}>{title}</Text>
+        <Text style={styles.overlayMiniActionSub}>{subtitle}</Text>
+      </View>
+      <AppIcon name="chevron-forward" size={16} color="#7CA1C6" />
+    </Pressable>
+  );
+}
+
+function OverlayToolTile({
+  title,
+  subtitle,
+  icon,
+  onPress,
+}: {
+  title: string;
+  subtitle: string;
+  icon: IconName;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable style={styles.overlayToolTile} onPress={onPress}>
+      <AppIcon name={icon} size={22} color="#22BDFF" />
+      <Text style={styles.overlayToolTitle}>{title}</Text>
+      <Text style={styles.overlayToolSub}>{subtitle}</Text>
+    </Pressable>
+  );
+}
+
 function OverlayMiniButton({ label, onPress }: { label: string; onPress?: () => void }) {
   return (
     <Pressable style={styles.overlayMiniButton} onPress={onPress}>
@@ -1666,11 +1919,24 @@ function OverlayMiniButton({ label, onPress }: { label: string; onPress?: () => 
   );
 }
 
-function OverlayMetric({ label, value }: { label: string; value: string }) {
+function OverlayMetric({
+  label,
+  value,
+  detail,
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+  compact?: boolean;
+}) {
   return (
-    <View style={styles.overlayMetric}>
-      <Text style={styles.overlayMetricLabel}>{label}</Text>
-      <Text style={styles.overlayMetricValue}>{value}</Text>
+    <View style={[styles.overlayMetric, compact && styles.overlayMetricCompact]}>
+      <View>
+        <Text style={styles.overlayMetricLabel}>{label}</Text>
+        {detail && <Text style={styles.overlayMetricDetail}>{detail}</Text>}
+      </View>
+      <Text style={[styles.overlayMetricValue, compact && styles.overlayMetricValueCompact]}>{value}</Text>
     </View>
   );
 }
@@ -2931,11 +3197,11 @@ const styles = StyleSheet.create({
   },
   optimizationRingWrap: {
     alignItems: 'center',
-    height: 214,
+    height: 230,
     justifyContent: 'center',
-    marginBottom: 22,
+    marginBottom: 26,
     position: 'relative',
-    width: 214,
+    width: 230,
   },
   optimizationPulse: {
     backgroundColor: 'rgba(34, 189, 255, 0.08)',
@@ -2970,19 +3236,65 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 190,
   },
+  optimizationRingTrack: {
+    borderColor: '#1A2233',
+    borderRadius: 999,
+    borderWidth: 10,
+    height: 204,
+    position: 'absolute',
+    width: 204,
+  },
+  optimizationRingProgress: {
+    borderBottomColor: 'transparent',
+    borderLeftColor: 'transparent',
+    borderRadius: 999,
+    borderRightColor: '#9B38FF',
+    borderTopColor: '#9B38FF',
+    borderWidth: 10,
+    height: 204,
+    position: 'absolute',
+    transform: [{ rotate: '45deg' }],
+    width: 204,
+  },
+  optimizationRingSegment: {
+    borderRadius: 999,
+    height: 18,
+    position: 'absolute',
+    width: 6,
+  },
   optimizationRingInner: {
     alignItems: 'center',
     backgroundColor: 'rgba(4, 9, 18, 0.97)',
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 999,
     borderWidth: 1,
-    height: 166,
+    height: 162,
     justifyContent: 'center',
-    width: 166,
+    overflow: 'hidden',
+    width: 162,
+  },
+  optimizationRingLogo: {
+    height: 124,
+    width: 124,
+  },
+  optimizationPercentOrbit: {
+    height: 230,
+    position: 'absolute',
+    width: 230,
+  },
+  optimizationPercentBadge: {
+    alignItems: 'center',
+    backgroundColor: '#06101E',
+    borderRadius: 999,
+    borderWidth: 2,
+    height: 58,
+    justifyContent: 'center',
+    position: 'absolute',
+    width: 58,
   },
   optimizationPercent: {
     color: colors.text,
-    fontSize: 44,
+    fontSize: 18,
     fontWeight: '900',
   },
   optimizationEyebrow: {
@@ -3272,9 +3584,21 @@ const styles = StyleSheet.create({
   permissionGateScreen: {
     alignItems: 'center',
     backgroundColor: '#02050B',
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 18,
+  },
+  permissionGateScroll: {
+    backgroundColor: '#02050B',
+    flex: 1,
+  },
+  setupPreviewLayer: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 180,
   },
   permissionGateCard: {
     backgroundColor: '#0B0F19',
@@ -3284,7 +3608,22 @@ const styles = StyleSheet.create({
     gap: 12,
     maxWidth: 520,
     padding: 18,
+    position: 'relative',
     width: '100%',
+  },
+  permissionGateClose: {
+    alignItems: 'center',
+    backgroundColor: '#101522',
+    borderColor: '#222B3F',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 38,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 14,
+    top: 14,
+    width: 38,
+    zIndex: 2,
   },
   permissionGateLogo: {
     alignSelf: 'center',
@@ -3310,6 +3649,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
+  },
+  shizukuGuideBox: {
+    backgroundColor: '#070B14',
+    borderColor: '#1A2538',
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 6,
+    padding: 13,
+  },
+  shizukuGuideTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  shizukuGuideText: {
+    color: '#B7C2D2',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
   },
   permissionChecklist: {
     gap: 9,
@@ -3375,6 +3734,21 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
   },
+  permissionGatePrimary: {
+    alignItems: 'center',
+    backgroundColor: colors.purple,
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 8,
+    height: 50,
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  permissionGatePrimaryText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+  },
   permissionGateRefresh: {
     alignItems: 'center',
     backgroundColor: '#101522',
@@ -3397,6 +3771,45 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     textAlign: 'center',
+  },
+  webPreviewPanel: {
+    backgroundColor: '#0B0F19',
+    borderColor: '#1B2740',
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 10,
+    padding: 13,
+  },
+  webPreviewTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  webPreviewText: {
+    color: '#AEB6C5',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  webPreviewActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+  },
+  webPreviewButton: {
+    alignItems: 'center',
+    backgroundColor: colors.purpleDark,
+    borderColor: colors.purple,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 7,
+    minHeight: 38,
+    paddingHorizontal: 13,
+  },
+  webPreviewButtonText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
   },
   activationScreen: {
     alignItems: 'center',
@@ -4421,8 +4834,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   gameOverlayBackdrop: {
-    backgroundColor: '#06101E',
-    borderColor: '#1B2940',
+    backgroundColor: '#020B17',
+    borderColor: 'rgba(34, 189, 255, 0.26)',
     borderRadius: 22,
     borderWidth: 1,
     flex: 1,
@@ -4460,26 +4873,87 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
-  overlaySidePanel: {
-    backgroundColor: 'rgba(8, 15, 28, 0.88)',
-    borderColor: 'rgba(34, 189, 255, 0.22)',
+  overlayPreviewNotice: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: colors.blue,
+    borderColor: '#77E2FF',
+    borderRadius: 999,
     borderWidth: 1,
-    bottom: 18,
-    padding: 16,
+    elevation: 8,
+    flexDirection: 'row',
+    gap: 7,
+    minHeight: 32,
+    paddingHorizontal: 13,
+    position: 'absolute',
+    top: 54,
+    zIndex: 6,
+  },
+  overlayPreviewNoticeText: {
+    color: '#06131D',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  overlaySidePanel: {
+    backgroundColor: 'rgba(3, 12, 28, 0.94)',
+    borderColor: 'rgba(34, 189, 255, 0.45)',
+    borderWidth: 1,
+    bottom: 22,
+    overflow: 'hidden',
+    padding: 14,
     position: 'absolute',
     top: 52,
-    width: '29%',
+    width: '32%',
     zIndex: 2,
   },
   overlayLeftPanel: {
     borderBottomRightRadius: 26,
     borderTopRightRadius: 26,
     left: 18,
+    paddingRight: 50,
   },
   overlayRightPanel: {
     borderBottomLeftRadius: 26,
     borderTopLeftRadius: 26,
+    paddingLeft: 50,
     right: 18,
+  },
+  overlayWingSpine: {
+    bottom: 34,
+    opacity: 0.72,
+    position: 'absolute',
+    top: 34,
+    width: 52,
+    zIndex: 0,
+  },
+  overlayWingSpineLeft: {
+    backgroundColor: 'rgba(34, 189, 255, 0.18)',
+    right: 24,
+    transform: [{ skewX: '-22deg' }],
+  },
+  overlayWingSpineRight: {
+    backgroundColor: 'rgba(34, 189, 255, 0.18)',
+    left: 24,
+    transform: [{ skewX: '22deg' }],
+  },
+  overlayWingClaw: {
+    backgroundColor: 'rgba(34, 189, 255, 0.16)',
+    borderColor: 'rgba(34, 189, 255, 0.36)',
+    borderRadius: 24,
+    borderWidth: 1,
+    height: 116,
+    position: 'absolute',
+    top: '40%',
+    width: 74,
+    zIndex: 0,
+  },
+  overlayWingClawLeft: {
+    right: 4,
+    transform: [{ rotate: '45deg' }, { skewX: '-12deg' }],
+  },
+  overlayWingClawRight: {
+    left: 4,
+    transform: [{ rotate: '45deg' }, { skewX: '12deg' }],
   },
   overlayKicker: {
     color: '#22BDFF',
@@ -4487,6 +4961,106 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
+  },
+  overlayHudHeader: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(4, 18, 39, 0.92)',
+    borderColor: 'rgba(34, 189, 255, 0.32)',
+    borderRadius: 13,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 9,
+    marginBottom: 10,
+    padding: 9,
+    position: 'relative',
+    zIndex: 2,
+  },
+  overlayHudLogo: {
+    borderRadius: 15,
+    height: 30,
+    width: 30,
+  },
+  overlayHudCopy: {
+    flex: 1,
+  },
+  overlayHudSubtitle: {
+    color: '#9FDFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  overlayHudMinimize: {
+    alignItems: 'center',
+    backgroundColor: '#163A66',
+    borderRadius: 999,
+    justifyContent: 'center',
+    minHeight: 28,
+    paddingHorizontal: 9,
+  },
+  overlayHudMinimizeText: {
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  overlayBoostDial: {
+    display: 'none',
+  },
+  overlayBoostRing: {
+    display: 'none',
+  },
+  overlayBoostCaption: {
+    display: 'none',
+  },
+  overlayBoostActionCard: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 25, 55, 0.82)',
+    borderColor: 'rgba(34, 189, 255, 0.34)',
+    borderRadius: 15,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 9,
+    minHeight: 76,
+    padding: 12,
+    position: 'relative',
+    zIndex: 2,
+  },
+  overlayBoostActionIcon: {
+    alignItems: 'center',
+    backgroundColor: '#0C86FF',
+    borderColor: '#22E7FF',
+    borderRadius: 22,
+    borderWidth: 2,
+    height: 44,
+    justifyContent: 'center',
+    shadowColor: '#22BDFF',
+    shadowOpacity: 0.55,
+    shadowRadius: 20,
+    width: 44,
+  },
+  overlayBoostActionCopy: {
+    flex: 1,
+  },
+  overlayBoostActionTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  overlayBoostActionSub: {
+    color: '#9AB4CE',
+    fontSize: 10,
+    lineHeight: 13,
+    marginTop: 3,
+  },
+  overlayBoostActionStatus: {
+    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+    borderRadius: 999,
+    color: '#00F0FF',
+    fontSize: 9,
+    fontWeight: '900',
+    overflow: 'hidden',
+    paddingHorizontal: 7,
+    paddingVertical: 4,
   },
   overlayPanelTitle: {
     color: colors.text,
@@ -4507,6 +5081,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 12,
     minHeight: 40,
+    position: 'relative',
+    zIndex: 2,
   },
   overlayPrimaryText: {
     color: '#FFFFFF',
@@ -4560,6 +5136,8 @@ const styles = StyleSheet.create({
     gap: 7,
     marginBottom: 8,
     marginTop: 8,
+    position: 'relative',
+    zIndex: 2,
   },
   overlayMiniButton: {
     alignItems: 'center',
@@ -4575,6 +5153,69 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 10,
     fontWeight: '900',
+  },
+  overlayMiniAction: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(13, 27, 47, 0.94)',
+    borderColor: 'rgba(34, 189, 255, 0.22)',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    minHeight: 42,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    position: 'relative',
+    zIndex: 2,
+  },
+  overlayMiniActionCopy: {
+    flex: 1,
+  },
+  overlayMiniActionTitle: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  overlayMiniActionSub: {
+    color: '#91A9C2',
+    fontSize: 9,
+    marginTop: 2,
+  },
+  overlayToolGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 6,
+    marginTop: 8,
+    position: 'relative',
+    zIndex: 2,
+  },
+  overlayToolTile: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 28, 62, 0.82)',
+    borderColor: 'rgba(34, 189, 255, 0.26)',
+    borderRadius: 13,
+    borderWidth: 1,
+    minHeight: 82,
+    justifyContent: 'center',
+    padding: 8,
+    width: '47%',
+  },
+  overlayToolTitle: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
+    marginTop: 7,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  overlayToolSub: {
+    color: '#22BDFF',
+    fontSize: 9,
+    fontWeight: '800',
+    marginTop: 2,
+    textAlign: 'center',
   },
   overlayCenter: {
     alignItems: 'center',
@@ -4604,6 +5245,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: 10,
     padding: 11,
+    position: 'relative',
+    zIndex: 2,
+  },
+  overlayMetricCompact: {
+    alignItems: 'center',
+    borderColor: 'rgba(34, 189, 255, 0.22)',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingVertical: 9,
   },
   overlayMetricLabel: {
     color: '#92A7BD',
@@ -4615,6 +5266,15 @@ const styles = StyleSheet.create({
     fontSize: 21,
     fontWeight: '900',
     marginTop: 3,
+  },
+  overlayMetricValueCompact: {
+    fontSize: 18,
+    marginTop: 0,
+  },
+  overlayMetricDetail: {
+    color: '#6F8AA6',
+    fontSize: 9,
+    marginTop: 2,
   },
   overlayFloatingBubble: {
     alignItems: 'center',

@@ -3,34 +3,33 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Nexxsensi Overlay Landscape Preview</title>
+  <title>Nexxsensi Overlay HUD Preview</title>
   <style>
     :root {
-      --bg: #030407;
-      --glass: rgba(3, 5, 10, 0.74);
-      --glass-strong: rgba(5, 8, 15, 0.9);
-      --line: rgba(0, 168, 255, 0.7);
-      --blue: #009dff;
-      --cyan: #00e5ff;
-      --purple: #9336ff;
-      --green: #18ef62;
-      --text: #f8f9ff;
-      --muted: #9aa1ad;
+      --panel: rgba(2, 10, 24, .88);
+      --panel-strong: rgba(2, 14, 34, .96);
+      --line: rgba(27, 178, 255, .68);
+      --line-soft: rgba(27, 178, 255, .24);
+      --blue: #18b7ff;
+      --cyan: #00f0ff;
+      --green: #22f58a;
+      --amber: #ffc94a;
+      --red: #ff4060;
+      --text: #f7fbff;
+      --muted: #a7b8cb;
+      --deep: #02050c;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       align-items: center;
       background:
-        radial-gradient(circle at 20% 20%, rgba(0, 168, 255, 0.18), transparent 30%),
-        radial-gradient(circle at 80% 70%, rgba(147, 54, 255, 0.18), transparent 34%),
-        #151515;
+        radial-gradient(circle at 50% 15%, rgba(24, 183, 255, .18), transparent 30%),
+        linear-gradient(135deg, #121212, #050505);
       color: var(--text);
       display: flex;
-      font-family: "Segoe UI", Tahoma, sans-serif;
+      font-family: Rajdhani, "Segoe UI", sans-serif;
       justify-content: center;
       margin: 0;
       min-height: 100vh;
@@ -38,14 +37,14 @@
     }
 
     .phone {
-      background: #050608;
-      border: 8px solid #282828;
+      background: #03050a;
+      border: 8px solid #181b22;
       border-radius: 28px;
-      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.62);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, .7);
       height: 430px;
       overflow: hidden;
       position: relative;
-      width: 860px;
+      width: 940px;
     }
 
     .screen {
@@ -55,597 +54,724 @@
       width: 100%;
     }
 
-    .game-world {
+    .game {
       background:
-        linear-gradient(90deg, rgba(0, 0, 0, 0.72), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.74)),
-        radial-gradient(circle at 50% 45%, rgba(29, 193, 255, 0.2), transparent 21%),
-        linear-gradient(150deg, #081b16 0%, #123157 48%, #0a0b12 100%);
+        linear-gradient(90deg, rgba(0,0,0,.55), transparent 18%, transparent 82%, rgba(0,0,0,.58)),
+        radial-gradient(circle at 50% 42%, rgba(255,255,255,.26), transparent 8%),
+        linear-gradient(#20a8ff 0%, #89d4ff 33%, #d3b05d 34%, #9b7b36 40%, #1f5f83 41%, #081521 100%);
       inset: 0;
       position: absolute;
     }
 
-    .floor {
-      background-image:
-        linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-      background-size: 48px 48px;
-      bottom: -110px;
-      height: 260px;
-      left: -80px;
-      opacity: 0.32;
+    .game::before {
+      background:
+        linear-gradient(90deg, transparent 0 47%, rgba(255,255,255,.7) 48% 52%, transparent 53%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.16) 0 2px, transparent 2px 72px);
+      bottom: -82px;
+      content: "";
+      height: 220px;
+      left: 18%;
+      opacity: .62;
       position: absolute;
-      right: -80px;
-      transform: perspective(360px) rotateX(57deg);
+      right: 18%;
+      transform: perspective(300px) rotateX(60deg);
       transform-origin: top;
     }
 
-    .character {
+    .game::after {
       background:
-        linear-gradient(110deg, rgba(0, 168, 255, 0.92), transparent 18%),
-        linear-gradient(250deg, rgba(0, 229, 255, 0.86), transparent 18%);
-      clip-path: polygon(34% 0, 66% 0, 58% 100%, 42% 100%);
-      inset: 42px 308px 0;
-      opacity: 0.92;
-      position: absolute;
-      z-index: 1;
-    }
-
-    .player {
-      align-items: center;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      left: 50%;
-      position: absolute;
-      top: 102px;
-      transform: translateX(-50%);
-      z-index: 2;
-    }
-
-    .head {
-      background: linear-gradient(150deg, #efc29e, #7a4a37);
-      border-radius: 50%;
-      height: 42px;
-      width: 42px;
-    }
-
-    .torso {
-      background: linear-gradient(150deg, #0d1220, #202a42);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 22px 22px 16px 16px;
-      height: 100px;
-      position: relative;
-      width: 72px;
-    }
-
-    .torso::after {
-      background: #f0c445;
-      border-radius: 999px;
+        linear-gradient(90deg, #42677d, #8197a6),
+        repeating-linear-gradient(0deg, rgba(0,0,0,.25) 0 3px, transparent 3px 18px);
+      border: 2px solid rgba(255,255,255,.28);
+      bottom: 92px;
       content: "";
-      height: 7px;
-      left: -16px;
+      height: 120px;
+      left: 250px;
+      opacity: .72;
       position: absolute;
-      top: 47px;
-      transform: rotate(-18deg);
-      width: 106px;
+      transform: skewY(-5deg);
+      width: 110px;
     }
 
-    .legs {
-      display: flex;
-      gap: 14px;
-    }
-
-    .leg {
-      background: #171b29;
-      border-radius: 0 0 10px 10px;
-      height: 92px;
-      width: 22px;
-    }
-
-    .crosshair {
-      border: 1px solid rgba(255, 255, 255, 0.42);
-      border-radius: 999px;
-      height: 62px;
-      left: 50%;
-      position: absolute;
-      top: 47%;
-      transform: translate(-50%, -50%);
-      width: 62px;
-      z-index: 3;
-    }
-
-    .hud-top {
+    .top-rail {
       align-items: center;
-      display: flex;
-      justify-content: space-between;
-      left: 36px;
-      position: absolute;
-      right: 36px;
-      top: 18px;
-      z-index: 4;
-    }
-
-    .chip {
-      background: rgba(0, 0, 0, 0.46);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 999px;
-      color: #eef4ff;
-      font-size: 12px;
-      font-weight: 800;
-      padding: 7px 12px;
-    }
-
-    .center-clear {
-      border-left: 2px solid rgba(0, 168, 255, 0.86);
-      border-right: 2px solid rgba(0, 168, 255, 0.86);
-      bottom: 0;
-      box-shadow: 0 0 28px rgba(0, 168, 255, 0.3);
-      left: 300px;
-      pointer-events: none;
-      position: absolute;
-      top: 0;
-      width: 260px;
-      z-index: 5;
-    }
-
-    .side-panel {
-      backdrop-filter: blur(16px);
-      background:
-        linear-gradient(90deg, rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.44)),
-        var(--glass);
-      bottom: 0;
-      padding: 24px 26px;
-      position: absolute;
-      top: 0;
-      width: 286px;
-      z-index: 6;
-    }
-
-    .side-panel.right {
-      background:
-        linear-gradient(270deg, rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.44)),
-        var(--glass);
-      right: 0;
-    }
-
-    .side-panel.left {
-      left: 0;
-    }
-
-    .section {
-      margin-bottom: 18px;
-    }
-
-    .section-title {
-      color: var(--cyan);
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 0.8px;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-    }
-
-    .row {
-      align-items: center;
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 15px;
-    }
-
-    .label strong {
-      display: block;
-      font-size: 14px;
-      font-weight: 900;
-    }
-
-    .label span {
-      color: var(--muted);
-      display: block;
-      font-size: 10px;
-      margin-top: 4px;
-    }
-
-    .toggle {
-      background: #f2eef6;
-      border-radius: 999px;
-      box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.1);
-      height: 34px;
-      padding: 4px;
-      width: 58px;
-    }
-
-    .toggle::after {
-      background: #77717d;
-      border-radius: 999px;
-      content: "";
-      display: block;
-      height: 26px;
-      width: 26px;
-    }
-
-    .toggle.on {
-      background: linear-gradient(90deg, #0078ff, #00d5ff);
-    }
-
-    .toggle.on::after {
-      background: #120805;
-      transform: translateX(24px);
-    }
-
-    .touch-grid {
+      background: linear-gradient(180deg, rgba(2, 7, 16, .86), rgba(2, 7, 16, .18));
       display: grid;
-      gap: 8px;
-      grid-template-columns: repeat(3, 1fr);
-      margin-bottom: 15px;
+      grid-template-columns: 202px 1fr 202px;
+      height: 54px;
+      left: 0;
+      padding: 8px 18px;
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 8;
     }
 
-    .preset {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 9px;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 900;
-      padding: 13px 0;
-      text-align: center;
-    }
-
-    .preset.active {
-      background: rgba(0, 168, 255, 0.18);
-      border-color: var(--blue);
-      color: #b9efff;
-      box-shadow: 0 0 18px rgba(0, 168, 255, 0.24);
-    }
-
-    .meter {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 999px;
-      height: 10px;
-      margin-top: 10px;
-      overflow: hidden;
-    }
-
-    .meter span {
-      background: linear-gradient(90deg, var(--blue), var(--cyan));
-      border-radius: inherit;
-      display: block;
-      height: 100%;
-      width: 72%;
-    }
-
-    .slider {
+    .nav, .avatars {
       align-items: center;
       display: flex;
-      gap: 8px;
-      margin-top: 9px;
+      gap: 11px;
     }
 
-    .slider-track {
-      background: #f4e9f6;
+    .nav {
+      visibility: hidden;
+    }
+
+    .avatars { justify-content: flex-end; }
+
+    .icon {
+      align-items: center;
+      background: rgba(8, 15, 30, .84);
+      border: 1px solid rgba(255,255,255,.08);
       border-radius: 999px;
-      flex: 1;
-      height: 10px;
-      position: relative;
-    }
-
-    .slider-track::before {
-      background: var(--blue);
-      border-radius: inherit;
-      content: "";
-      display: block;
-      height: 100%;
-      width: 43%;
-    }
-
-    .slider-dot {
-      background: #fff;
-      border: 2px solid var(--blue);
-      border-radius: 999px;
-      height: 22px;
-      left: 39%;
-      position: absolute;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 22px;
-    }
-
-    .colors {
+      color: #dfeaff;
       display: flex;
-      gap: 10px;
-      margin-top: 12px;
+      font-size: 17px;
+      font-weight: 900;
+      height: 34px;
+      justify-content: center;
+      width: 34px;
     }
 
-    .swatch {
-      border: 3px solid rgba(255, 255, 255, 0.82);
+    .avatar {
+      background: linear-gradient(135deg, #00a7ff, #8536ff);
+      border: 2px solid rgba(255,255,255,.58);
       border-radius: 999px;
       height: 34px;
       width: 34px;
     }
 
-    .swatch.green {
-      background: #00df2f;
+    .status-pill {
+      align-items: center;
+      align-self: center;
+      background: rgba(2, 9, 22, .74);
+      border: 1px solid rgba(34, 189, 255, .32);
+      border-radius: 999px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      justify-self: center;
+      min-width: 335px;
+      padding: 7px 14px;
     }
 
-    .swatch.white {
-      background: #fff;
+    .dot {
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 14px rgba(34, 245, 138, .85);
+      height: 8px;
+      width: 8px;
     }
 
-    .swatch.yellow {
-      background: #ffb41f;
+    .status-pill b {
+      font-size: 12px;
+      letter-spacing: .8px;
+      text-transform: uppercase;
     }
 
-    .swatch.red {
-      background: #ff1c10;
+    .status-pill span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
 
-    .mini-graph {
-      background: rgba(7, 12, 18, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 10px;
-      height: 56px;
-      margin-bottom: 20px;
-      overflow: hidden;
+    .wing {
+      bottom: 0;
+      filter: drop-shadow(0 0 18px rgba(24, 183, 255, .22));
+      padding: 58px 22px 18px;
+      position: absolute;
+      top: 0;
+      width: 285px;
+      z-index: 5;
+    }
+
+    .wing.left {
+      background:
+        radial-gradient(ellipse at 104% 50%, rgba(24, 183, 255, .18), transparent 30%),
+        linear-gradient(90deg, rgba(1, 5, 13, .98), rgba(3, 15, 33, .94) 63%, rgba(3, 15, 33, .38));
+      clip-path: polygon(
+        0 0,
+        70% 0,
+        83% 14%,
+        75% 31%,
+        98% 50%,
+        75% 69%,
+        83% 86%,
+        70% 100%,
+        0 100%
+      );
+      left: 0;
+      padding-right: 92px;
+    }
+
+    .wing.right {
+      background:
+        radial-gradient(ellipse at -4% 50%, rgba(24, 183, 255, .18), transparent 30%),
+        linear-gradient(270deg, rgba(1, 5, 13, .98), rgba(3, 15, 33, .94) 63%, rgba(3, 15, 33, .38));
+      clip-path: polygon(
+        30% 0,
+        100% 0,
+        100% 100%,
+        30% 100%,
+        17% 86%,
+        25% 69%,
+        2% 50%,
+        25% 31%,
+        17% 14%
+      );
+      padding-left: 92px;
+      right: 0;
+    }
+
+    .wing::before {
+      border: 1px solid var(--line-soft);
+      content: "";
+      inset: 18px 10px 12px;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    .wing > :not(.spine):not(.mid-claw) {
       position: relative;
+      z-index: 2;
     }
 
-    .mini-graph svg {
-      height: 100%;
-      width: 100%;
+    .left::before {
+      clip-path: polygon(0 0, 70% 0, 83% 14%, 75% 31%, 98% 50%, 75% 69%, 83% 86%, 70% 100%, 0 100%);
+    }
+    .right::before {
+      clip-path: polygon(30% 0, 100% 0, 100% 100%, 30% 100%, 17% 86%, 25% 69%, 2% 50%, 25% 31%, 17% 14%);
+    }
+
+    .left .spine,
+    .right .spine {
+      bottom: 36px;
+      pointer-events: none;
+      position: absolute;
+      top: 36px;
+      width: 74px;
+      z-index: 1;
+    }
+
+    .left .spine {
+      background:
+        linear-gradient(115deg, transparent 0 33%, rgba(24, 183, 255, .72) 34% 36%, transparent 37%),
+        linear-gradient(65deg, transparent 0 56%, rgba(24, 183, 255, .5) 57% 59%, transparent 60%);
+      right: 22px;
+    }
+
+    .right .spine {
+      background:
+        linear-gradient(245deg, transparent 0 33%, rgba(24, 183, 255, .72) 34% 36%, transparent 37%),
+        linear-gradient(295deg, transparent 0 56%, rgba(24, 183, 255, .5) 57% 59%, transparent 60%);
+      left: 22px;
+    }
+
+    .left .mid-claw,
+    .right .mid-claw {
+      border: 1px solid rgba(24, 183, 255, .34);
+      height: 112px;
+      pointer-events: none;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 82px;
+      z-index: 1;
+    }
+
+    .left .mid-claw {
+      background: linear-gradient(90deg, rgba(24, 183, 255, .15), transparent);
+      clip-path: polygon(0 0, 58% 13%, 100% 50%, 58% 87%, 0 100%, 26% 50%);
+      right: 8px;
+    }
+
+    .right .mid-claw {
+      background: linear-gradient(270deg, rgba(24, 183, 255, .15), transparent);
+      clip-path: polygon(100% 0, 42% 13%, 0 50%, 42% 87%, 100% 100%, 74% 50%);
+      left: 8px;
+    }
+
+    .section-title {
+      align-items: center;
+      color: #ccecff;
+      display: flex;
+      font-size: 12px;
+      font-weight: 900;
+      gap: 8px;
+      letter-spacing: .8px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .section-title::before {
+      background: var(--blue);
+      box-shadow: 0 0 12px rgba(24, 183, 255, .8);
+      content: "";
+      height: 7px;
+      transform: rotate(45deg);
+      width: 7px;
+    }
+
+    .dial-card {
+      background: linear-gradient(180deg, rgba(5, 16, 34, .92), rgba(2, 8, 20, .72));
+      border: 1px solid rgba(24, 183, 255, .18);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      padding: 11px;
+      text-align: center;
+    }
+
+    .select {
+      align-items: center;
+      background: rgba(0,0,0,.32);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 8px;
+      display: flex;
+      font-size: 11px;
+      justify-content: space-between;
+      margin-bottom: 11px;
+      padding: 8px 10px;
+      text-transform: uppercase;
+    }
+
+    .dial {
+      align-items: center;
+      background:
+        radial-gradient(circle, #0e74ff 0 19%, #06182d 20% 35%, transparent 36%),
+        conic-gradient(from 30deg, transparent 0 12%, var(--blue) 13% 54%, transparent 55% 100%);
+      border: 1px solid rgba(24, 183, 255, .35);
+      border-radius: 50%;
+      box-shadow: 0 0 28px rgba(24, 183, 255, .42);
+      display: flex;
+      height: 92px;
+      justify-content: center;
+      margin: 0 auto 8px;
+      position: relative;
+      width: 92px;
+    }
+
+    .dial strong {
+      font-size: 32px;
+      line-height: 1;
+      text-shadow: 0 0 14px rgba(255,255,255,.8);
+    }
+
+    .dial small {
+      bottom: 12px;
+      color: var(--cyan);
+      font-size: 9px;
+      font-weight: 900;
+      position: absolute;
     }
 
     .stat-card {
-      align-items: center;
-      background: rgba(7, 12, 18, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: linear-gradient(90deg, rgba(2, 9, 20, .86), rgba(8, 20, 40, .72));
+      border: 1px solid rgba(24, 183, 255, .2);
       border-radius: 12px;
+      margin-bottom: 9px;
+      padding: 10px;
+    }
+
+    .stat-top {
+      align-items: end;
       display: flex;
       justify-content: space-between;
-      margin-bottom: 9px;
-      padding: 11px 12px;
     }
 
-    .stat-card small {
+    .stat-top b {
+      font-size: 28px;
+      line-height: .9;
+    }
+
+    .stat-top span {
       color: var(--muted);
-      display: block;
       font-size: 10px;
-      margin-bottom: 2px;
+      font-weight: 800;
+      text-transform: uppercase;
     }
 
-    .stat-card strong {
-      color: #fff;
+    .bars {
+      display: flex;
+      gap: 3px;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+
+    .bars i {
+      background: linear-gradient(180deg, var(--cyan), #116cff);
       display: block;
-      font-size: 13px;
+      height: 7px;
+      transform: skewX(-18deg);
+      width: 15px;
     }
 
-    .stat-value {
+    .mini-panel {
+      background: rgba(0,0,0,.26);
+      border-left: 2px solid rgba(24, 183, 255, .45);
+      margin-bottom: 10px;
+      padding: 8px;
+    }
+
+    .mini-panel p {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      margin: 0 0 6px;
+      text-transform: uppercase;
+    }
+
+    .gridline {
+      background: repeating-linear-gradient(0deg, rgba(255,255,255,.4) 0 2px, transparent 2px 6px);
+      height: 56px;
+      opacity: .55;
+      width: 86px;
+    }
+
+    .tool-grid {
+      display: grid;
+      gap: 9px;
+      grid-template-columns: 1fr 1fr;
+      margin-bottom: 10px;
+    }
+
+    .tool {
+      align-items: center;
+      background: linear-gradient(180deg, rgba(0, 38, 80, .86), rgba(4, 15, 31, .9));
+      border: 1px solid rgba(24, 183, 255, .28);
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      height: 78px;
+      justify-content: center;
+      padding: 8px;
+      transition: .18s ease;
+    }
+
+    .tool:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 18px rgba(24, 183, 255, .32);
+      transform: translateY(-1px);
+    }
+
+    .tool .symbol {
       color: var(--cyan);
-      font-size: 18px;
+      font-size: 23px;
+      line-height: 1;
+      margin-bottom: 7px;
+    }
+
+    .tool b {
+      font-size: 10px;
+      line-height: 1.05;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .tool span {
+      color: var(--cyan);
+      font-size: 9px;
       font-weight: 900;
+      margin-top: 3px;
+      text-transform: uppercase;
+    }
+
+    .action-row {
+      align-items: center;
+      background: rgba(3, 13, 30, .88);
+      border: 1px solid rgba(24, 183, 255, .22);
+      border-radius: 10px;
+      display: grid;
+      grid-template-columns: 32px 1fr 14px;
+      gap: 9px;
+      margin-bottom: 9px;
+      padding: 9px;
+    }
+
+    .record-dot {
+      background: var(--red);
+      border: 4px solid rgba(255, 64, 96, .2);
+      border-radius: 50%;
+      box-shadow: 0 0 16px rgba(255, 64, 96, .5);
+      height: 25px;
+      width: 25px;
+    }
+
+    .action-row b {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .action-row span {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .slider {
+      align-items: center;
+      display: grid;
+      gap: 9px;
+      grid-template-columns: 22px 1fr;
+      margin: 10px 0;
+    }
+
+    .track {
+      background: rgba(255,255,255,.16);
+      border-radius: 999px;
+      height: 7px;
+      overflow: hidden;
+    }
+
+    .track div {
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      height: 100%;
+      width: 78%;
+    }
+
+    .center-hint {
+      align-items: center;
+      background: rgba(0,0,0,.36);
+      border-radius: 999px;
+      color: rgba(255,255,255,.86);
+      display: flex;
+      font-size: 13px;
+      font-weight: 800;
+      left: 50%;
+      padding: 11px 18px;
+      position: absolute;
+      top: 48%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+    }
+
+    .countdown {
+      align-items: center;
+      border: 3px solid rgba(255,255,255,.35);
+      border-top-color: var(--amber);
+      border-radius: 50%;
+      color: var(--amber);
+      display: flex;
+      font-size: 26px;
+      font-weight: 900;
+      height: 58px;
+      justify-content: center;
+      left: 50%;
+      position: absolute;
+      top: 88px;
+      transform: translateX(-50%);
+      width: 58px;
+      z-index: 2;
+    }
+
+    .bottom-hud {
+      align-items: center;
+      bottom: 18px;
+      display: flex;
+      gap: 10px;
+      left: 50%;
+      position: absolute;
+      transform: translateX(-50%);
+      z-index: 3;
+    }
+
+    .chip {
+      background: rgba(0,0,0,.54);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      color: #dce9ff;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 7px 12px;
     }
 
     .bubble {
       align-items: center;
-      background:
-        radial-gradient(circle at 35% 26%, rgba(255, 255, 255, 0.22), transparent 28%),
-        rgba(10, 12, 20, 0.62);
-      border: 1px solid rgba(147, 54, 255, 0.78);
-      border-radius: 999px;
-      box-shadow:
-        0 0 0 5px rgba(147, 54, 255, 0.16),
-        0 16px 40px rgba(0, 0, 0, 0.58);
+      background: rgba(2, 10, 24, .78);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      bottom: 62px;
+      box-shadow: 0 0 24px rgba(24, 183, 255, .42);
       cursor: grab;
       display: flex;
-      height: 58px;
+      height: 54px;
       justify-content: center;
-      left: 401px;
-      opacity: 0.84;
+      left: 50%;
+      padding: 6px;
       position: absolute;
-      top: 14px;
-      touch-action: none;
-      user-select: none;
-      width: 58px;
+      transform: translateX(-50%);
+      width: 54px;
       z-index: 10;
     }
 
     .bubble img {
-      max-height: 38px;
-      max-width: 44px;
-      pointer-events: none;
+      height: 100%;
+      object-fit: contain;
+      width: 100%;
     }
 
-    .hint {
-      background: rgba(0, 0, 0, 0.42);
+    .minimize {
+      background: rgba(2, 10, 24, .78);
+      border: 1px solid rgba(24, 183, 255, .28);
       border-radius: 999px;
-      bottom: 14px;
-      color: rgba(255, 255, 255, 0.66);
-      font-size: 11px;
-      left: 50%;
-      padding: 7px 12px;
+      color: #dcecff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 9px 13px;
       position: absolute;
-      transform: translateX(-50%);
-      z-index: 9;
+      right: 22px;
+      top: 64px;
+      z-index: 12;
+    }
+
+    .hidden .wing,
+    .hidden .top-rail,
+    .hidden .center-hint,
+    .hidden .countdown,
+    .hidden .bottom-hud,
+    .hidden .minimize {
+      opacity: 0;
+      pointer-events: none;
+      transition: .18s ease;
+    }
+
+    @media (max-width: 960px) {
+      .phone {
+        border-radius: 18px;
+        height: 56vw;
+        width: 100vw;
+      }
     }
   </style>
 </head>
 <body>
   <main class="phone">
-    <section class="screen">
-      <div class="game-world"></div>
-      <div class="floor"></div>
-      <div class="character"></div>
-      <div class="player">
-        <div class="head"></div>
-        <div class="torso"></div>
-        <div class="legs">
-          <div class="leg"></div>
-          <div class="leg"></div>
+    <section class="screen" id="screen">
+      <div class="game"></div>
+
+      <div class="top-rail">
+        <nav class="nav" aria-hidden="true"></nav>
+        <div class="status-pill">
+          <i class="dot"></i>
+          <b>Nexxsensi Boost ativo</b>
+          <span>120 FPS - 1.04 MB/s - 78% - 0.02h</span>
+        </div>
+        <div class="avatars">
+          <div class="avatar"></div>
+          <div class="avatar"></div>
         </div>
       </div>
-      <div class="crosshair"></div>
-      <div class="hud-top">
-        <div class="chip">FPS 59</div>
-        <div class="chip">Nexx Overlay</div>
-        <div class="chip">Ping 21 ms</div>
-      </div>
-      <div class="center-clear"></div>
 
-      <aside class="side-panel left">
-        <div class="section">
-          <div class="section-title">Otimizações</div>
-          <div class="touch-grid">
-            <div class="preset active">Reboost</div>
-            <div class="preset">RAM</div>
-            <div class="preset">Resfriar</div>
-          </div>
+      <aside class="wing left">
+        <i class="spine"></i>
+        <i class="mid-claw"></i>
+        <div class="section-title">Desempenho</div>
+        <div class="dial-card">
+          <div class="select"><span>Modo</span><b>Extremo</b></div>
+          <div class="dial"><strong>BOOST</strong><small>ON</small></div>
+          <small>Otimizado para FPS e resposta</small>
         </div>
 
-        <div class="section">
-          <div class="section-title">DPI Gamer</div>
-          <div class="touch-grid">
-            <div class="preset">600</div>
-            <div class="preset">720</div>
-            <div class="preset active">900</div>
-          </div>
-          <div class="preset">Reset DPI</div>
+        <div class="stat-card">
+          <div class="stat-top"><span>CPU</span><b>82%</b></div>
+          <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
         </div>
 
-        <div class="section">
-          <div class="row">
-            <div class="label">
-              <strong>Doze Isolation</strong>
-              <span>Mata processos</span>
-            </div>
-            <div class="toggle on"></div>
-          </div>
-          <div class="row">
-            <div class="label">
-              <strong>Sem Animações</strong>
-              <span>Zero atraso visual</span>
-            </div>
-            <div class="toggle"></div>
-          </div>
-          <div class="row">
-            <div class="label">
-              <strong>Brilho Máximo</strong>
-              <span>Força 100% no jogo</span>
-            </div>
-            <div class="toggle"></div>
-          </div>
+        <div class="stat-card">
+          <div class="stat-top"><span>RAM</span><b>5.1</b></div>
+          <div class="bars"><i></i><i></i><i></i><i></i></div>
         </div>
 
-        <div class="section">
-          <div class="section-title">Perfil de toque</div>
-          <div class="touch-grid">
-            <div class="preset active">Padrão</div>
-            <div class="preset">Rápido</div>
-            <div class="preset">Ultra</div>
-          </div>
-          <div class="row">
-            <div class="label">
-              <strong>Modo Precisão</strong>
-              <span>Para jogos de tiro</span>
-            </div>
-            <div class="toggle"></div>
-          </div>
-          <div class="row">
-            <div class="label">
-              <strong>Modo Velocidade</strong>
-              <span>Para giro rápido</span>
-            </div>
-            <div class="toggle"></div>
-          </div>
+        <div class="mini-panel">
+          <p>Contador</p>
+          <div class="gridline"></div>
         </div>
       </aside>
 
-      <aside class="side-panel right">
-        <div class="mini-graph">
-          <svg viewBox="0 0 260 56" preserveAspectRatio="none">
-            <path d="M0 33 L25 33 L45 31 L66 33 L88 28 L112 30 L136 27 L160 31 L183 26 L207 29 L234 25 L260 27" fill="none" stroke="#00c8ff" stroke-width="3" />
-          </svg>
+      <aside class="wing right">
+        <i class="spine"></i>
+        <i class="mid-claw"></i>
+        <div class="section-title">Ferramentas</div>
+        <div class="tool-grid">
+          <button class="tool"><span class="symbol">+</span><b>Resposta ao toque</b><span>Ultra</span></button>
+          <button class="tool"><span class="symbol">^</span><b>Sensibilidade</b><span>Maxima</span></button>
+          <button class="tool"><span class="symbol">~</span><b>Audio tatil</b><span>Ativado</span></button>
+          <button class="tool"><span class="symbol">=</span><b>Vibracao</b><span>Precisa</span></button>
         </div>
 
-        <div class="section">
-          <div class="section-title">Estatísticas</div>
-          <div class="stat-card">
-            <div>
-              <small>FPS</small>
-              <strong>Tempo real</strong>
-            </div>
-            <div class="stat-value">59</div>
-          </div>
-          <div class="stat-card">
-            <div>
-              <small>Ping</small>
-              <strong>Internet</strong>
-            </div>
-            <div class="stat-value">21 ms</div>
-          </div>
-          <div class="stat-card">
-            <div>
-              <small>RAM</small>
-              <strong>Uso do sistema</strong>
-            </div>
-            <div class="stat-value">42%</div>
-          </div>
-          <div class="stat-card">
-            <div>
-              <small>Bateria</small>
-              <strong>Carga atual</strong>
-            </div>
-            <div class="stat-value">87%</div>
-          </div>
-          <div class="stat-card">
-            <div>
-              <small>Temperatura</small>
-              <strong>Sensor térmico</strong>
-            </div>
-            <div class="stat-value">36°C</div>
-          </div>
-          <div class="stat-card">
-            <div>
-              <small>Livre</small>
-              <strong>Armazenamento</strong>
-            </div>
-            <div class="stat-value">52 GB</div>
-          </div>
+        <div class="section-title">Gravacao</div>
+        <div class="action-row">
+          <div class="record-dot"></div>
+          <div><b>Gravar 3 min</b><span>Video unico - 60 FPS</span></div>
+          <div>&gt;</div>
+        </div>
+
+        <div class="section-title">Rede</div>
+        <div class="action-row">
+          <div style="color: var(--cyan); font-size: 23px;">~</div>
+          <div><b>Prioridade de jogo</b><span>Baixa latencia - 22 ms</span></div>
+          <div>UP</div>
+        </div>
+
+        <div class="slider">
+          <span>BR</span>`r`n          <div class="track"><div></div></div>
         </div>
       </aside>
 
-      <div class="bubble" id="bubble" title="Arraste a logo">
-        <img src="assets/brand/NexxsensiLogo.png" alt="Nexxsensi" />
+      <div class="countdown">2</div>
+      <div class="center-hint">Deslize novamente</div>
+      <div class="bottom-hud">
+        <div class="chip">REC - MAGIC</div>
+        <div class="chip">12:07</div>
+        <div class="chip">78%</div>
+        <div class="chip">1.04 MB/s</div>
       </div>
-      <div class="hint">Centro transparente para o jogo. Arraste a logo para reposicionar.</div>
+
+      <button class="minimize" id="minimize">Minimizar HUD</button>
+      <div class="bubble" id="bubble"><img src="assets/splash-logo.png" alt="Nexxsensi"></div>
     </section>
   </main>
 
   <script>
+    const screen = document.getElementById('screen');
+    const minimize = document.getElementById('minimize');
     const bubble = document.getElementById('bubble');
+
+    minimize.addEventListener('click', () => screen.classList.add('hidden'));
+    bubble.addEventListener('click', () => screen.classList.toggle('hidden'));
+
+    let dragging = false;
     let startX = 0;
     let startY = 0;
-    let pointerX = 0;
-    let pointerY = 0;
+    let originX = 0;
+    let originY = 0;
 
-    bubble.addEventListener('pointerdown', (event) => {
-      bubble.setPointerCapture(event.pointerId);
+    bubble.addEventListener('pointerdown', event => {
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
       const rect = bubble.getBoundingClientRect();
-      const parent = bubble.parentElement.getBoundingClientRect();
-      startX = rect.left - parent.left;
-      startY = rect.top - parent.top;
-      pointerX = event.clientX;
-      pointerY = event.clientY;
+      const host = screen.getBoundingClientRect();
+      originX = rect.left - host.left;
+      originY = rect.top - host.top;
+      bubble.setPointerCapture(event.pointerId);
     });
 
-    bubble.addEventListener('pointermove', (event) => {
-      if (!bubble.hasPointerCapture(event.pointerId)) return;
-      const parent = bubble.parentElement.getBoundingClientRect();
-      const nextX = Math.max(8, Math.min(parent.width - 66, startX + event.clientX - pointerX));
-      const nextY = Math.max(8, Math.min(parent.height - 66, startY + event.clientY - pointerY));
+    bubble.addEventListener('pointermove', event => {
+      if (!dragging) return;
+      const host = screen.getBoundingClientRect();
+      const nextX = Math.max(8, Math.min(host.width - 62, originX + event.clientX - startX));
+      const nextY = Math.max(8, Math.min(host.height - 62, originY + event.clientY - startY));
       bubble.style.left = `${nextX}px`;
+      bubble.style.bottom = 'auto';
       bubble.style.top = `${nextY}px`;
+      bubble.style.transform = 'none';
     });
 
-    bubble.addEventListener('pointerup', (event) => {
-      bubble.releasePointerCapture(event.pointerId);
+    bubble.addEventListener('pointerup', () => {
+      dragging = false;
     });
   </script>
 </body>

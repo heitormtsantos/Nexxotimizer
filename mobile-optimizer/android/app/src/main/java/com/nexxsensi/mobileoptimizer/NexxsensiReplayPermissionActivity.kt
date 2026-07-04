@@ -9,9 +9,11 @@ import android.os.Bundle
 
 class NexxsensiReplayPermissionActivity : Activity() {
   private lateinit var projectionManager: MediaProjectionManager
+  private var returnPackage: String = ""
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    returnPackage = intent.getStringExtra(EXTRA_RETURN_PACKAGE).orEmpty()
     projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
     startActivityForResult(projectionManager.createScreenCaptureIntent(), REQUEST_CAPTURE)
   }
@@ -29,11 +31,27 @@ class NexxsensiReplayPermissionActivity : Activity() {
       } else {
         startService(serviceIntent)
       }
+      launchReturnPackage()
     }
     finish()
   }
 
+  private fun launchReturnPackage() {
+    if (returnPackage.isBlank()) {
+      return
+    }
+
+    val launchIntent = packageManager.getLaunchIntentForPackage(returnPackage) ?: return
+    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    launchIntent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+    try {
+      startActivity(launchIntent)
+    } catch (_: Throwable) {
+    }
+  }
+
   companion object {
+    const val EXTRA_RETURN_PACKAGE = "returnPackage"
     private const val REQUEST_CAPTURE = 3110
   }
 }

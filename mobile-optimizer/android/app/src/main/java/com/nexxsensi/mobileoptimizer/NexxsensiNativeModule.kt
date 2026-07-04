@@ -1,5 +1,6 @@
 ﻿package com.nexxsensi.mobileoptimizer
 
+import android.Manifest
 import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
@@ -25,6 +26,8 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.WritableNativeArray
 import com.facebook.react.bridge.WritableNativeMap
+import com.facebook.react.modules.core.PermissionAwareActivity
+import com.facebook.react.modules.core.PermissionListener
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.net.InetSocketAddress
@@ -38,9 +41,21 @@ class NexxsensiNativeModule(
 ) : ReactContextBaseJavaModule(reactContext) {
 
   private val shizukuPermissionRequestCode = 777
+  private val notificationPermissionRequestCode = 778
   private var shellService: INexxsensiShellService? = null
   private var shellBinding = false
   private var pendingShizukuPermissionPromise: Promise? = null
+  private var pendingNotificationPermissionPromise: Promise? = null
+  private val notificationPermissionListener = PermissionListener { requestCode, _, grantResults ->
+    if (requestCode != notificationPermissionRequestCode) {
+      return@PermissionListener false
+    }
+
+    val promise = pendingNotificationPermissionPromise ?: return@PermissionListener true
+    pendingNotificationPermissionPromise = null
+    promise.resolve(grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
+    true
+  }
   private val shizukuPermissionListener =
     Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
       if (requestCode != shizukuPermissionRequestCode) {
@@ -72,6 +87,11 @@ class NexxsensiNativeModule(
       "Solicitação de permissão cancelada."
     )
     pendingShizukuPermissionPromise = null
+    pendingNotificationPermissionPromise?.reject(
+      "notification_permission_cancelled",
+      "Solicitação de notificação cancelada."
+    )
+    pendingNotificationPermissionPromise = null
     super.invalidate()
   }
 
@@ -283,6 +303,46 @@ class NexxsensiNativeModule(
         pendingShizukuPermissionPromise = null
       }
       promise.reject("shizuku_permission_failed", error.message, error)
+    }
+  }
+
+  @ReactMethod
+  fun requestNotificationPermission(promise: Promise) {
+    try {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        promise.resolve(true)
+        return
+      }
+
+      if (
+        reactContext.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+        PackageManager.PERMISSION_GRANTED
+      ) {
+        promise.resolve(true)
+        return
+      }
+
+      val activity = reactContext.currentActivity
+      if (activity !is PermissionAwareActivity) {
+        promise.resolve(false)
+        return
+      }
+
+      pendingNotificationPermissionPromise?.reject(
+        "notification_permission_replaced",
+        "Uma nova solicitação de notificação foi iniciada."
+      )
+      pendingNotificationPermissionPromise = promise
+      activity.requestPermissions(
+        arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+        notificationPermissionRequestCode,
+        notificationPermissionListener
+      )
+    } catch (error: Throwable) {
+      if (pendingNotificationPermissionPromise === promise) {
+        pendingNotificationPermissionPromise = null
+      }
+      promise.reject("notification_permission_failed", error.message, error)
     }
   }
 
@@ -615,13 +675,13 @@ class NexxsensiNativeModule(
         ActionCommand("Reduzindo animacoes", "settings put global window_animation_scale 0.5; settings put global transition_animation_scale 0.5; settings put global animator_duration_scale 0.5")
       )
       "dpi-600" -> listOf(
-        ActionCommand("Aplicando DPI 600", "wm density 600")
+        ActionCommand("Aplicando DPI 600", densityForSmallestWidthCommand(600))
       )
       "dpi-720" -> listOf(
-        ActionCommand("Aplicando DPI 720", "wm density 720")
+        ActionCommand("Aplicando DPI 720", densityForSmallestWidthCommand(720))
       )
       "dpi-900" -> listOf(
-        ActionCommand("Aplicando DPI 900", "wm density 900")
+        ActionCommand("Aplicando DPI 900", densityForSmallestWidthCommand(900))
       )
       "dpi-reset" -> listOf(
         ActionCommand("Restaurando DPI padrão", "wm density reset")
@@ -661,6 +721,16 @@ class NexxsensiNativeModule(
       ActionCommand("Limitando processos em cache", "settings put global activity_manager_constants max_cached_processes=20 || true"),
       ActionCommand("Desativando performance fixa", "cmd power set-fixed-performance-mode-enabled false || true")
     )
+  }
+
+  private fun densityForSmallestWidthCommand(targetDp: Int): String {
+    return "sh -c 'size=\$(wm size | sed -n \"s/.*Physical size: //p\" | head -n 1); " +
+      "w=\${size%x*}; h=\${size#*x}; short=\$w; " +
+      "if [ \"\$h\" -lt \"\$w\" ]; then short=\$h; fi; " +
+      "density=\$((short * 160 / $targetDp)); " +
+      "if [ \"\$density\" -lt 120 ]; then density=120; fi; " +
+      "if [ \"\$density\" -gt 640 ]; then density=640; fi; " +
+      "wm density \$density'"
   }
 
   private fun buildBalancedProfileCommands(packageName: String?): List<ActionCommand> {

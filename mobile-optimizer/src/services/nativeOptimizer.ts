@@ -69,6 +69,7 @@ type NexxsensiNativeModule = {
   runOptimizerAction(actionId: string, packageName?: string): Promise<OptimizerActionResult>;
   openShizuku(): Promise<boolean>;
   requestShizukuPermission(): Promise<boolean>;
+  requestNotificationPermission(): Promise<boolean>;
   canDrawOverlays(): Promise<boolean>;
   openOverlaySettings(): Promise<boolean>;
   startGameOverlay(packageName?: string): Promise<boolean>;
@@ -226,6 +227,18 @@ export async function requestShizukuPermission(): Promise<boolean> {
   }
 
   return nativeModule.requestShizukuPermission();
+}
+
+export async function requestNotificationPermission(): Promise<boolean> {
+  if (isWebDemo) {
+    return true;
+  }
+
+  if (Platform.OS !== 'android' || !nativeModule) {
+    return true;
+  }
+
+  return nativeModule.requestNotificationPermission();
 }
 
 export async function canDrawOverlays(): Promise<boolean> {
