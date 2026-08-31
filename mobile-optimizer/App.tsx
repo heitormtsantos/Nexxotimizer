@@ -35,6 +35,7 @@ import {
 import {
   DeviceMetrics,
   canDrawOverlays,
+  copyTextToClipboard,
   getDeviceMetrics,
   getInstalledGames,
   getLaunchableApps,
@@ -57,7 +58,7 @@ import {
 import { colors } from './src/theme/colors';
 
 type IconName = keyof typeof Ionicons.glyphMap;
-type TabId = 'home' | 'performance' | 'games' | 'tools' | 'profile';
+type TabId = 'home' | 'performance' | 'games' | 'ai' | 'influencers' | 'tools' | 'profile';
 type Tone = 'purple' | 'green' | 'red' | 'blue';
 type WebSetupPreview = 'android' | 'shizuku' | null;
 
@@ -80,12 +81,213 @@ type OptimizationProgress = {
   failed: boolean;
 };
 
-const tabs: Array<{ id: TabId; icon: IconName; label: string }> = [
+type InfluencerProfile = {
+  id: string;
+  name: string;
+  photo?: number;
+  hudImage?: number;
+  hudCode: string;
+  game: string;
+  specialty: string;
+  tier: 'free' | 'pro';
+  accent: string;
+  sensitivity: Array<{ label: string; value: string }>;
+  hud: Array<{ label: string; value: string }>;
+  tips: string[];
+  settings: Array<{ label: string; value: string }>;
+};
+
+type AiPlayStyle = 'rush' | 'support' | 'balanced';
+type AiWeapon = 'smg' | 'shotgun' | 'rifle' | 'marksman';
+type AiHud = '2' | '3' | '4';
+
+type AiOption<T extends string> = {
+  id: T;
+  title: string;
+  subtitle: string;
+  icon: IconName;
+  image?: number;
+};
+
+type AiSensitivityInput = {
+  device: string;
+  playStyle: AiPlayStyle;
+  weapon: AiWeapon;
+  hud: AiHud;
+  dpi: string;
+};
+
+type AiSensitivityResult = {
+  title: string;
+  confidence: string;
+  recommendedDpi: number;
+  sensitivity: Array<{ label: string; value: number }>;
+  tips: string[];
+  weaponProfile: Array<{ label: string; value: string }>;
+};
+
+const tabs: Array<{ id: TabId; icon: IconName; label: string; image?: number }> = [
   { id: 'home', icon: 'home', label: 'Início' },
+  { id: 'ai', icon: 'hardware-chip', label: 'NexxIa', image: require('./assets/ai-icons/nexxia-robot.png') },
   { id: 'performance', icon: 'speedometer', label: 'Desempenho' },
   { id: 'games', icon: 'game-controller', label: 'Jogos' },
+  { id: 'influencers', icon: 'people', label: 'Influencers' },
   { id: 'tools', icon: 'construct', label: 'Ferramentas' },
   { id: 'profile', icon: 'person', label: 'Perfil' },
+];
+
+const aiPlayStyles: Array<AiOption<AiPlayStyle>> = [
+  { id: 'rush', title: 'Rush', subtitle: 'Entrada rápida e capa', icon: 'flash', image: require('./assets/ai-icons/style-rush.png') },
+  { id: 'support', title: 'Suporte', subtitle: 'AWM e cobertura', icon: 'shield-checkmark', image: require('./assets/ai-icons/style-support.png') },
+  { id: 'balanced', title: 'Equilibrado', subtitle: 'Uso geral', icon: 'speedometer', image: require('./assets/ai-icons/style-balanced.png') },
+];
+
+const aiWeapons: Array<AiOption<AiWeapon>> = [
+  { id: 'smg', title: 'SMG', subtitle: 'MP40, UMP, Thompson', icon: 'radio-button-on', image: require('./assets/ai-icons/weapon-smg.png') },
+  { id: 'shotgun', title: 'Shotgun', subtitle: 'M1887, M1014', icon: 'aperture', image: require('./assets/ai-icons/weapon-shotgun.png') },
+  { id: 'rifle', title: 'Rifle', subtitle: 'SCAR, AK, XM8', icon: 'analytics', image: require('./assets/ai-icons/weapon-rifle.png') },
+  { id: 'marksman', title: 'Marksman', subtitle: 'SVD, SKS, Woodpecker', icon: 'contract', image: require('./assets/ai-icons/weapon-marksman.png') },
+];
+
+const aiHudOptions: Array<AiOption<AiHud>> = [
+  { id: '2', title: '2 dedos', subtitle: 'HUD simples', icon: 'hand-left', image: require('./assets/ai-icons/hud-2.png') },
+  { id: '3', title: '3 dedos', subtitle: 'Rush estável', icon: 'hand-left-outline', image: require('./assets/ai-icons/hud-3.png') },
+  { id: '4', title: '4 dedos', subtitle: 'Controle avançado', icon: 'resize', image: require('./assets/ai-icons/hud-4.png') },
+];
+
+const influencers: InfluencerProfile[] = [
+  {
+    id: 'ruan-ff',
+    name: 'Ruan FF',
+    photo: require('./assets/influencers/ruan-ff.png'),
+    hudImage: require('./assets/influencers/hud-freefire-3.png'),
+    hudCode: 'FF-RUAN-3D-48-600',
+    game: 'Free Fire',
+    specialty: 'Sensi alta',
+    tier: 'free',
+    accent: '#9A35FF',
+    sensitivity: [
+      { label: 'Geral', value: '96' },
+      { label: 'Red Dot', value: '92' },
+      { label: 'Mira 2x', value: '88' },
+      { label: 'Mira 4x', value: '82' },
+      { label: 'AWM', value: '54' },
+      { label: 'Olhadinha', value: '78' },
+    ],
+    hud: [
+      { label: 'Dedos', value: '3 dedos' },
+      { label: 'Botão de tiro', value: '48%' },
+      { label: 'DPI recomendado', value: '600' },
+    ],
+    tips: [
+      'Priorize arrastar curto no começo da mira.',
+      'Use DPI 600 apenas antes de abrir o jogo.',
+      'Mantenha gráficos leves para reduzir queda de FPS.',
+    ],
+    settings: [
+      { label: 'Gráficos', value: 'Suave' },
+      { label: 'FPS', value: 'Alto' },
+      { label: 'Sombra', value: 'Desligada' },
+    ],
+  },
+  {
+    id: 'prozin',
+    name: 'Prozin',
+    photo: require('./assets/influencers/prozin.png'),
+    hudImage: require('./assets/influencers/hud-freefire-4.png'),
+    hudCode: 'FF-PROZIN-4D-52-720',
+    game: 'Free Fire',
+    specialty: 'HUD competitivo',
+    tier: 'pro',
+    accent: '#5AA7FF',
+    sensitivity: [
+      { label: 'Geral', value: '100' },
+      { label: 'Red Dot', value: '96' },
+      { label: 'Mira 2x', value: '91' },
+      { label: 'Mira 4x', value: '86' },
+      { label: 'AWM', value: '60' },
+      { label: 'Olhadinha', value: '82' },
+    ],
+    hud: [
+      { label: 'Dedos', value: '4 dedos' },
+      { label: 'Botão de tiro', value: '52%' },
+      { label: 'DPI recomendado', value: '720' },
+    ],
+    tips: [
+      'Use botão de tiro maior para puxada longa.',
+      'Treine capa em movimento lateral.',
+      'Evite mudar DPI durante partida.',
+    ],
+    settings: [
+      { label: 'Gráficos', value: 'Suave' },
+      { label: 'FPS', value: 'Máximo' },
+      { label: 'Alta resolução', value: 'Desligada' },
+    ],
+  },
+  {
+    id: 'luketa',
+    name: 'Luketa',
+    photo: require('./assets/influencers/luketa.png'),
+    hudImage: require('./assets/influencers/hud-freefire-4.png'),
+    hudCode: 'COD-LUKETA-4D-TATICO',
+    game: 'COD Mobile',
+    specialty: 'Resposta rápida',
+    tier: 'pro',
+    accent: '#30F28C',
+    sensitivity: [
+      { label: 'Câmera', value: '115' },
+      { label: 'ADS', value: '88' },
+      { label: 'Tático', value: '92' },
+      { label: 'Sniper', value: '62' },
+    ],
+    hud: [
+      { label: 'Dedos', value: '4 dedos' },
+      { label: 'Giroscópio', value: 'Baixo' },
+      { label: 'DPI recomendado', value: 'Padrão' },
+    ],
+    tips: [
+      'Use mira baixa para recoil longo.',
+      'Priorize áudio tático no overlay.',
+      'Reboost antes de abrir o jogo.',
+    ],
+    settings: [
+      { label: 'Quadros', value: 'Máximo' },
+      { label: 'Profundidade', value: 'Desligada' },
+      { label: 'Ragdoll', value: 'Desligado' },
+    ],
+  },
+  {
+    id: 'sensei',
+    name: 'Sensei',
+    photo: require('./assets/influencers/sensei.png'),
+    hudImage: require('./assets/influencers/hud-mobile-2.png'),
+    hudCode: 'PUBG-SENSEI-4D-MEDIO',
+    game: 'PUBG Mobile',
+    specialty: 'Controle estável',
+    tier: 'pro',
+    accent: '#F5B84B',
+    sensitivity: [
+      { label: 'Câmera', value: '105' },
+      { label: 'ADS', value: '78' },
+      { label: 'Mira 3x', value: '36' },
+      { label: 'Mira 6x', value: '18' },
+    ],
+    hud: [
+      { label: 'Dedos', value: '4 dedos' },
+      { label: 'Giroscópio', value: 'Médio' },
+      { label: 'DPI recomendado', value: 'Padrão' },
+    ],
+    tips: [
+      'Controle spray com puxada vertical curta.',
+      'Use sensibilidade menor em mira longa.',
+      'Mantenha prioridade de rede ativada.',
+    ],
+    settings: [
+      { label: 'Gráficos', value: 'Suave' },
+      { label: 'Taxa de quadros', value: 'Extrema' },
+      { label: 'Anti-aliasing', value: 'Desligado' },
+    ],
+  },
 ];
 
 const quickActions: QuickAction[] = [
@@ -300,6 +502,7 @@ export default function App() {
   const [webSetupPreview, setWebSetupPreview] = useState<WebSetupPreview>(null);
   const [selectedGame, setSelectedGame] = useState<InstalledGame | null>(null);
   const [selectedGamePackage, setSelectedGamePackage] = useState<string | null>(null);
+  const [selectedInfluencer, setSelectedInfluencer] = useState<InfluencerProfile | null>(null);
   const [favoriteGamePackages, setFavoriteGamePackages] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<DeviceMetrics | null>(null);
   const [performance, setPerformance] = useState<PerformanceSnapshot | null>(null);
@@ -584,6 +787,11 @@ export default function App() {
       return;
     }
 
+    if (isSafeModeGame(selectedGame) && !isSafeModeAllowedAction(actionId)) {
+      setNotice('Modo Seguro Free Fire ativo: use apenas Boost e abrir. Ajustes avançados ficam bloqueados para reduzir risco.');
+      return;
+    }
+
     setRunningAction(actionId);
     setLastAction(null);
     startOptimizationProgress(actionId);
@@ -744,6 +952,10 @@ export default function App() {
     if (!selectedGame) {
       setNotice('Nenhum jogo detectado. Toque em Buscar app para adicionar manualmente.');
       return;
+    }
+
+    if (isSafeModeGame(selectedGame)) {
+      setNotice('Modo Seguro Free Fire: limpeza geral antes de abrir, sem comandos no jogo aberto.');
     }
 
     await runAction('game-boost');
@@ -965,10 +1177,22 @@ export default function App() {
                 goHome={() => setActiveTab('home')}
               />
             )}
+            {activeTab === 'ai' && (
+              <AiSensitivityScreen goHome={() => setActiveTab('home')} />
+            )}
             {activeTab === 'tools' && (
               <ToolsScreen
                 ready={ready}
                 runningAction={runningAction}
+                runAction={runAction}
+                goHome={() => setActiveTab('home')}
+              />
+            )}
+            {activeTab === 'influencers' && (
+              <InfluencersScreen
+                activation={activation}
+                selectedInfluencer={selectedInfluencer}
+                setSelectedInfluencer={setSelectedInfluencer}
                 runAction={runAction}
                 goHome={() => setActiveTab('home')}
               />
@@ -1068,7 +1292,7 @@ function HomeScreen({
 }) {
   return (
     <Screen>
-      <AppHeader refreshAll={refreshAll} />
+      <AppHeader />
       {/* <HomeBanner source={banners.home} /> */}
 
       <View style={styles.hero}>
@@ -1278,16 +1502,18 @@ function SplashScreen() {
         <View style={styles.splashTag}>
           <Text style={styles.splashTagText}>GAME BOOSTER ANDROID</Text>
         </View>
-        <Text style={styles.splashTitle}>Nexxsensi</Text>
         <Text style={styles.splashText}>
-          Preparando modo avançado, dados reais e painel gamer.
+          Configurando desempenho, dados e overlay.
         </Text>
       </View>
 
       <View style={styles.splashBottom}>
         <View style={styles.splashLoaderCard}>
           <View style={styles.splashLoaderHead}>
-            <Text style={styles.splashLoaderLabel}>Inicializando otimizações</Text>
+            <View style={styles.splashLoaderCopy}>
+              <Text style={styles.splashLoaderLabel}>Otimizando sua experiência</Text>
+              <Text style={styles.splashLoaderSub}>Configurando dados e perfil gamer</Text>
+            </View>
             <Text style={styles.splashLoaderValue}>72%</Text>
           </View>
           <View style={styles.splashProgressTrack}>
@@ -1295,14 +1521,17 @@ function SplashScreen() {
           </View>
         </View>
         <View style={styles.splashChecks}>
-          <View style={styles.splashCheck}>
-            <Text style={styles.splashCheckText}>Perfil{'\n'}gamer</Text>
+          <View style={styles.splashStepDone}>
+            <Text style={styles.splashStepIcon}>✓</Text>
+            <Text style={styles.splashStepText}>Perfil</Text>
           </View>
-          <View style={styles.splashCheck}>
-            <Text style={styles.splashCheckText}>Dados{'\n'}reais</Text>
+          <View style={styles.splashStepDone}>
+            <Text style={styles.splashStepIcon}>✓</Text>
+            <Text style={styles.splashStepText}>Dados</Text>
           </View>
-          <View style={styles.splashCheck}>
-            <Text style={styles.splashCheckText}>Overlay{'\n'}pronto</Text>
+          <View style={styles.splashStepActive}>
+            <Text style={styles.splashStepDot}>●</Text>
+            <Text style={styles.splashStepTextActive}>Overlay</Text>
           </View>
         </View>
       </View>
@@ -1568,17 +1797,14 @@ function ActivationScreen({
   );
 }
 
-function AppHeader({ refreshAll }: { refreshAll: () => void }) {
+function AppHeader() {
   return (
     <View style={styles.topHeader}>
       <View style={styles.headerSideSpacer} />
       <View style={styles.brandBlock}>
         <Image source={banners.logo} resizeMode="contain" style={styles.brandLogo} />
       </View>
-      <Pressable style={styles.headerIcon} onPress={refreshAll}>
-        <View style={styles.redDot} />
-        <AppIcon name="notifications" size={21} color={colors.text} />
-      </Pressable>
+      <View style={styles.headerSideSpacer} />
     </View>
   );
 }
@@ -2201,6 +2427,7 @@ function GamesScreen({
     const rightFavorite = favoriteGamePackages.includes(right.packageName) ? 0 : 1;
     return leftFavorite - rightFavorite || left.label.localeCompare(right.label);
   });
+  const safeMode = isSafeModeGame(selectedGame);
 
   return (
     <Screen>
@@ -2274,22 +2501,32 @@ function GamesScreen({
                 <Text numberOfLines={1} adjustsFontSizeToFit style={styles.featuredTitle}>
                   {selectedGame.label}
                 </Text>
-                <Text style={styles.featuredProfile}>Perfil ativo: Equilibrado</Text>
+                <Text style={styles.featuredProfile}>
+                  {safeMode ? 'Modo seguro ativo' : 'Perfil ativo: Equilibrado'}
+                </Text>
               </View>
             </View>
+            {safeMode && (
+              <View style={styles.safeModeNotice}>
+                <AppIcon name="shield-checkmark" size={15} color={colors.green} />
+                <Text style={styles.safeModeNoticeText}>
+                  Sem comandos no jogo aberto. Apenas limpeza geral antes de iniciar.
+                </Text>
+              </View>
+            )}
             <View style={styles.featuredActions}>
               <Pressable style={[styles.primaryButton, !ready && styles.disabled]} onPress={boostAndOpen}>
                 <AppIcon name="rocket" size={15} color={colors.text} />
                 <Text style={[styles.primaryButtonText, styles.primaryButtonTextBright]}>
-                  {runningAction === 'game-boost' ? 'OTIMIZANDO...' : 'Boost e abrir'}
+                  {runningAction === 'game-boost' ? 'OTIMIZANDO...' : safeMode ? 'Abrir seguro' : 'Boost e abrir'}
                 </Text>
               </Pressable>
               <Pressable
-                style={[styles.secondaryButtonWide, !ready && styles.disabled]}
+                style={[styles.secondaryButtonWide, (!ready || safeMode) && styles.disabled]}
                 onPress={() => runAction('profile-performance')}
               >
-                <AppIcon name={ready ? 'flash' : 'lock-closed'} size={15} color={colors.text} />
-                <Text style={styles.secondaryButtonText}>Perfil FPS</Text>
+                <AppIcon name={ready && !safeMode ? 'flash' : 'lock-closed'} size={15} color={colors.text} />
+                <Text style={styles.secondaryButtonText}>{safeMode ? 'Bloqueado' : 'Perfil FPS'}</Text>
               </Pressable>
             </View>
           </View>
@@ -2345,6 +2582,585 @@ function GamesScreen({
         />
       )}
     </Screen>
+  );
+}
+
+function InfluencersScreen({
+  activation,
+  selectedInfluencer,
+  setSelectedInfluencer,
+  runAction,
+  goHome,
+}: {
+  activation: ActivationState | null;
+  selectedInfluencer: InfluencerProfile | null;
+  setSelectedInfluencer: (influencer: InfluencerProfile | null) => void;
+  runAction: (actionId: string) => void;
+  goHome: () => void;
+}) {
+  const hasSubscription = isActivationUsable(activation);
+
+  if (selectedInfluencer) {
+    const locked = selectedInfluencer.tier === 'pro' && !hasSubscription;
+    const freeFireSafe = selectedInfluencer.game.toLowerCase().includes('free fire');
+
+    return (
+      <Screen>
+        <PageHeader
+          title="Influencer"
+          icon="chevron-back"
+          onBack={() => setSelectedInfluencer(null)}
+          actionIcon="home"
+          onAction={goHome}
+        />
+        <View style={styles.influencerHero}>
+          <View style={[styles.influencerHeroPhoto, { borderColor: selectedInfluencer.accent }]}>
+            {selectedInfluencer.photo ? (
+              <Image source={selectedInfluencer.photo} resizeMode="cover" style={styles.influencerHeroImage} />
+            ) : (
+              <Text style={styles.influencerInitials}>{initials(selectedInfluencer.name)}</Text>
+            )}
+          </View>
+          <View style={styles.influencerHeroCopy}>
+            <Text style={styles.influencerKicker}>{selectedInfluencer.game}</Text>
+            <Text style={styles.influencerHeroName}>{selectedInfluencer.name}</Text>
+            <Text style={styles.influencerHeroSub}>{selectedInfluencer.specialty}</Text>
+          </View>
+          <Text style={[styles.influencerTier, selectedInfluencer.tier === 'pro' && styles.influencerTierPro]}>
+            {selectedInfluencer.tier === 'pro' ? 'PRO' : 'FREE'}
+          </Text>
+        </View>
+
+        {locked ? (
+          <>
+            <View style={styles.lockedInfluencerPanel}>
+              <AppIcon name="lock-closed" size={28} color={colors.amber} />
+              <Text style={styles.lockedInfluencerTitle}>Conteúdo bloqueado</Text>
+              <Text style={styles.lockedInfluencerText}>
+                Este perfil faz parte da assinatura. Ative uma key válida para ver sensibilidade,
+                HUD e configurações completas.
+              </Text>
+            </View>
+            <InfluencerSensitivityPreview influencer={selectedInfluencer} locked />
+            <InfluencerHudPreview influencer={selectedInfluencer} />
+            <InfluencerDpiBlock influencer={selectedInfluencer} />
+            <InfluencerTips tips={selectedInfluencer.tips} />
+            <InfluencerSection title="Ajustes" items={selectedInfluencer.settings} />
+          </>
+        ) : (
+          <>
+            {freeFireSafe && (
+              <View style={styles.safeModeNotice}>
+                <AppIcon name="shield-checkmark" size={15} color={colors.green} />
+                <Text style={styles.safeModeNoticeText}>
+                  Free Fire usa Modo Seguro: veja e aplique manualmente. O app não executa comandos no jogo.
+                </Text>
+              </View>
+            )}
+
+            <InfluencerSensitivityPreview influencer={selectedInfluencer} />
+            <InfluencerHudPreview influencer={selectedInfluencer} />
+            <InfluencerDpiBlock influencer={selectedInfluencer} />
+            <InfluencerTips tips={selectedInfluencer.tips} />
+            <InfluencerSection title="Ajustes" items={selectedInfluencer.settings} />
+
+            <Pressable
+              style={[styles.primaryButtonFull, freeFireSafe && styles.disabled]}
+              disabled={freeFireSafe}
+              onPress={() => runAction('profile-performance')}
+            >
+              <AppIcon name={freeFireSafe ? 'shield-checkmark' : 'flash'} size={16} color={colors.text} />
+              <Text style={[styles.primaryButtonText, styles.primaryButtonTextBright]}>
+                {freeFireSafe ? 'Modo seguro manual' : 'Aplicar configurações'}
+              </Text>
+            </Pressable>
+          </>
+        )}
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen>
+      <PageHeader title="Influencers" icon="chevron-back" onBack={goHome} />
+      <View style={styles.influencerIntro}>
+        <Text style={styles.influencerIntroTitle}>Sensibilidade de criadores</Text>
+        <Text style={styles.influencerIntroText}>
+          Veja HUD, DPI, sensibilidade e dicas usadas por streamers. Perfis PRO exigem assinatura ativa.
+        </Text>
+      </View>
+      <View style={styles.influencerGrid}>
+        {influencers.map((influencer) => {
+          const locked = influencer.tier === 'pro' && !hasSubscription;
+          return (
+            <Pressable
+              key={influencer.id}
+              style={styles.influencerCard}
+              onPress={() => setSelectedInfluencer(influencer)}
+            >
+              <View style={[styles.influencerPhoto, { borderColor: influencer.accent }]}>
+                {influencer.photo ? (
+                  <Image source={influencer.photo} resizeMode="cover" style={styles.influencerPhotoImage} />
+                ) : (
+                  <Text style={styles.influencerPhotoText}>{initials(influencer.name)}</Text>
+                )}
+                {locked && (
+                  <View style={styles.influencerLock}>
+                    <AppIcon name="lock-closed" size={14} color={colors.text} />
+                  </View>
+                )}
+              </View>
+              <View style={styles.influencerCardBody}>
+                <View style={styles.influencerCardTop}>
+                  <Text numberOfLines={1} style={styles.influencerName}>{influencer.name}</Text>
+                </View>
+                <Text numberOfLines={1} style={styles.influencerGame}>{influencer.game}</Text>
+                <Text numberOfLines={1} style={styles.influencerSpecialty}>{influencer.specialty}</Text>
+              </View>
+              <Text style={[styles.influencerTierSmall, influencer.tier === 'pro' && styles.influencerTierPro]}>
+                {influencer.tier === 'pro' ? 'PRO' : 'FREE'}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </Screen>
+  );
+}
+
+function AiSensitivityScreen({ goHome }: { goHome: () => void }) {
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  const resultAnim = useRef(new Animated.Value(0)).current;
+  const [input, setInput] = useState<AiSensitivityInput>({
+    device: '',
+    playStyle: 'rush',
+    weapon: 'smg',
+    hud: '3',
+    dpi: '',
+  });
+  const [result, setResult] = useState<AiSensitivityResult | null>(null);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1100,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 1100,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim]);
+
+  useEffect(() => {
+    if (!result) {
+      resultAnim.setValue(0);
+      return;
+    }
+
+    Animated.timing(resultAnim, {
+      toValue: 1,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [result, resultAnim]);
+
+  const updateInput = <K extends keyof AiSensitivityInput>(
+    key: K,
+    value: AiSensitivityInput[K],
+  ) => {
+    setInput((current) => ({ ...current, [key]: value }));
+  };
+
+  const generate = () => {
+    setResult(generateAiSensitivity(input));
+  };
+  const pulseScale = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.08],
+  });
+  const pulseOpacity = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.28, 0.62],
+  });
+  const resultTranslate = resultAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [16, 0],
+  });
+
+  return (
+    <Screen>
+      <PageHeader title="NexxIa" icon="chevron-back" onBack={goHome} />
+
+      <View style={styles.aiHero}>
+        <Animated.View
+          style={[
+            styles.aiHeroPulse,
+            {
+              opacity: pulseOpacity,
+              transform: [{ scale: pulseScale }],
+            },
+          ]}
+        />
+        <View style={styles.aiHeroIcon}>
+          <Image
+            source={require('./assets/ai-icons/nexxia-robot.png')}
+            resizeMode="contain"
+            style={styles.aiHeroRobot}
+          />
+        </View>
+        <View style={styles.aiHeroCopy}>
+          <Text style={styles.aiKicker}>GERADOR NEXXIA</Text>
+          <Text style={styles.aiHeroTitle}>Sensi inteligente para Free Fire</Text>
+          <Text style={styles.aiHeroText}>
+            Informe seu aparelho e estilo de jogo para gerar uma sensi manual, sem mexer na memória do jogo.
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.aiFormCard}>
+        <Text style={styles.profileSectionTitle}>Dispositivo</Text>
+        <TextInput
+          value={input.device}
+          onChangeText={(value) => updateInput('device', value)}
+          placeholder="Ex: S20 FE, Poco X5, iPhone 13"
+          placeholderTextColor={colors.dim}
+          style={styles.aiInput}
+        />
+
+        <Text style={styles.profileSectionTitle}>Estilo de jogo</Text>
+        <AiOptionGrid
+          options={aiPlayStyles}
+          selected={input.playStyle}
+          onSelect={(value) => updateInput('playStyle', value)}
+        />
+
+        <Text style={styles.profileSectionTitle}>Arma principal</Text>
+        <AiOptionGrid
+          options={aiWeapons}
+          selected={input.weapon}
+          onSelect={(value) => updateInput('weapon', value)}
+        />
+
+        <Text style={styles.profileSectionTitle}>HUD</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.aiHudScroller}
+        >
+          {aiHudOptions.map((option) => {
+            const isSelected = input.hud === option.id;
+            return (
+              <Pressable
+                key={option.id}
+                style={[styles.aiHudCard, isSelected && styles.aiOptionCardSelected]}
+                onPress={() => updateInput('hud', option.id)}
+              >
+                {option.image && (
+                  <Image source={option.image} resizeMode="contain" style={styles.aiHudImage} />
+                )}
+                <Text style={styles.aiOptionTitle}>{option.title}</Text>
+                <Text numberOfLines={1} style={styles.aiOptionSubtitle}>{option.subtitle}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        <Text style={styles.profileSectionTitle}>DPI atual</Text>
+        <TextInput
+          value={input.dpi}
+          onChangeText={(value) => updateInput('dpi', value.replace(/[^0-9]/g, '').slice(0, 4))}
+          keyboardType="number-pad"
+          placeholder="Opcional"
+          placeholderTextColor={colors.dim}
+          style={styles.aiInput}
+        />
+
+        <Pressable style={styles.primaryButtonFull} onPress={generate}>
+          <AppIcon name="hardware-chip" size={16} color={colors.text} />
+          <Text style={[styles.primaryButtonText, styles.primaryButtonTextBright]}>
+            Gerar NexxIa
+          </Text>
+        </Pressable>
+      </View>
+
+      {result ? (
+        <Animated.View
+          style={[
+            styles.aiResultStack,
+            {
+              opacity: resultAnim,
+              transform: [{ translateY: resultTranslate }],
+            },
+          ]}
+        >
+          <View style={styles.aiResultHeader}>
+            <View>
+              <Text style={styles.aiKicker}>RESULTADO IA</Text>
+              <Text style={styles.aiResultTitle}>{result.title}</Text>
+            </View>
+            <View style={styles.aiConfidenceBadge}>
+              <Text style={styles.aiConfidenceText}>{result.confidence}</Text>
+            </View>
+          </View>
+
+          <AiSensitivityBars items={result.sensitivity} />
+
+          <View style={styles.aiDpiCard}>
+            <AppIcon name="resize" size={22} color={colors.blue} />
+            <View style={styles.aiDpiCopy}>
+              <Text style={styles.aiDpiLabel}>DPI recomendado</Text>
+              <Text style={styles.aiDpiValue}>{result.recommendedDpi}</Text>
+            </View>
+            <Text style={styles.aiDpiHint}>Aplicar manualmente</Text>
+          </View>
+
+          <View style={styles.aiResultBlock}>
+            <Text style={styles.profileSectionTitle}>Perfil de arma e HUD</Text>
+            <View style={styles.aiWeaponGrid}>
+              {result.weaponProfile.map((item) => (
+                <View key={item.label} style={styles.aiWeaponCard}>
+                  <Text style={styles.aiWeaponLabel}>{item.label}</Text>
+                  <Text style={styles.aiWeaponValue}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.aiResultBlock}>
+            <Text style={styles.profileSectionTitle}>Dicas do Nexx</Text>
+            <View style={styles.aiTips}>
+              {result.tips.map((tip) => (
+                <View key={tip} style={styles.aiTipRow}>
+                  <AppIcon name="checkmark-circle" size={17} color={colors.green} />
+                  <Text style={styles.aiTipText}>{tip}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </Animated.View>
+      ) : (
+        <View style={styles.aiEmptyResult}>
+          <AppIcon name="analytics" size={24} color={colors.blue} />
+          <Text style={styles.aiEmptyTitle}>Nenhuma sensibilidade gerada</Text>
+          <Text style={styles.aiEmptyText}>
+            Preencha o perfil e toque em Gerar sensibilidade para ver os valores recomendados.
+          </Text>
+        </View>
+      )}
+    </Screen>
+  );
+}
+
+function AiSensitivityBars({ items }: { items: Array<{ label: string; value: number }> }) {
+  return (
+    <View style={styles.aiBarsPanel}>
+      <Text style={styles.aiBarsTitle}>SENSIBILIDADE</Text>
+      <View style={styles.aiBarsList}>
+        {items.map((item) => {
+          const progress = Math.max(0, Math.min(100, item.value));
+          return (
+            <View key={item.label} style={styles.aiBarRow}>
+              <Text numberOfLines={1} style={styles.aiBarLabel}>{item.label}</Text>
+              <Text style={styles.aiBarValue}>{item.value}</Text>
+              <View style={styles.aiBarTrack}>
+                <View style={[styles.aiBarFill, { width: `${progress}%` }]} />
+                <View style={[styles.aiBarThumb, { left: `${Math.max(4, Math.min(94, progress))}%` }]} />
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function AiOptionGrid<T extends string>({
+  options,
+  selected,
+  onSelect,
+  compact,
+}: {
+  options: Array<AiOption<T>>;
+  selected: T;
+  onSelect: (value: T) => void;
+  compact?: boolean;
+}) {
+  return (
+    <View style={[styles.aiOptionGrid, compact && styles.aiOptionGridCompact]}>
+      {options.map((option) => {
+        const isSelected = selected === option.id;
+        return (
+          <Pressable
+            key={option.id}
+            style={[
+              styles.aiOptionCard,
+              compact && styles.aiOptionCardCompact,
+              isSelected && styles.aiOptionCardSelected,
+            ]}
+            onPress={() => onSelect(option.id)}
+          >
+            {option.image ? (
+              <Image
+                source={option.image}
+                resizeMode="contain"
+                style={[styles.aiOptionImage, compact && styles.aiOptionImageCompact]}
+              />
+            ) : (
+              <AppIcon
+                name={option.icon}
+                size={compact ? 16 : 18}
+                color={isSelected ? colors.text : colors.blue}
+              />
+            )}
+            <View style={styles.aiOptionCopy}>
+              <Text style={styles.aiOptionTitle}>{option.title}</Text>
+              <Text numberOfLines={1} style={styles.aiOptionSubtitle}>{option.subtitle}</Text>
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function InfluencerSensitivityPreview({
+  influencer,
+  locked,
+}: {
+  influencer: InfluencerProfile;
+  locked?: boolean;
+}) {
+  const sensitivity = influencer.sensitivity.map((item) => ({
+    label: item.label,
+    value: Number.parseInt(item.value, 10) || 0,
+  }));
+
+  return (
+    <View style={[styles.influencerSensitivityPanel, locked && styles.influencerSensitivityPreviewLocked]}>
+      <View style={styles.influencerSensitivityHead}>
+        <View>
+          <Text style={styles.influencerKicker}>{influencer.game}</Text>
+          <Text style={styles.influencerSensitivityTitle}>Sensibilidade</Text>
+        </View>
+        {locked && <Text style={styles.influencerPreviewBadge}>PRÉVIA</Text>}
+      </View>
+      <AiSensitivityBars items={sensitivity} />
+    </View>
+  );
+}
+
+function InfluencerHudPreview({ influencer }: { influencer: InfluencerProfile }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyHudCode = async () => {
+    const ok = await copyTextToClipboard(influencer.hudCode);
+    if (!ok) {
+      return;
+    }
+
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
+
+  return (
+    <View style={styles.influencerHudPanel}>
+      <View style={styles.influencerSensitivityHead}>
+        <View>
+          <Text style={styles.influencerKicker}>CONTROLES</Text>
+          <Text style={styles.influencerSensitivityTitle}>HUD</Text>
+        </View>
+      </View>
+      <View style={styles.influencerHudCodeCard}>
+        <View style={styles.influencerHudCodeCopy}>
+          <Text style={styles.influencerPreviewLabel}>Código do HUD</Text>
+          <Text numberOfLines={1} style={styles.influencerHudCodeText}>{influencer.hudCode}</Text>
+        </View>
+        <Pressable style={styles.influencerHudCopyButton} onPress={copyHudCode}>
+          <AppIcon name={copied ? 'checkmark' : 'copy'} size={15} color={colors.text} />
+          <Text style={styles.influencerHudCopyText}>{copied ? 'Copiado' : 'Copiar'}</Text>
+        </Pressable>
+      </View>
+      {influencer.hudImage ? (
+        <Image source={influencer.hudImage} resizeMode="cover" style={styles.influencerHudImage} />
+      ) : (
+        <View style={styles.influencerHudFallback}>
+          <AppIcon name="game-controller" size={28} color={colors.blue} />
+        </View>
+      )}
+      <View style={styles.influencerPreviewGrid}>
+        {influencer.hud.map((item) => (
+          <View key={`hud-${item.label}`} style={styles.influencerPreviewMini}>
+            <Text style={styles.influencerPreviewLabel}>{item.label}</Text>
+            <Text style={styles.influencerPreviewValue}>{item.value}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function InfluencerDpiBlock({ influencer }: { influencer: InfluencerProfile }) {
+  const dpi = influencer.hud.find((item) => item.label.toLowerCase().includes('dpi'))?.value ?? 'Padrão';
+
+  return (
+    <View style={styles.influencerDpiPanel}>
+      <AppIcon name="resize" size={22} color={colors.blue} />
+      <View style={styles.aiDpiCopy}>
+        <Text style={styles.aiDpiLabel}>DPI recomendado</Text>
+        <Text style={styles.aiDpiValue}>{dpi}</Text>
+      </View>
+      <Text style={styles.aiDpiHint}>Manual</Text>
+    </View>
+  );
+}
+
+function InfluencerSection({
+  title,
+  items,
+}: {
+  title: string;
+  items: Array<{ label: string; value: string }>;
+}) {
+  return (
+    <View style={styles.influencerSection}>
+      <Text style={styles.profileSectionTitle}>{title}</Text>
+      <View style={styles.influencerSettingGrid}>
+        {items.map((item) => (
+          <View key={`${title}-${item.label}`} style={styles.influencerSettingCard}>
+            <Text style={styles.influencerSettingLabel}>{item.label}</Text>
+            <Text style={styles.influencerSettingValue}>{item.value}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function InfluencerTips({ tips }: { tips: string[] }) {
+  return (
+    <View style={styles.influencerSection}>
+      <Text style={styles.profileSectionTitle}>Dicas</Text>
+      <View style={styles.influencerTips}>
+        {tips.map((tip) => (
+          <View key={tip} style={styles.influencerTipRow}>
+            <AppIcon name="checkmark-circle" size={16} color={colors.green} />
+            <Text style={styles.influencerTipText}>{tip}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -2579,11 +3395,19 @@ function BottomNav({
               isCenter && isActive && styles.navIconWrapCenterActive,
             ]}
           >
-            <AppIcon
-              name={tab.icon}
-              size={isCenter ? 24 : 19}
-              color={isCenter ? '#FFFFFF' : isActive ? colors.text : '#8F98AD'}
-            />
+            {tab.image ? (
+              <Image
+                source={tab.image}
+                resizeMode="contain"
+                style={[styles.navImageIcon, !isActive && styles.navImageIconInactive]}
+              />
+            ) : (
+              <AppIcon
+                name={tab.icon}
+                size={isCenter ? 24 : 19}
+                color={isCenter ? '#FFFFFF' : isActive ? colors.text : '#8F98AD'}
+              />
+            )}
           </View>
           {!isCenter && (
             <Text style={[styles.navText, isActive && styles.navTextActive]}>{tab.label}</Text>
@@ -2949,6 +3773,150 @@ function mergeByPackage(primary: InstalledGame[], additions: InstalledGame[]) {
   });
 
   return Array.from(byPackage.values()).sort((left, right) => left.label.localeCompare(right.label));
+}
+
+function isSafeModeGame(game?: InstalledGame | null) {
+  const packageName = game?.packageName.toLowerCase() ?? '';
+  const label = game?.label.toLowerCase() ?? '';
+  return packageName === 'com.dts.freefireth' ||
+    packageName === 'com.dts.freefiremax' ||
+    packageName.includes('freefire') ||
+    label.includes('free fire');
+}
+
+function isSafeModeAllowedAction(actionId: string) {
+  return actionId === 'game-boost' || actionId === 'more';
+}
+
+function generateAiSensitivity(input: AiSensitivityInput): AiSensitivityResult {
+  const styleBase: Record<AiPlayStyle, {
+    title: string;
+    dpi: number;
+    values: [number, number, number, number, number, number];
+    tips: string[];
+  }> = {
+    rush: {
+      title: 'Rush agressivo',
+      dpi: 600,
+      values: [97, 94, 86, 74, 52, 78],
+      tips: [
+        'Use puxada curta no começo da mira para subir capa sem exagerar no arrasto.',
+        'Priorize SMG ou shotgun em troca curta e mantenha FPS alto no jogo.',
+      ],
+    },
+    support: {
+      title: 'Suporte AWM',
+      dpi: 520,
+      values: [86, 80, 72, 64, 60, 58],
+      tips: [
+        'Use AWM para dar cobertura e segurar ângulo sem expor o corpo inteiro.',
+        'Mantenha a sensi mais controlada para não passar da cabeça em mira longa.',
+      ],
+    },
+    balanced: {
+      title: 'Equilibrado',
+      dpi: 560,
+      values: [92, 89, 82, 74, 55, 68],
+      tips: [
+        'Use como ponto de partida e ajuste 2 pontos por vez depois de testar no treino.',
+        'Mantenha HUD consistente antes de mudar sensibilidade novamente.',
+      ],
+    },
+  };
+
+  const base = styleBase[input.playStyle];
+  const values = [...base.values];
+  let recommendedDpi = base.dpi;
+  const parsedDpi = Number.parseInt(input.dpi, 10);
+
+  const apply = (indexes: number[], delta: number) => {
+    indexes.forEach((index) => {
+      values[index] += delta;
+    });
+  };
+
+  if (input.weapon === 'shotgun') {
+    apply([0, 1, 5], 3);
+    apply([3, 4], -4);
+    recommendedDpi += 40;
+  } else if (input.weapon === 'smg') {
+    apply([0, 1, 5], 2);
+    recommendedDpi += 20;
+  } else if (input.weapon === 'rifle') {
+    apply([2, 3], 2);
+  } else if (input.weapon === 'marksman') {
+    apply([0], -2);
+    apply([2, 3], 4);
+    recommendedDpi -= 20;
+  }
+
+  if (input.hud === '2') {
+    apply([0, 1], -2);
+    recommendedDpi -= 20;
+  } else if (input.hud === '4') {
+    apply([0, 1, 5], 2);
+    recommendedDpi += 30;
+  }
+
+  if (Number.isFinite(parsedDpi) && parsedDpi > 0) {
+    recommendedDpi = parsedDpi;
+    if (parsedDpi >= 700) {
+      apply([0, 1, 2, 3], -3);
+    } else if (parsedDpi > 0 && parsedDpi <= 420) {
+      apply([0, 1, 2], 3);
+    }
+  }
+
+  const device = input.device.trim().toLowerCase();
+  const lowEndDevice = /a0|a1|a2|j[0-9]|redmi 9|redmi 10|moto e|32gb|2gb|3gb/.test(device);
+  const highRefreshDevice = /120hz|144hz|s20|s21|s22|s23|s24|poco|rog|iphone 13|iphone 14|iphone 15|iphone 16/.test(device);
+
+  if (lowEndDevice) {
+    apply([0, 1, 2], -2);
+    recommendedDpi = Math.min(recommendedDpi, 560);
+  }
+
+  if (highRefreshDevice) {
+    apply([0, 1, 5], 1);
+  }
+
+  const labels = ['Geral', 'Red Dot', 'Mira 2x', 'Mira 4x', 'AWM/Sniper', 'Olhadinha'];
+  const weaponLabel = aiWeapons.find((weapon) => weapon.id === input.weapon)?.title ?? 'Arma';
+  const hudLabel = aiHudOptions.find((hud) => hud.id === input.hud)?.title ?? 'HUD';
+
+  const tips = [
+    ...base.tips,
+    `${hudLabel}: teste o tamanho do botão de tiro entre 44% e 52% antes de mudar a sensi.`,
+    lowEndDevice
+      ? 'Aparelho de entrada: prefira gráfico suave e sombra desligada para estabilidade.'
+      : 'Faça o primeiro teste no campo de treinamento antes de usar em ranqueada.',
+  ];
+
+  return {
+    title: `${base.title} / ${weaponLabel}`,
+    confidence: input.device.trim() ? 'Perfil completo' : 'Sem aparelho',
+    recommendedDpi: Math.max(360, Math.min(900, recommendedDpi)),
+    sensitivity: labels.map((label, index) => ({
+      label,
+      value: Math.max(1, Math.min(100, Math.round(values[index]))),
+    })),
+    tips,
+    weaponProfile: [
+      { label: 'Estilo', value: base.title },
+      { label: 'Arma', value: weaponLabel },
+      { label: 'HUD', value: hudLabel },
+      { label: 'Aplicação', value: 'Copiar manualmente' },
+    ],
+  };
+}
+
+function initials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
 }
 
 function safePercent(value?: number) {
@@ -3472,26 +4440,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(3, 8, 17, 0.28)',
     borderColor: 'rgba(34, 189, 255, 0.12)',
-    borderRadius: 116,
+    borderRadius: 134,
     borderWidth: 1,
-    height: 232,
+    height: 268,
     justifyContent: 'center',
     position: 'relative',
-    width: 232,
+    width: 268,
   },
   splashRing: {
     borderColor: 'rgba(0, 247, 161, 0.14)',
-    borderRadius: 104,
+    borderRadius: 122,
     borderRightColor: 'transparent',
     borderTopColor: '#22BDFF',
     borderWidth: 1,
-    height: 208,
+    height: 244,
     position: 'absolute',
-    width: 208,
+    width: 244,
   },
   splashLogo: {
-    height: 210,
-    width: 210,
+    height: 248,
+    width: 248,
   },
   splashTag: {
     backgroundColor: 'rgba(5, 13, 25, 0.72)',
@@ -3518,7 +4486,7 @@ const styles = StyleSheet.create({
     color: '#90A7BE',
     fontSize: 13,
     lineHeight: 19,
-    marginTop: 10,
+    marginTop: 14,
     maxWidth: 280,
     textAlign: 'center',
   },
@@ -3530,7 +4498,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(34, 189, 255, 0.2)',
     borderRadius: 22,
     borderWidth: 1,
-    padding: 16,
+    padding: 15,
   },
   splashLoaderHead: {
     alignItems: 'center',
@@ -3539,8 +4507,19 @@ const styles = StyleSheet.create({
   },
   splashLoaderLabel: {
     color: colors.text,
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  splashLoaderCopy: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  splashLoaderSub: {
+    color: '#92A7BD',
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
+    marginTop: 3,
   },
   splashLoaderValue: {
     color: colors.green,
@@ -3550,7 +4529,7 @@ const styles = StyleSheet.create({
   splashProgressTrack: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 999,
-    height: 9,
+    height: 6,
     marginTop: 13,
     overflow: 'hidden',
   },
@@ -3560,25 +4539,45 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   splashChecks: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  splashCheck: {
     alignItems: 'center',
-    backgroundColor: 'rgba(7, 15, 29, 0.62)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  splashStepDone: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
     flex: 1,
     justifyContent: 'center',
-    minHeight: 52,
-    padding: 8,
   },
-  splashCheckText: {
-    color: '#C8D8E8',
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 13,
+  splashStepActive: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  splashStepIcon: {
+    color: colors.green,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  splashStepDot: {
+    color: '#00F0FF',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  splashStepText: {
+    color: '#D7E4F0',
+    fontSize: 12,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  splashStepTextActive: {
+    color: '#00F0FF',
+    fontSize: 12,
+    fontWeight: '900',
     textAlign: 'center',
   },
   permissionGateScreen: {
@@ -3919,16 +4918,6 @@ const styles = StyleSheet.create({
   headerSideSpacer: {
     height: 42,
     width: 42,
-  },
-  redDot: {
-    backgroundColor: colors.red,
-    borderRadius: 5,
-    height: 8,
-    position: 'absolute',
-    right: 9,
-    top: 7,
-    width: 8,
-    zIndex: 2,
   },
   brandBlock: {
     alignItems: 'center',
@@ -4757,6 +5746,25 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 4,
   },
+  safeModeNotice: {
+    alignItems: 'center',
+    backgroundColor: '#092015',
+    borderColor: colors.green,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
+  safeModeNoticeText: {
+    color: '#D8FBE8',
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 15,
+  },
   featuredActions: {
     flexDirection: 'row',
     gap: 10,
@@ -5388,6 +6396,759 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
   },
+  aiHero: {
+    alignItems: 'center',
+    backgroundColor: '#07101E',
+    borderColor: 'rgba(34, 189, 255, 0.24)',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 14,
+    overflow: 'hidden',
+    padding: 16,
+    position: 'relative',
+  },
+  aiHeroPulse: {
+    backgroundColor: 'rgba(34, 189, 255, 0.16)',
+    borderColor: 'rgba(0, 240, 255, 0.28)',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 74,
+    left: 8,
+    position: 'absolute',
+    width: 74,
+  },
+  aiHeroIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.purple,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 58,
+    justifyContent: 'center',
+    shadowColor: colors.purple,
+    shadowOpacity: 0.4,
+    shadowRadius: 18,
+    width: 58,
+  },
+  aiHeroRobot: {
+    height: 54,
+    width: 54,
+  },
+  aiHeroCopy: {
+    flex: 1,
+  },
+  aiKicker: {
+    color: '#00F0FF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  aiHeroTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '900',
+    lineHeight: 26,
+    marginTop: 4,
+  },
+  aiHeroText: {
+    color: '#A9B5C7',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 6,
+  },
+  aiFormCard: {
+    backgroundColor: '#0B101A',
+    borderColor: '#1B2638',
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+    padding: 16,
+  },
+  aiInput: {
+    backgroundColor: '#080D16',
+    borderColor: '#202A3D',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '800',
+    minHeight: 48,
+    paddingHorizontal: 13,
+  },
+  aiOptionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+  },
+  aiOptionGridCompact: {
+    flexDirection: 'column',
+  },
+  aiOptionCard: {
+    alignItems: 'center',
+    backgroundColor: '#0D1421',
+    borderColor: '#1D2B40',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 7,
+    minHeight: 72,
+    padding: 8,
+    width: '48%',
+  },
+  aiOptionCardCompact: {
+    minHeight: 58,
+    width: '100%',
+  },
+  aiOptionCardSelected: {
+    backgroundColor: 'rgba(154, 53, 255, 0.2)',
+    borderColor: colors.purple,
+  },
+  aiOptionCopy: {
+    flex: 1,
+  },
+  aiOptionImage: {
+    height: 44,
+    width: 44,
+  },
+  aiOptionImageCompact: {
+    height: 38,
+    width: 38,
+  },
+  aiOptionTitle: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  aiOptionSubtitle: {
+    color: '#96A4B8',
+    fontSize: 10,
+    marginTop: 3,
+  },
+  aiTwoColumns: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  aiColumn: {
+    flex: 1,
+    gap: 10,
+  },
+  aiHudScroller: {
+    gap: 10,
+    paddingRight: 8,
+  },
+  aiHudCard: {
+    alignItems: 'center',
+    backgroundColor: '#0D1421',
+    borderColor: '#1D2B40',
+    borderRadius: 14,
+    borderWidth: 1,
+    minHeight: 112,
+    padding: 10,
+    width: 112,
+  },
+  aiHudImage: {
+    height: 52,
+    marginBottom: 5,
+    width: 52,
+  },
+  aiResultHeader: {
+    alignItems: 'center',
+    backgroundColor: '#08111F',
+    borderColor: 'rgba(34, 189, 255, 0.24)',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 15,
+  },
+  aiResultTitle: {
+    color: colors.text,
+    fontSize: 19,
+    fontWeight: '900',
+    marginTop: 4,
+  },
+  aiConfidenceBadge: {
+    backgroundColor: 'rgba(0, 247, 161, 0.1)',
+    borderColor: 'rgba(0, 247, 161, 0.26)',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  aiConfidenceText: {
+    color: colors.green,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  aiResultStack: {
+    gap: 16,
+  },
+  aiBarsPanel: {
+    backgroundColor: '#171219',
+    borderColor: '#2C2330',
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  aiBarsTitle: {
+    backgroundColor: '#0E0B11',
+    borderLeftColor: colors.amber,
+    borderLeftWidth: 3,
+    color: '#EDE7DA',
+    fontSize: 10,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    textTransform: 'uppercase',
+  },
+  aiBarsList: {
+    gap: 1,
+  },
+  aiBarRow: {
+    alignItems: 'center',
+    backgroundColor: '#211A23',
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 28,
+    paddingHorizontal: 9,
+  },
+  aiBarLabel: {
+    color: '#F1ECF3',
+    flex: 0.9,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  aiBarValue: {
+    color: '#D8D0D9',
+    fontSize: 9,
+    fontWeight: '900',
+    textAlign: 'right',
+    width: 24,
+  },
+  aiBarTrack: {
+    backgroundColor: '#09080C',
+    borderRadius: 999,
+    flex: 2,
+    height: 5,
+    position: 'relative',
+  },
+  aiBarFill: {
+    backgroundColor: colors.amber,
+    borderRadius: 999,
+    height: '100%',
+  },
+  aiBarThumb: {
+    backgroundColor: '#F7F8FB',
+    borderColor: '#8F6C12',
+    borderRadius: 2,
+    borderWidth: 1,
+    height: 11,
+    marginLeft: -2,
+    position: 'absolute',
+    top: -3,
+    width: 4,
+  },
+  aiSensitivityGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  aiSensitivityCard: {
+    backgroundColor: '#101723',
+    borderColor: '#202C40',
+    borderRadius: 14,
+    borderWidth: 1,
+    minHeight: 80,
+    padding: 13,
+    width: '48%',
+  },
+  aiSensitivityLabel: {
+    color: '#A7B2C3',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  aiSensitivityValue: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: '900',
+    marginTop: 8,
+  },
+  aiDpiCard: {
+    alignItems: 'center',
+    backgroundColor: '#071525',
+    borderColor: 'rgba(34, 189, 255, 0.26)',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 15,
+  },
+  aiDpiCopy: {
+    flex: 1,
+  },
+  aiDpiLabel: {
+    color: '#9CADC2',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  aiDpiValue: {
+    color: colors.text,
+    fontSize: 26,
+    fontWeight: '900',
+  },
+  aiDpiHint: {
+    color: colors.blue,
+    fontSize: 10,
+    fontWeight: '900',
+    textAlign: 'right',
+  },
+  aiResultBlock: {
+    backgroundColor: '#0B101A',
+    borderColor: '#1D2636',
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+    padding: 15,
+  },
+  aiWeaponGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+  },
+  aiWeaponCard: {
+    backgroundColor: '#101723',
+    borderColor: '#222D40',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    width: '48%',
+  },
+  aiWeaponLabel: {
+    color: '#9DAABD',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  aiWeaponValue: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    marginTop: 5,
+  },
+  aiTips: {
+    gap: 10,
+  },
+  aiTipRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 9,
+  },
+  aiTipText: {
+    color: '#C8D0DE',
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  aiEmptyResult: {
+    alignItems: 'center',
+    backgroundColor: '#0B101A',
+    borderColor: '#1D2636',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 22,
+  },
+  aiEmptyTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+    marginTop: 10,
+  },
+  aiEmptyText: {
+    color: '#A7B2C3',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  influencerIntro: {
+    backgroundColor: '#0C0F1C',
+    borderColor: 'rgba(154, 53, 255, 0.34)',
+    borderRadius: 13,
+    borderWidth: 1,
+    gap: 8,
+    padding: 16,
+  },
+  influencerIntroTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  influencerIntroText: {
+    color: '#AEB6C5',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  influencerGrid: {
+    gap: 10,
+  },
+  influencerCard: {
+    alignItems: 'center',
+    backgroundColor: '#090F1C',
+    borderColor: '#1B2638',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 13,
+    minHeight: 112,
+    overflow: 'hidden',
+    padding: 9,
+    width: '100%',
+  },
+  influencerPhoto: {
+    alignItems: 'center',
+    backgroundColor: '#111827',
+    borderRadius: 13,
+    borderWidth: 2,
+    height: 94,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    width: 94,
+  },
+  influencerPhotoImage: {
+    height: '100%',
+    width: '100%',
+  },
+  influencerPhotoText: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  influencerLock: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 34,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 6,
+    top: 6,
+    width: 34,
+  },
+  influencerCardBody: {
+    flex: 1,
+    gap: 6,
+    justifyContent: 'center',
+    minWidth: 0,
+  },
+  influencerCardTop: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 7,
+  },
+  influencerName: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  influencerGame: {
+    color: colors.purple,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  influencerSpecialty: {
+    color: '#AEB6C5',
+    fontSize: 12,
+  },
+  influencerTierSmall: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#103B27',
+    borderRadius: 999,
+    color: colors.green,
+    fontSize: 9,
+    fontWeight: '900',
+    marginLeft: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  influencerTierPro: {
+    backgroundColor: '#2A2414',
+    color: colors.amber,
+  },
+  influencerHero: {
+    alignItems: 'center',
+    backgroundColor: '#0B0F19',
+    borderColor: '#182133',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 82,
+    padding: 10,
+  },
+  influencerHeroPhoto: {
+    alignItems: 'center',
+    backgroundColor: '#111824',
+    borderRadius: 999,
+    borderWidth: 2,
+    height: 58,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: 58,
+  },
+  influencerHeroImage: {
+    height: '100%',
+    width: '100%',
+  },
+  influencerInitials: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  influencerHeroCopy: {
+    flex: 1,
+  },
+  influencerKicker: {
+    color: colors.purple,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  influencerHeroName: {
+    color: colors.text,
+    fontSize: 21,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  influencerHeroSub: {
+    color: '#AEB6C5',
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  influencerTier: {
+    backgroundColor: '#103B27',
+    borderRadius: 999,
+    color: colors.green,
+    fontSize: 10,
+    fontWeight: '900',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  lockedInfluencerPanel: {
+    alignItems: 'center',
+    backgroundColor: '#0B0F19',
+    borderColor: '#2A2414',
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 10,
+    padding: 18,
+  },
+  lockedInfluencerTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  lockedInfluencerText: {
+    color: '#AEB6C5',
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
+  },
+  influencerSensitivityPanel: {
+    backgroundColor: '#080D16',
+    borderColor: '#1B2638',
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+    padding: 13,
+  },
+  influencerSensitivityPreviewLocked: {
+    opacity: 0.86,
+  },
+  influencerSensitivityHead: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  influencerSensitivityTitle: {
+    color: colors.text,
+    fontSize: 19,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  influencerPreviewBadge: {
+    backgroundColor: '#2A2414',
+    borderRadius: 999,
+    color: colors.amber,
+    fontSize: 9,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  influencerPreviewGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  influencerPreviewBlock: {
+    backgroundColor: '#0B111D',
+    borderColor: '#1E2A3E',
+    borderRadius: 13,
+    borderWidth: 1,
+    flex: 1,
+    gap: 8,
+    padding: 11,
+  },
+  influencerHudPanel: {
+    backgroundColor: '#080D16',
+    borderColor: '#1B2638',
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+    padding: 13,
+  },
+  influencerHudCodeCard: {
+    alignItems: 'center',
+    backgroundColor: '#0B111D',
+    borderColor: '#1E2A3E',
+    borderRadius: 13,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 11,
+  },
+  influencerHudCodeCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  influencerHudCodeText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    marginTop: 4,
+  },
+  influencerHudCopyButton: {
+    alignItems: 'center',
+    backgroundColor: colors.purple,
+    borderRadius: 999,
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 34,
+    paddingHorizontal: 12,
+  },
+  influencerHudCopyText: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  influencerHudImage: {
+    aspectRatio: 1.73,
+    borderColor: 'rgba(34, 189, 255, 0.24)',
+    borderRadius: 13,
+    borderWidth: 1,
+    height: undefined,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  influencerHudFallback: {
+    alignItems: 'center',
+    aspectRatio: 1.73,
+    backgroundColor: '#0B111D',
+    borderColor: '#1E2A3E',
+    borderRadius: 13,
+    borderWidth: 1,
+    justifyContent: 'center',
+    width: '100%',
+  },
+  influencerPreviewMini: {
+    backgroundColor: '#0B111D',
+    borderColor: '#1E2A3E',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    minWidth: 82,
+    padding: 10,
+  },
+  influencerDpiPanel: {
+    alignItems: 'center',
+    backgroundColor: '#071525',
+    borderColor: 'rgba(34, 189, 255, 0.26)',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 15,
+  },
+  influencerPreviewTitle: {
+    color: '#00F0FF',
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  influencerPreviewRow: {
+    gap: 2,
+  },
+  influencerPreviewLabel: {
+    color: '#8F9DB2',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  influencerPreviewValue: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  influencerSection: {
+    gap: 10,
+  },
+  influencerSettingGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+  },
+  influencerSettingCard: {
+    backgroundColor: '#0B0F19',
+    borderColor: '#182133',
+    borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 70,
+    padding: 12,
+    width: '48%',
+  },
+  influencerSettingLabel: {
+    color: '#AEB6C5',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  influencerSettingValue: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+    marginTop: 7,
+  },
+  influencerTips: {
+    backgroundColor: '#0B0F19',
+    borderColor: '#182133',
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 9,
+    padding: 13,
+  },
+  influencerTipRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 9,
+  },
+  influencerTipText: {
+    color: '#D8DEE9',
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
   avatar: {
     alignItems: 'center',
     alignSelf: 'center',
@@ -5469,7 +7230,7 @@ const styles = StyleSheet.create({
     height: 72,
     justifyContent: 'space-between',
     left: 12,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     position: 'absolute',
     right: 12,
     shadowColor: '#9A35FF',
@@ -5481,46 +7242,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'column',
     flex: 1,
-    gap: 3,
+    gap: 2,
     height: '100%',
     justifyContent: 'center',
-    minWidth: 58,
+    minWidth: 42,
   },
   navItemCenter: {
-    flex: 0.78,
-    minWidth: 62,
+    flex: 0.82,
+    minWidth: 54,
   },
   navIconWrap: {
     alignItems: 'center',
     borderRadius: 999,
-    height: 30,
+    height: 28,
     justifyContent: 'center',
-    width: 34,
+    width: 30,
   },
   navIconWrapActive: {
     backgroundColor: 'rgba(154, 53, 255, 0.18)',
+  },
+  navImageIcon: {
+    height: 24,
+    width: 24,
+  },
+  navImageIconInactive: {
+    opacity: 0.62,
   },
   navIconWrapCenter: {
     backgroundColor: colors.purple,
     borderColor: '#2A164B',
     borderRadius: 999,
     borderWidth: 4,
-    height: 58,
-    marginTop: -30,
+    height: 66,
+    marginTop: -36,
     shadowColor: '#5D43FF',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.34,
     shadowRadius: 18,
-    width: 58,
+    width: 66,
   },
   navIconWrapCenterActive: {
     backgroundColor: colors.purple,
   },
   navText: {
     color: '#8F98AD',
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: '800',
-    maxWidth: 58,
+    maxWidth: 48,
     textAlign: 'center',
   },
   navTextActive: {

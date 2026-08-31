@@ -74,6 +74,7 @@ type NexxsensiNativeModule = {
   openOverlaySettings(): Promise<boolean>;
   startGameOverlay(packageName?: string): Promise<boolean>;
   stopGameOverlay(): Promise<boolean>;
+  copyTextToClipboard(text: string): Promise<boolean>;
 };
 
 const nativeModule = NativeModules.NexxsensiNative as NexxsensiNativeModule | undefined;
@@ -287,6 +288,24 @@ export async function stopGameOverlay(): Promise<boolean> {
   }
 
   return nativeModule.stopGameOverlay();
+}
+
+export async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (isWebDemo) {
+    const clipboard = globalThis.navigator?.clipboard;
+    if (!clipboard) {
+      return false;
+    }
+
+    await clipboard.writeText(text);
+    return true;
+  }
+
+  if (Platform.OS !== 'android' || !nativeModule) {
+    return false;
+  }
+
+  return nativeModule.copyTextToClipboard(text);
 }
 
 const unavailableMetrics: DeviceMetrics = {

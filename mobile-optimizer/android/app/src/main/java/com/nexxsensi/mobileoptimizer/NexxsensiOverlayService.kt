@@ -824,6 +824,11 @@ class NexxsensiOverlayService : Service() {
   }
 
   private fun runOverlayAction(actionId: String) {
+    if (isFreeFirePackage(packageNameForBoost)) {
+      showOverlayStatus("Modo seguro Free Fire: ajustes bloqueados durante o jogo.")
+      return
+    }
+
     showOverlayStatus("Executando ajuste...")
     Thread {
       try {
@@ -1008,12 +1013,19 @@ class NexxsensiOverlayService : Service() {
         add("settings put global window_animation_scale 0")
         add("settings put global transition_animation_scale 0")
         add("settings put global animator_duration_scale 0")
-        if (packageNameForBoost.isNotBlank()) {
+        if (packageNameForBoost.isNotBlank() && !isFreeFirePackage(packageNameForBoost)) {
           add("cmd game set performance $packageNameForBoost || true")
           add("cmd package compile -m speed-profile $packageNameForBoost || true")
         }
       }
     }
+  }
+
+  private fun isFreeFirePackage(packageName: String?): Boolean {
+    val normalized = packageName?.lowercase().orEmpty()
+    return normalized == "com.dts.freefireth" ||
+      normalized == "com.dts.freefiremax" ||
+      normalized.contains("freefire")
   }
 
   private fun densityForSmallestWidthCommand(targetDp: Int): String {

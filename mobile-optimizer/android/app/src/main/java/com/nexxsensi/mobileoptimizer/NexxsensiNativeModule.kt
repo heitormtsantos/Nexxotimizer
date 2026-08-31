@@ -2,6 +2,8 @@
 
 import android.Manifest
 import android.app.ActivityManager
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -159,6 +161,17 @@ class NexxsensiNativeModule(
       promise.resolve(true)
     } catch (error: Exception) {
       promise.reject("app_launch_failed", error.message, error)
+    }
+  }
+
+  @ReactMethod
+  fun copyTextToClipboard(text: String, promise: Promise) {
+    try {
+      val clipboard = reactContext.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+      clipboard.setPrimaryClip(ClipData.newPlainText("Código do HUD", text))
+      promise.resolve(true)
+    } catch (error: Exception) {
+      promise.reject("clipboard_failed", error.message, error)
     }
   }
 
@@ -654,6 +667,7 @@ class NexxsensiNativeModule(
 
   private fun buildActionCommands(actionId: String, packageName: String): List<ActionCommand> {
     val safePackage = packageName.takeIf { it.isNotBlank() }
+    val freeFireSafeMode = isFreeFirePackage(safePackage)
     return when (actionId) {
       "cache" -> listOf(
         ActionCommand("Limpeza de cache", "pm trim-caches 999G")
@@ -692,6 +706,10 @@ class NexxsensiNativeModule(
       "game-boost" -> buildList {
         add(ActionCommand("Finalizando processos", "am kill-all"))
         add(ActionCommand("Limpando cache temporario", "pm trim-caches 999G"))
+        if (freeFireSafeMode) {
+          add(ActionCommand("Modo seguro Free Fire ativo", "true"))
+          return@buildList
+        }
         add(ActionCommand("Reduzindo animacoes", "settings put global window_animation_scale 0; settings put global transition_animation_scale 0; settings put global animator_duration_scale 0"))
         if (safePackage != null) {
           add(ActionCommand("Aplicando modo jogo", "cmd game set performance $safePackage || true"))
@@ -742,7 +760,7 @@ class NexxsensiNativeModule(
       add(ActionCommand("Mantendo apps em espera", "settings put global app_standby_enabled 1 || true"))
       add(ActionCommand("Equilibrando cache de processos", "settings put global activity_manager_constants max_cached_processes=32 || true"))
       add(ActionCommand("Desativando performance fixa", "cmd power set-fixed-performance-mode-enabled false || true"))
-      if (packageName != null) {
+      if (packageName != null && !isFreeFirePackage(packageName)) {
         add(ActionCommand("Otimizando perfil do jogo", "cmd package compile -m speed-profile $packageName || true"))
       }
     }
@@ -757,11 +775,18 @@ class NexxsensiNativeModule(
       add(ActionCommand("Reduzindo bateria adaptativa", "settings put global adaptive_battery_management_enabled 0 || true"))
       add(ActionCommand("Priorizando processos ativos", "settings put global activity_manager_constants max_cached_processes=16 || true"))
       add(ActionCommand("Tentando modo performance", "cmd power set-fixed-performance-mode-enabled true || true"))
-      if (packageName != null) {
+      if (packageName != null && !isFreeFirePackage(packageName)) {
         add(ActionCommand("Aplicando modo jogo", "cmd game set performance $packageName || true"))
         add(ActionCommand("Compilando jogo para resposta", "cmd package compile -m speed-profile $packageName || true"))
       }
     }
+  }
+
+  private fun isFreeFirePackage(packageName: String?): Boolean {
+    val normalized = packageName?.lowercase().orEmpty()
+    return normalized == "com.dts.freefireth" ||
+      normalized == "com.dts.freefiremax" ||
+      normalized.contains("freefire")
   }
 
   private fun parseShellResult(raw: String): ShellResult {
