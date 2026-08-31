@@ -9,6 +9,7 @@ import {
   Image,
   ImageBackground,
   Linking,
+  Modal,
   Platform,
   Pressable,
   SafeAreaView,
@@ -60,7 +61,7 @@ import { colors } from './src/theme/colors';
 type IconName = keyof typeof Ionicons.glyphMap;
 type TabId = 'home' | 'performance' | 'games' | 'ai' | 'influencers' | 'tools' | 'profile';
 type Tone = 'purple' | 'green' | 'red' | 'blue';
-type WebSetupPreview = 'android' | 'shizuku' | null;
+type WebSetupPreview = 'android' | 'shizuku' | 'activation' | null;
 
 type QuickAction = {
   id: string;
@@ -126,6 +127,15 @@ type AiSensitivityResult = {
   weaponProfile: Array<{ label: string; value: string }>;
 };
 
+type SubscriptionPlan = {
+  id: 'monthly' | 'quarterly' | 'yearly';
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  badge?: string;
+};
+
 const tabs: Array<{ id: TabId; icon: IconName; label: string; image?: number }> = [
   { id: 'home', icon: 'home', label: 'Início' },
   { id: 'ai', icon: 'hardware-chip', label: 'NexxIa', image: require('./assets/ai-icons/nexxia-robot.png') },
@@ -134,6 +144,32 @@ const tabs: Array<{ id: TabId; icon: IconName; label: string; image?: number }> 
   { id: 'influencers', icon: 'people', label: 'Influencers' },
   { id: 'tools', icon: 'construct', label: 'Ferramentas' },
   { id: 'profile', icon: 'person', label: 'Perfil' },
+];
+
+const subscriptionPlans: SubscriptionPlan[] = [
+  {
+    id: 'monthly',
+    name: 'Mensal',
+    price: 'R$ 19,90',
+    period: '/ mês',
+    description: 'Acesso completo ao otimizador, overlay, replay e perfis PRO.',
+  },
+  {
+    id: 'quarterly',
+    name: 'Trimestral',
+    price: 'R$ 49,90',
+    period: '/ 3 meses',
+    description: 'Economize no plano para jogar com assinatura ativa por mais tempo.',
+    badge: 'Mais escolhido',
+  },
+  {
+    id: 'yearly',
+    name: 'Anual',
+    price: 'R$ 149,90',
+    period: '/ ano',
+    description: 'Melhor custo para manter Nexxsensi liberado o ano inteiro.',
+    badge: 'Melhor valor',
+  },
 ];
 
 const aiPlayStyles: Array<AiOption<AiPlayStyle>> = [
@@ -1085,6 +1121,12 @@ export default function App() {
     });
   }
 
+  function startGooglePlaySubscription(plan: SubscriptionPlan) {
+    setActivationMessage(
+      `${plan.name} selecionado. A próxima etapa é conectar este botão ao Google Play Billing.`,
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="light" />
@@ -1100,6 +1142,7 @@ export default function App() {
             setActivationKeyInput={setActivationKeyInput}
             activateKey={activateKey}
             openPurchasePage={openPurchasePage}
+            startGooglePlaySubscription={startGooglePlaySubscription}
           />
         ) : !startupPermissionsReady ? (
           <StartupPermissionScreen
@@ -1213,31 +1256,52 @@ export default function App() {
             {optimizationProgress && <OptimizationOverlay progress={optimizationProgress} />}
             {Platform.OS === 'web' && webSetupPreview && (
               <View style={styles.setupPreviewLayer}>
-                <StartupPermissionScreen
-                  advanced={
-                    webSetupPreview === 'shizuku'
-                      ? {
-                          platform: 'web',
-                          sdk: null,
-                          androidVersion: 'Preview Web',
-                          supportsWirelessDebugging: true,
-                          shizukuInstalled: true,
-                          shizukuAlive: false,
-                          shizukuPermission: false,
-                          canRunPrivilegedActions: false,
-                        }
-                      : advanced
-                  }
-                  overlayAllowed={webSetupPreview === 'shizuku'}
-                  notificationAllowed={webSetupPreview === 'shizuku'}
-                  startupPermissionsLoaded
-                  installPermissionComponent={() => undefined}
-                  requestPermissionAndRefresh={() => undefined}
-                  requestOverlayAndRefresh={() => undefined}
-                  requestNotificationAndRefresh={() => undefined}
-                  refreshAll={() => undefined}
-                  onClose={() => setWebSetupPreview(null)}
-                />
+                {webSetupPreview === 'activation' ? (
+                  <>
+                    <ActivationScreen
+                      activationLoaded
+                      activationKeyInput={activationKeyInput}
+                      activationMessage={activationMessage}
+                      isActivating={isActivating}
+                      setActivationKeyInput={setActivationKeyInput}
+                      activateKey={activateKey}
+                      openPurchasePage={openPurchasePage}
+                      startGooglePlaySubscription={startGooglePlaySubscription}
+                    />
+                    <Pressable
+                      style={styles.permissionGateClose}
+                      onPress={() => setWebSetupPreview(null)}
+                    >
+                      <AppIcon name="close" size={18} color={colors.text} />
+                    </Pressable>
+                  </>
+                ) : (
+                  <StartupPermissionScreen
+                    advanced={
+                      webSetupPreview === 'shizuku'
+                        ? {
+                            platform: 'web',
+                            sdk: null,
+                            androidVersion: 'Preview Web',
+                            supportsWirelessDebugging: true,
+                            shizukuInstalled: true,
+                            shizukuAlive: false,
+                            shizukuPermission: false,
+                            canRunPrivilegedActions: false,
+                          }
+                        : advanced
+                    }
+                    overlayAllowed={webSetupPreview === 'shizuku'}
+                    notificationAllowed={webSetupPreview === 'shizuku'}
+                    startupPermissionsLoaded
+                    installPermissionComponent={() => undefined}
+                    requestPermissionAndRefresh={() => undefined}
+                    requestOverlayAndRefresh={() => undefined}
+                    requestNotificationAndRefresh={() => undefined}
+                    refreshAll={() => undefined}
+                    onClose={() => setWebSetupPreview(null)}
+                  />
+                )}
               </View>
             )}
             {showOverlayPreview && (
@@ -1332,6 +1396,10 @@ function HomeScreen({
             Use estes botões para revisar as telas que aparecem no Android depois da key.
           </Text>
           <View style={styles.webPreviewActions}>
+            <Pressable style={styles.webPreviewButton} onPress={() => setWebSetupPreview('activation')}>
+              <AppIcon name="logo-google-playstore" size={15} color={colors.text} />
+              <Text style={styles.webPreviewButtonText}>Assinatura</Text>
+            </Pressable>
             <Pressable style={styles.webPreviewButton} onPress={() => setWebSetupPreview('android')}>
               <AppIcon name="phone-portrait" size={15} color={colors.text} />
               <Text style={styles.webPreviewButtonText}>Permissões Android</Text>
@@ -1749,6 +1817,7 @@ function ActivationScreen({
   setActivationKeyInput,
   activateKey,
   openPurchasePage,
+  startGooglePlaySubscription,
 }: {
   activationLoaded: boolean;
   activationKeyInput: string;
@@ -1757,15 +1826,39 @@ function ActivationScreen({
   setActivationKeyInput: (value: string) => void;
   activateKey: () => void;
   openPurchasePage: () => void;
+  startGooglePlaySubscription: (plan: SubscriptionPlan) => void;
 }) {
+  const [plansVisible, setPlansVisible] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<SubscriptionPlan['id']>('quarterly');
+  const selectedPlan =
+    subscriptionPlans.find((plan) => plan.id === selectedPlanId) ?? subscriptionPlans[1];
+
+  function continueSubscription() {
+    setPlansVisible(false);
+    startGooglePlaySubscription(selectedPlan);
+  }
+
   return (
     <View style={styles.activationScreen}>
       <View style={styles.activationCard}>
         <Image source={banners.logo} resizeMode="contain" style={styles.activationLogo} />
         <Text style={styles.activationTitle}>Ativar Nexxsensi</Text>
         <Text style={styles.activationText}>
-          Insira sua key de acesso para liberar o otimizador mobile.
+          Assine pelo Google Play ou use uma key de acesso para liberar o otimizador mobile.
         </Text>
+        <Pressable
+          style={[styles.activationPrimary, !activationLoaded && styles.disabled]}
+          disabled={!activationLoaded}
+          onPress={() => setPlansVisible(true)}
+        >
+          <AppIcon name="logo-google-playstore" size={18} color={colors.text} />
+          <Text style={styles.activationPrimaryText}>Assinar pelo Google Play</Text>
+        </Pressable>
+        <View style={styles.activationDivider}>
+          <View style={styles.activationDividerLine} />
+          <Text style={styles.activationDividerText}>ou informe sua key</Text>
+          <View style={styles.activationDividerLine} />
+        </View>
         <TextInput
           value={activationKeyInput}
           onChangeText={(value) => setActivationKeyInput(value.toUpperCase())}
@@ -1779,12 +1872,12 @@ function ActivationScreen({
           {activationLoaded ? activationMessage : 'Carregando ativação...'}
         </Text>
         <Pressable
-          style={[styles.activationPrimary, (!activationLoaded || isActivating) && styles.disabled]}
+          style={[styles.activationKeyButton, (!activationLoaded || isActivating) && styles.disabled]}
           disabled={!activationLoaded || isActivating}
           onPress={activateKey}
         >
           <AppIcon name="key" size={17} color={colors.text} />
-          <Text style={styles.activationPrimaryText}>
+          <Text style={styles.activationKeyButtonText}>
             {isActivating ? 'Validando...' : 'Ativar key'}
           </Text>
         </Pressable>
@@ -1793,6 +1886,68 @@ function ActivationScreen({
           <Text style={styles.activationSecondaryText}>Comprar key</Text>
         </Pressable>
       </View>
+      <Modal
+        animationType="slide"
+        transparent
+        visible={plansVisible}
+        onRequestClose={() => setPlansVisible(false)}
+      >
+        <View style={styles.planModalBackdrop}>
+          <Pressable style={styles.planModalDismissArea} onPress={() => setPlansVisible(false)} />
+          <View style={styles.planModalCard}>
+            <View style={styles.planModalHandle} />
+            <View style={styles.planModalHeader}>
+              <View>
+                <Text style={styles.planModalKicker}>ASSINATURA ANDROID</Text>
+                <Text style={styles.planModalTitle}>Escolha seu plano</Text>
+              </View>
+              <Pressable style={styles.planModalClose} onPress={() => setPlansVisible(false)}>
+                <AppIcon name="close" size={20} color={colors.text} />
+              </Pressable>
+            </View>
+            <Text style={styles.planModalText}>
+              Os valores abaixo são configuráveis. Na Play Store, o preço final será confirmado pelo Google Play.
+            </Text>
+            <View style={styles.planList}>
+              {subscriptionPlans.map((plan) => {
+                const selected = selectedPlan.id === plan.id;
+                return (
+                  <Pressable
+                    key={plan.id}
+                    style={[styles.planCard, selected && styles.planCardSelected]}
+                    onPress={() => setSelectedPlanId(plan.id)}
+                  >
+                    <View style={styles.planCardTop}>
+                      <Text style={styles.planName}>{plan.name}</Text>
+                      {plan.badge ? <Text style={styles.planBadge}>{plan.badge}</Text> : null}
+                    </View>
+                    <View style={styles.planPriceRow}>
+                      <Text style={styles.planPrice}>{plan.price}</Text>
+                      <Text style={styles.planPeriod}>{plan.period}</Text>
+                    </View>
+                    <Text style={styles.planDescription}>{plan.description}</Text>
+                    <View style={styles.planSelectedRow}>
+                      <View style={[styles.planRadio, selected && styles.planRadioSelected]}>
+                        {selected ? <View style={styles.planRadioDot} /> : null}
+                      </View>
+                      <Text style={styles.planSelectedText}>
+                        {selected ? 'Plano selecionado' : 'Selecionar plano'}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable style={styles.planContinueButton} onPress={continueSubscription}>
+              <AppIcon name="logo-google-playstore" size={18} color={colors.text} />
+              <Text style={styles.planContinueText}>Continuar pelo Google Play</Text>
+            </Pressable>
+            <Pressable style={styles.planKeyLink} onPress={() => setPlansVisible(false)}>
+              <Text style={styles.planKeyLinkText}>Prefiro usar uma key</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -4857,6 +5012,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: '100%',
   },
+  activationDivider: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+    width: '100%',
+  },
+  activationDividerLine: {
+    backgroundColor: '#1D273A',
+    flex: 1,
+    height: 1,
+  },
+  activationDividerText: {
+    color: '#7F8CA2',
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
   activationMessage: {
     color: colors.amber,
     fontSize: 12,
@@ -4881,6 +5054,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
   },
+  activationKeyButton: {
+    alignItems: 'center',
+    backgroundColor: '#121A2A',
+    borderColor: '#273147',
+    borderRadius: 13,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    height: 48,
+    justifyContent: 'center',
+    marginTop: 8,
+    width: '100%',
+  },
+  activationKeyButtonText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
   activationSecondary: {
     alignItems: 'center',
     borderColor: '#273147',
@@ -4896,6 +5087,194 @@ const styles = StyleSheet.create({
   activationSecondaryText: {
     color: colors.text,
     fontSize: 13,
+    fontWeight: '900',
+  },
+  planModalBackdrop: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 12,
+  },
+  planModalDismissArea: {
+    ...StyleSheet.absoluteFill,
+  },
+  planModalCard: {
+    backgroundColor: '#080D17',
+    borderColor: 'rgba(34, 189, 255, 0.32)',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    maxWidth: 430,
+    paddingBottom: 18,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    shadowColor: '#22BDFF',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.24,
+    shadowRadius: 36,
+    width: '100%',
+  },
+  planModalHandle: {
+    alignSelf: 'center',
+    backgroundColor: '#2A3548',
+    borderRadius: 999,
+    height: 4,
+    marginBottom: 14,
+    width: 52,
+  },
+  planModalHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  planModalKicker: {
+    color: '#22BDFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0,
+  },
+  planModalTitle: {
+    color: colors.text,
+    fontSize: 23,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+  planModalClose: {
+    alignItems: 'center',
+    backgroundColor: '#111827',
+    borderColor: '#243044',
+    borderRadius: 18,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  planModalText: {
+    color: '#9CA9BC',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 10,
+  },
+  planList: {
+    gap: 10,
+    marginTop: 16,
+  },
+  planCard: {
+    backgroundColor: '#0D1422',
+    borderColor: '#1F2A3D',
+    borderRadius: 15,
+    borderWidth: 1,
+    padding: 14,
+  },
+  planCardSelected: {
+    backgroundColor: '#141033',
+    borderColor: colors.purple,
+  },
+  planCardTop: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  planName: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  planBadge: {
+    backgroundColor: 'rgba(255, 184, 31, 0.15)',
+    borderColor: 'rgba(255, 184, 31, 0.35)',
+    borderRadius: 999,
+    borderWidth: 1,
+    color: colors.amber,
+    fontSize: 9,
+    fontWeight: '900',
+    overflow: 'hidden',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    textTransform: 'uppercase',
+  },
+  planPriceRow: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    gap: 5,
+    marginTop: 10,
+  },
+  planPrice: {
+    color: colors.text,
+    fontSize: 26,
+    fontWeight: '900',
+  },
+  planPeriod: {
+    color: '#91A0B6',
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  planDescription: {
+    color: '#A9B4C5',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 8,
+  },
+  planSelectedRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 11,
+  },
+  planRadio: {
+    alignItems: 'center',
+    borderColor: '#3B465C',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 16,
+    justifyContent: 'center',
+    width: 16,
+  },
+  planRadioSelected: {
+    borderColor: '#22BDFF',
+  },
+  planRadioDot: {
+    backgroundColor: '#22BDFF',
+    borderRadius: 999,
+    height: 8,
+    width: 8,
+  },
+  planSelectedText: {
+    color: '#B7C4D6',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  planContinueButton: {
+    alignItems: 'center',
+    backgroundColor: colors.blue,
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 8,
+    height: 50,
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  planContinueText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  planKeyLink: {
+    alignItems: 'center',
+    height: 38,
+    justifyContent: 'center',
+    marginTop: 6,
+  },
+  planKeyLinkText: {
+    color: '#22BDFF',
+    fontSize: 12,
     fontWeight: '900',
   },
   topHeader: {
