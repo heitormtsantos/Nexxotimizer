@@ -21,6 +21,7 @@ expo-env.d.ts
 *.p8
 *.p12
 *.key
+android/release-signing.properties
 *.mobileprovision
 
 # Metro

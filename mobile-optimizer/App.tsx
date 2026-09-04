@@ -8,6 +8,7 @@ import {
   Easing,
   Image,
   ImageBackground,
+  ImageSourcePropType,
   Linking,
   Modal,
   Platform,
@@ -22,12 +23,22 @@ import {
 } from 'react-native';
 
 import {
+  activateGooglePlaySubscription,
   ActivationState,
   isActivationUsable,
   validateActivationKey,
 } from './src/services/activationClient';
 import {
+  fetchGooglePlaySubscriptionOffer,
+  finishGooglePlayPurchase,
+  googlePlayPremiumBasePlanId,
+  googlePlayPremiumProductId,
+  purchaseGooglePlaySubscription,
+  restoreGooglePlaySubscription,
+} from './src/services/billingClient';
+import {
   loadMobileState,
+  FreeUsageCounters,
   MobileHistoryItem,
   MobilePreferences,
   saveActivationState,
@@ -56,6 +67,12 @@ import {
   runPing,
   startGameOverlay,
 } from './src/services/nativeOptimizer';
+import {
+  fetchMobileAppSettings,
+  fetchMobileInfluencers,
+  RemoteInfluencerProfile,
+} from './src/services/mobileBackendClient';
+import { generateRemoteSensitivity } from './src/services/sensitivityClient';
 import { colors } from './src/theme/colors';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -85,12 +102,15 @@ type OptimizationProgress = {
 type InfluencerProfile = {
   id: string;
   name: string;
-  photo?: number;
-  hudImage?: number;
+  photo?: ImageSourcePropType;
+  hudImage?: ImageSourcePropType;
+  sensitivityImage?: ImageSourcePropType;
+  sensitivityDescription?: string;
+  setupVideoUrl?: string;
   hudCode: string;
   game: string;
   specialty: string;
-  tier: 'free' | 'pro';
+  accessLevel: 'free' | 'key' | 'subscription';
   accent: string;
   sensitivity: Array<{ label: string; value: string }>;
   hud: Array<{ label: string; value: string }>;
@@ -128,12 +148,22 @@ type AiSensitivityResult = {
 };
 
 type SubscriptionPlan = {
-  id: 'monthly' | 'quarterly' | 'yearly';
+  id: 'monthly';
+  productId: string;
+  basePlanId: string;
   name: string;
   price: string;
   period: string;
   description: string;
   badge?: string;
+  storePriceLoaded?: boolean;
+};
+
+type FreeUsageLimits = {
+  aiSensitivity: number;
+  basicOptimization: number;
+  overlayLaunch: number;
+  replayRecording: number;
 };
 
 const tabs: Array<{ id: TabId; icon: IconName; label: string; image?: number }> = [
@@ -149,28 +179,27 @@ const tabs: Array<{ id: TabId; icon: IconName; label: string; image?: number }> 
 const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'monthly',
-    name: 'Mensal',
-    price: 'R$ 19,90',
+    productId: googlePlayPremiumProductId,
+    basePlanId: googlePlayPremiumBasePlanId,
+    name: 'Nexxsensi Premium Mensal',
+    price: 'R$ 25,00',
     period: '/ mês',
-    description: 'Acesso completo ao otimizador, overlay, replay e perfis PRO.',
-  },
-  {
-    id: 'quarterly',
-    name: 'Trimestral',
-    price: 'R$ 49,90',
-    period: '/ 3 meses',
-    description: 'Economize no plano para jogar com assinatura ativa por mais tempo.',
-    badge: 'Mais escolhido',
-  },
-  {
-    id: 'yearly',
-    name: 'Anual',
-    price: 'R$ 149,90',
-    period: '/ ano',
-    description: 'Melhor custo para manter Nexxsensi liberado o ano inteiro.',
-    badge: 'Melhor valor',
+    description: 'Acesso completo ao NexxIa, otimizador, overlay, replay e perfis PRO.',
+    badge: 'Google Play',
   },
 ];
+
+const freeUsageDefaults: FreeUsageCounters = {
+  aiSensitivityUsed: 0,
+  basicOptimizationUsed: 0,
+};
+
+const defaultFreeUsageLimits: FreeUsageLimits = {
+  aiSensitivity: 2,
+  basicOptimization: 1,
+  overlayLaunch: 0,
+  replayRecording: 0,
+};
 
 const aiPlayStyles: Array<AiOption<AiPlayStyle>> = [
   { id: 'rush', title: 'Rush', subtitle: 'Entrada rápida e capa', icon: 'flash', image: require('./assets/ai-icons/style-rush.png') },
@@ -191,7 +220,7 @@ const aiHudOptions: Array<AiOption<AiHud>> = [
   { id: '4', title: '4 dedos', subtitle: 'Controle avançado', icon: 'resize', image: require('./assets/ai-icons/hud-4.png') },
 ];
 
-const influencers: InfluencerProfile[] = [
+const fallbackInfluencers: InfluencerProfile[] = [
   {
     id: 'ruan-ff',
     name: 'Ruan FF',
@@ -200,7 +229,7 @@ const influencers: InfluencerProfile[] = [
     hudCode: 'FF-RUAN-3D-48-600',
     game: 'Free Fire',
     specialty: 'Sensi alta',
-    tier: 'free',
+    accessLevel: 'free',
     accent: '#9A35FF',
     sensitivity: [
       { label: 'Geral', value: '96' },
@@ -234,7 +263,7 @@ const influencers: InfluencerProfile[] = [
     hudCode: 'FF-PROZIN-4D-52-720',
     game: 'Free Fire',
     specialty: 'HUD competitivo',
-    tier: 'pro',
+    accessLevel: 'subscription',
     accent: '#5AA7FF',
     sensitivity: [
       { label: 'Geral', value: '100' },
@@ -268,7 +297,7 @@ const influencers: InfluencerProfile[] = [
     hudCode: 'COD-LUKETA-4D-TATICO',
     game: 'COD Mobile',
     specialty: 'Resposta rápida',
-    tier: 'pro',
+    accessLevel: 'subscription',
     accent: '#30F28C',
     sensitivity: [
       { label: 'Câmera', value: '115' },
@@ -300,7 +329,7 @@ const influencers: InfluencerProfile[] = [
     hudCode: 'PUBG-SENSEI-4D-MEDIO',
     game: 'PUBG Mobile',
     specialty: 'Controle estável',
-    tier: 'pro',
+    accessLevel: 'subscription',
     accent: '#F5B84B',
     sensitivity: [
       { label: 'Câmera', value: '105' },
@@ -539,6 +568,7 @@ export default function App() {
   const [selectedGame, setSelectedGame] = useState<InstalledGame | null>(null);
   const [selectedGamePackage, setSelectedGamePackage] = useState<string | null>(null);
   const [selectedInfluencer, setSelectedInfluencer] = useState<InfluencerProfile | null>(null);
+  const [influencerProfiles, setInfluencerProfiles] = useState<InfluencerProfile[]>(fallbackInfluencers);
   const [favoriteGamePackages, setFavoriteGamePackages] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<DeviceMetrics | null>(null);
   const [performance, setPerformance] = useState<PerformanceSnapshot | null>(null);
@@ -560,14 +590,23 @@ export default function App() {
   const [activationLoaded, setActivationLoaded] = useState(false);
   const [splashElapsed, setSplashElapsed] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
-  const [activationMessage, setActivationMessage] = useState('Para usar o app, ative sua key.');
+  const [isPurchasingSubscription, setIsPurchasingSubscription] = useState(false);
+  const [upgradeVisible, setUpgradeVisible] = useState(false);
+  const [freeUsage, setFreeUsage] = useState<FreeUsageCounters>(freeUsageDefaults);
+  const [freeUsageLimits, setFreeUsageLimits] = useState<FreeUsageLimits>(defaultFreeUsageLimits);
+  const [storeSubscriptionPlan, setStoreSubscriptionPlan] =
+    useState<Partial<SubscriptionPlan> | null>(null);
+  const [activationMessage, setActivationMessage] = useState('Use os testes grátis ou ative uma key.');
   const [notice, setNotice] = useState('Ative o Modo Avançado para liberar boost real.');
   const optimizationTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const ready = !!advanced?.canRunPrivilegedActions;
   const startupPermissionsReady =
     Platform.OS !== 'android' || (overlayAllowed && notificationAllowed && ready);
-  const activationReady = Platform.OS === 'web' || isActivationUsable(activation);
+  const hasPremiumAccess = isActivationUsable(activation);
+  const activeSubscriptionPlans = subscriptionPlans.map((plan) =>
+    plan.id === 'monthly' && storeSubscriptionPlan ? { ...plan, ...storeSubscriptionPlan } : plan,
+  );
 
   useEffect(() => {
     if (Platform.OS === 'web' || !activationLoaded || !activation?.valid || !activation.expiresAt) {
@@ -616,15 +655,71 @@ export default function App() {
 
   useEffect(() => {
     refreshAll();
+    refreshMobileBackendConfig();
+    refreshGooglePlayPlan();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         refreshAll();
+        refreshMobileBackendConfig();
         refreshPerformanceSnapshot();
+        refreshGooglePlayPlan();
       }
     });
 
     return () => subscription.remove();
   }, []);
+
+  async function refreshGooglePlayPlan() {
+    try {
+      const offer = await fetchGooglePlaySubscriptionOffer();
+      if (!offer) {
+        return;
+      }
+
+      setStoreSubscriptionPlan({
+        basePlanId: offer.basePlanId,
+        name: offer.name,
+        price: offer.displayPrice,
+        description: offer.description,
+        storePriceLoaded: true,
+      });
+    } catch {
+      setStoreSubscriptionPlan(null);
+    }
+  }
+
+  async function refreshMobileBackendConfig() {
+    const [settingsResult, influencersResult] = await Promise.allSettled([
+      fetchMobileAppSettings(),
+      fetchMobileInfluencers(),
+    ]);
+
+    if (settingsResult.status === 'fulfilled') {
+      const settings = settingsResult.value;
+      setFreeUsageLimits(settings.active
+        ? {
+            aiSensitivity: settings.ai_sensitivity_free_limit,
+            basicOptimization: settings.basic_optimization_limit,
+            overlayLaunch: settings.overlay_launch_limit,
+            replayRecording: settings.replay_recording_limit,
+          }
+        : {
+            aiSensitivity: 0,
+            basicOptimization: 0,
+            overlayLaunch: 0,
+            replayRecording: 0,
+          });
+    }
+
+    if (influencersResult.status === 'fulfilled' && influencersResult.value.length > 0) {
+      const nextInfluencers = influencersResult.value.map(mapRemoteInfluencer);
+      setInfluencerProfiles(nextInfluencers);
+      setSelectedInfluencer((current) => {
+        if (!current) return current;
+        return nextInfluencers.find((item) => item.id === current.id) ?? current;
+      });
+    }
+  }
 
   async function loadStoredActivation() {
     try {
@@ -634,13 +729,14 @@ export default function App() {
         setActivationMessage('Key ativa.');
       } else {
         setActivation(state.activation ?? null);
-        setActivationMessage(state.activation?.message ?? 'Para usar o app, ative sua key.');
+        setActivationMessage(state.activation?.message ?? 'Use os testes grátis ou ative uma key.');
       }
       if (state.preferences) {
         setSelectedGamePackage(state.preferences.selectedGamePackage ?? null);
         setSelectedProfile(state.preferences.selectedProfile ?? 'profile-balanced');
         setFavoriteGamePackages(state.preferences.favoriteGamePackages ?? []);
         setLastPerformanceReading(state.preferences.lastPerformance ?? null);
+        setFreeUsage({ ...freeUsageDefaults, ...state.preferences.freeUsage });
         setHistory(state.preferences.history ?? []);
         setAppliedActionCount(state.preferences.history?.filter((item) => item.ok).length ?? 0);
       }
@@ -673,11 +769,13 @@ export default function App() {
       selectedProfile,
       favoriteGamePackages,
       lastPerformance: lastPerformanceReading ?? undefined,
+      freeUsage,
       history,
     }).catch(() => undefined);
   }, [
     activationLoaded,
     favoriteGamePackages,
+    freeUsage,
     history,
     lastPerformanceReading,
     selectedGamePackage,
@@ -807,14 +905,53 @@ export default function App() {
     });
   }
 
+  function openUpgradePrompt(message = 'Seu teste grátis acabou. Ative uma key ou assine para continuar.') {
+    setActivationMessage(message);
+    setUpgradeVisible(true);
+  }
+
+  function consumeAiFreeGeneration() {
+    setFreeUsage((current) => ({
+      ...current,
+      aiSensitivityUsed: Math.min(
+        freeUsageLimits.aiSensitivity,
+        current.aiSensitivityUsed + 1,
+      ),
+    }));
+  }
+
+  function consumeBasicOptimizationFreeUse() {
+    setFreeUsage((current) => ({
+      ...current,
+      basicOptimizationUsed: Math.min(
+        freeUsageLimits.basicOptimization,
+        current.basicOptimizationUsed + 1,
+      ),
+    }));
+  }
+
+  function canRunFreeBasicOptimization(actionId: string) {
+    return actionId === 'game-boost';
+  }
+
   async function runAction(actionId: string) {
     if (actionId === 'more') {
       setActiveTab('tools');
       return;
     }
 
-    if (!activationReady) {
-      setActivationMessage('Para usar esta função, ative sua key.');
+    const usingFreeBasicOptimization = !hasPremiumAccess && canRunFreeBasicOptimization(actionId);
+
+    if (!hasPremiumAccess && !usingFreeBasicOptimization) {
+      openUpgradePrompt('Esta função faz parte do plano PRO. Assine ou informe uma key para liberar.');
+      return;
+    }
+
+    if (
+      usingFreeBasicOptimization &&
+      freeUsage.basicOptimizationUsed >= freeUsageLimits.basicOptimization
+    ) {
+      openUpgradePrompt('Você já usou sua otimização grátis. Assine ou informe uma key para continuar.');
       return;
     }
 
@@ -842,6 +979,9 @@ export default function App() {
       recordHistory(actionId, result);
       finishOptimizationProgress(result, actionId);
       if (result.ok) {
+        if (usingFreeBasicOptimization) {
+          consumeBasicOptimizationFreeUse();
+        }
         setAppliedActionCount((count) => count + 1);
       }
       setNotice(result.ok ? 'Otimização concluída.' : 'Algumas etapas falharam.');
@@ -975,8 +1115,8 @@ export default function App() {
   }
 
   async function boostAndOpen() {
-    if (!activationReady) {
-      setActivationMessage('Para iniciar o jogo com boost, ative sua key.');
+    if (!hasPremiumAccess) {
+      openUpgradePrompt('Iniciar jogo com overlay e boost automático faz parte do plano PRO.');
       return;
     }
 
@@ -1107,6 +1247,7 @@ export default function App() {
       if (result.valid) {
         await saveActivationState(result);
         setActivationKeyInput('');
+        setUpgradeVisible(false);
       }
     } catch {
       setActivationMessage('Não foi possível validar a key no momento.');
@@ -1115,16 +1256,75 @@ export default function App() {
     }
   }
 
-  function openPurchasePage() {
-    Linking.openURL('https://nexxsensi.com/').catch(() => {
-      setActivationMessage('Não foi possível abrir a página de compra.');
-    });
+  async function startGooglePlaySubscription(plan: SubscriptionPlan) {
+    if (isPurchasingSubscription) {
+      return;
+    }
+
+    setIsPurchasingSubscription(true);
+    setActivationMessage('Abrindo compra segura do Google Play...');
+    try {
+      const purchase = await purchaseGooglePlaySubscription({
+        productId: plan.productId,
+        basePlanId: plan.basePlanId,
+      });
+      await activateFromGooglePlayPurchase(purchase);
+    } catch (error) {
+      setActivationMessage(
+        error instanceof Error ? error.message : 'Não foi possível concluir a assinatura.',
+      );
+    } finally {
+      setIsPurchasingSubscription(false);
+    }
   }
 
-  function startGooglePlaySubscription(plan: SubscriptionPlan) {
-    setActivationMessage(
-      `${plan.name} selecionado. A próxima etapa é conectar este botão ao Google Play Billing.`,
-    );
+  async function restoreGooglePlayAccess() {
+    if (isPurchasingSubscription) {
+      return;
+    }
+
+    setIsPurchasingSubscription(true);
+    setActivationMessage('Buscando assinatura ativa no Google Play...');
+    try {
+      const purchase = await restoreGooglePlaySubscription();
+      if (!purchase) {
+        setActivationMessage('Nenhuma assinatura ativa foi encontrada nesta conta Google Play.');
+        return;
+      }
+
+      await activateFromGooglePlayPurchase(purchase);
+    } catch (error) {
+      setActivationMessage(
+        error instanceof Error ? error.message : 'Não foi possível restaurar a assinatura.',
+      );
+    } finally {
+      setIsPurchasingSubscription(false);
+    }
+  }
+
+  async function activateFromGooglePlayPurchase(purchase: {
+    productId: string;
+    basePlanId?: string;
+    purchaseToken: string;
+    purchase: unknown;
+  }) {
+    setActivationMessage('Compra recebida. Validando assinatura...');
+    const result = await activateGooglePlaySubscription({
+      purchaseToken: purchase.purchaseToken,
+      productId: purchase.productId,
+      basePlanId: purchase.basePlanId,
+    });
+
+    setActivation(result);
+    setActivationMessage(result.message);
+    if (!result.valid) {
+      return;
+    }
+
+    await saveActivationState(result);
+    await finishGooglePlayPurchase(purchase.purchase);
+    setActivationKeyInput('');
+    setUpgradeVisible(false);
   }
 
   return (
@@ -1133,18 +1333,7 @@ export default function App() {
       <View style={styles.app}>
         {!activationLoaded || !splashElapsed ? (
           <SplashScreen />
-        ) : !activationReady ? (
-          <ActivationScreen
-            activationLoaded={activationLoaded}
-            activationKeyInput={activationKeyInput}
-            activationMessage={activationMessage}
-            isActivating={isActivating}
-            setActivationKeyInput={setActivationKeyInput}
-            activateKey={activateKey}
-            openPurchasePage={openPurchasePage}
-            startGooglePlaySubscription={startGooglePlaySubscription}
-          />
-        ) : !startupPermissionsReady ? (
+        ) : hasPremiumAccess && !startupPermissionsReady ? (
           <StartupPermissionScreen
             advanced={advanced}
             overlayAllowed={overlayAllowed}
@@ -1221,7 +1410,14 @@ export default function App() {
               />
             )}
             {activeTab === 'ai' && (
-              <AiSensitivityScreen goHome={() => setActiveTab('home')} />
+              <AiSensitivityScreen
+                goHome={() => setActiveTab('home')}
+                hasPremiumAccess={hasPremiumAccess}
+                freeUsage={freeUsage}
+                freeUsageLimits={freeUsageLimits}
+                consumeAiFreeGeneration={consumeAiFreeGeneration}
+                openUpgradePrompt={openUpgradePrompt}
+              />
             )}
             {activeTab === 'tools' && (
               <ToolsScreen
@@ -1234,6 +1430,7 @@ export default function App() {
             {activeTab === 'influencers' && (
               <InfluencersScreen
                 activation={activation}
+                influencers={influencerProfiles}
                 selectedInfluencer={selectedInfluencer}
                 setSelectedInfluencer={setSelectedInfluencer}
                 runAction={runAction}
@@ -1254,6 +1451,28 @@ export default function App() {
               />
             )}
             {optimizationProgress && <OptimizationOverlay progress={optimizationProgress} />}
+            {upgradeVisible && (
+              <View style={styles.setupPreviewLayer}>
+                <ActivationScreen
+                  activationLoaded={activationLoaded}
+                  activationKeyInput={activationKeyInput}
+                  activationMessage={activationMessage}
+                  isActivating={isActivating}
+                  isPurchasingSubscription={isPurchasingSubscription}
+                  subscriptionPlans={activeSubscriptionPlans}
+                  setActivationKeyInput={setActivationKeyInput}
+                  activateKey={activateKey}
+                  startGooglePlaySubscription={startGooglePlaySubscription}
+                  restoreGooglePlayAccess={restoreGooglePlayAccess}
+                />
+                <Pressable
+                  style={styles.permissionGateClose}
+                  onPress={() => setUpgradeVisible(false)}
+                >
+                  <AppIcon name="close" size={18} color={colors.text} />
+                </Pressable>
+              </View>
+            )}
             {Platform.OS === 'web' && webSetupPreview && (
               <View style={styles.setupPreviewLayer}>
                 {webSetupPreview === 'activation' ? (
@@ -1263,10 +1482,12 @@ export default function App() {
                       activationKeyInput={activationKeyInput}
                       activationMessage={activationMessage}
                       isActivating={isActivating}
+                      isPurchasingSubscription={isPurchasingSubscription}
+                      subscriptionPlans={activeSubscriptionPlans}
                       setActivationKeyInput={setActivationKeyInput}
                       activateKey={activateKey}
-                      openPurchasePage={openPurchasePage}
                       startGooglePlaySubscription={startGooglePlaySubscription}
+                      restoreGooglePlayAccess={restoreGooglePlayAccess}
                     />
                     <Pressable
                       style={styles.permissionGateClose}
@@ -1814,24 +2035,28 @@ function ActivationScreen({
   activationKeyInput,
   activationMessage,
   isActivating,
+  isPurchasingSubscription,
+  subscriptionPlans,
   setActivationKeyInput,
   activateKey,
-  openPurchasePage,
   startGooglePlaySubscription,
+  restoreGooglePlayAccess,
 }: {
   activationLoaded: boolean;
   activationKeyInput: string;
   activationMessage: string;
   isActivating: boolean;
+  isPurchasingSubscription: boolean;
+  subscriptionPlans: SubscriptionPlan[];
   setActivationKeyInput: (value: string) => void;
   activateKey: () => void;
-  openPurchasePage: () => void;
   startGooglePlaySubscription: (plan: SubscriptionPlan) => void;
+  restoreGooglePlayAccess: () => void;
 }) {
   const [plansVisible, setPlansVisible] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState<SubscriptionPlan['id']>('quarterly');
+  const [selectedPlanId, setSelectedPlanId] = useState<SubscriptionPlan['id']>('monthly');
   const selectedPlan =
-    subscriptionPlans.find((plan) => plan.id === selectedPlanId) ?? subscriptionPlans[1];
+    subscriptionPlans.find((plan) => plan.id === selectedPlanId) ?? subscriptionPlans[0];
 
   function continueSubscription() {
     setPlansVisible(false);
@@ -1847,12 +2072,17 @@ function ActivationScreen({
           Assine pelo Google Play ou use uma key de acesso para liberar o otimizador mobile.
         </Text>
         <Pressable
-          style={[styles.activationPrimary, !activationLoaded && styles.disabled]}
-          disabled={!activationLoaded}
+          style={[
+            styles.activationPrimary,
+            (!activationLoaded || isPurchasingSubscription) && styles.disabled,
+          ]}
+          disabled={!activationLoaded || isPurchasingSubscription}
           onPress={() => setPlansVisible(true)}
         >
           <AppIcon name="logo-google-playstore" size={18} color={colors.text} />
-          <Text style={styles.activationPrimaryText}>Assinar pelo Google Play</Text>
+          <Text style={styles.activationPrimaryText}>
+            {isPurchasingSubscription ? 'Abrindo Google Play...' : 'Assinar pelo Google Play'}
+          </Text>
         </Pressable>
         <View style={styles.activationDivider}>
           <View style={styles.activationDividerLine} />
@@ -1862,7 +2092,7 @@ function ActivationScreen({
         <TextInput
           value={activationKeyInput}
           onChangeText={(value) => setActivationKeyInput(value.toUpperCase())}
-          editable={activationLoaded && !isActivating}
+          editable={activationLoaded && !isActivating && !isPurchasingSubscription}
           autoCapitalize="characters"
           placeholder="SUA-KEY-DE-ACESSO"
           placeholderTextColor={colors.dim}
@@ -1872,18 +2102,17 @@ function ActivationScreen({
           {activationLoaded ? activationMessage : 'Carregando ativação...'}
         </Text>
         <Pressable
-          style={[styles.activationKeyButton, (!activationLoaded || isActivating) && styles.disabled]}
-          disabled={!activationLoaded || isActivating}
+          style={[
+            styles.activationKeyButton,
+            (!activationLoaded || isActivating || isPurchasingSubscription) && styles.disabled,
+          ]}
+          disabled={!activationLoaded || isActivating || isPurchasingSubscription}
           onPress={activateKey}
         >
           <AppIcon name="key" size={17} color={colors.text} />
           <Text style={styles.activationKeyButtonText}>
             {isActivating ? 'Validando...' : 'Ativar key'}
           </Text>
-        </Pressable>
-        <Pressable style={styles.activationSecondary} onPress={openPurchasePage}>
-          <AppIcon name="bag" size={16} color={colors.text} />
-          <Text style={styles.activationSecondaryText}>Comprar key</Text>
         </Pressable>
       </View>
       <Modal
@@ -1898,15 +2127,15 @@ function ActivationScreen({
             <View style={styles.planModalHandle} />
             <View style={styles.planModalHeader}>
               <View>
-                <Text style={styles.planModalKicker}>ASSINATURA ANDROID</Text>
-                <Text style={styles.planModalTitle}>Escolha seu plano</Text>
+                <Text style={styles.planModalKicker}>GOOGLE PLAY</Text>
+                <Text style={styles.planModalTitle}>Nexxsensi Premium</Text>
               </View>
               <Pressable style={styles.planModalClose} onPress={() => setPlansVisible(false)}>
                 <AppIcon name="close" size={20} color={colors.text} />
               </Pressable>
             </View>
             <Text style={styles.planModalText}>
-              Os valores abaixo são configuráveis. Na Play Store, o preço final será confirmado pelo Google Play.
+              O valor final é confirmado pelo Google Play antes da cobrança.
             </Text>
             <View style={styles.planList}>
               {subscriptionPlans.map((plan) => {
@@ -1931,16 +2160,32 @@ function ActivationScreen({
                         {selected ? <View style={styles.planRadioDot} /> : null}
                       </View>
                       <Text style={styles.planSelectedText}>
-                        {selected ? 'Plano selecionado' : 'Selecionar plano'}
+                        {selected ? 'Plano selecionado' : 'Selecionar'}
                       </Text>
                     </View>
                   </Pressable>
                 );
               })}
             </View>
-            <Pressable style={styles.planContinueButton} onPress={continueSubscription}>
+            <Pressable
+              style={[styles.planContinueButton, isPurchasingSubscription && styles.disabled]}
+              disabled={isPurchasingSubscription}
+              onPress={continueSubscription}
+            >
               <AppIcon name="logo-google-playstore" size={18} color={colors.text} />
-              <Text style={styles.planContinueText}>Continuar pelo Google Play</Text>
+              <Text style={styles.planContinueText}>
+                {isPurchasingSubscription ? 'Abrindo Google Play...' : 'Continuar pelo Google Play'}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.planRestoreButton, isPurchasingSubscription && styles.disabled]}
+              disabled={isPurchasingSubscription}
+              onPress={() => {
+                setPlansVisible(false);
+                restoreGooglePlayAccess();
+              }}
+            >
+              <Text style={styles.planRestoreText}>Já assinei, restaurar acesso</Text>
             </Pressable>
             <Pressable style={styles.planKeyLink} onPress={() => setPlansVisible(false)}>
               <Text style={styles.planKeyLinkText}>Prefiro usar uma key</Text>
@@ -2740,14 +2985,53 @@ function GamesScreen({
   );
 }
 
+function mapRemoteInfluencer(remote: RemoteInfluencerProfile): InfluencerProfile {
+  return {
+    id: remote.id,
+    name: remote.name,
+    game: remote.game,
+    specialty: remote.specialty,
+    accessLevel: remote.access_level,
+    accent: remote.accent || '#9A35FF',
+    photo: toRemoteImage(remote.photo_url),
+    hudImage: toRemoteImage(remote.hud_image_url),
+    sensitivityImage: toRemoteImage(remote.sensitivity_image_url),
+    sensitivityDescription: remote.sensitivity_description || undefined,
+    setupVideoUrl: remote.setup_video_url || undefined,
+    hudCode: remote.hud_code || 'HUD não configurado',
+    sensitivity: remote.sensitivity.map((item) => ({
+      label: item.label,
+      value: String(item.value),
+    })),
+    hud: remote.hud,
+    tips: remote.tips,
+    settings: remote.settings,
+  };
+}
+
+function toRemoteImage(url?: string | null): ImageSourcePropType | undefined {
+  const value = url?.trim();
+  return value ? { uri: value } : undefined;
+}
+
+function labelInfluencerAccess(accessLevel: InfluencerProfile['accessLevel']) {
+  return {
+    free: 'FREE',
+    key: 'KEY',
+    subscription: 'PRO',
+  }[accessLevel];
+}
+
 function InfluencersScreen({
   activation,
+  influencers,
   selectedInfluencer,
   setSelectedInfluencer,
   runAction,
   goHome,
 }: {
   activation: ActivationState | null;
+  influencers: InfluencerProfile[];
   selectedInfluencer: InfluencerProfile | null;
   setSelectedInfluencer: (influencer: InfluencerProfile | null) => void;
   runAction: (actionId: string) => void;
@@ -2756,7 +3040,7 @@ function InfluencersScreen({
   const hasSubscription = isActivationUsable(activation);
 
   if (selectedInfluencer) {
-    const locked = selectedInfluencer.tier === 'pro' && !hasSubscription;
+    const locked = selectedInfluencer.accessLevel !== 'free' && !hasSubscription;
     const freeFireSafe = selectedInfluencer.game.toLowerCase().includes('free fire');
 
     return (
@@ -2781,8 +3065,8 @@ function InfluencersScreen({
             <Text style={styles.influencerHeroName}>{selectedInfluencer.name}</Text>
             <Text style={styles.influencerHeroSub}>{selectedInfluencer.specialty}</Text>
           </View>
-          <Text style={[styles.influencerTier, selectedInfluencer.tier === 'pro' && styles.influencerTierPro]}>
-            {selectedInfluencer.tier === 'pro' ? 'PRO' : 'FREE'}
+          <Text style={[styles.influencerTier, selectedInfluencer.accessLevel !== 'free' && styles.influencerTierPro]}>
+            {labelInfluencerAccess(selectedInfluencer.accessLevel)}
           </Text>
         </View>
 
@@ -2792,8 +3076,8 @@ function InfluencersScreen({
               <AppIcon name="lock-closed" size={28} color={colors.amber} />
               <Text style={styles.lockedInfluencerTitle}>Conteúdo bloqueado</Text>
               <Text style={styles.lockedInfluencerText}>
-                Este perfil faz parte da assinatura. Ative uma key válida para ver sensibilidade,
-                HUD e configurações completas.
+                Este perfil exige key ou assinatura ativa para ver sensibilidade, HUD e
+                configurações completas.
               </Text>
             </View>
             <InfluencerSensitivityPreview influencer={selectedInfluencer} locked />
@@ -2816,6 +3100,7 @@ function InfluencersScreen({
             <InfluencerSensitivityPreview influencer={selectedInfluencer} />
             <InfluencerHudPreview influencer={selectedInfluencer} />
             <InfluencerDpiBlock influencer={selectedInfluencer} />
+            <InfluencerSetupVideo influencer={selectedInfluencer} />
             <InfluencerTips tips={selectedInfluencer.tips} />
             <InfluencerSection title="Ajustes" items={selectedInfluencer.settings} />
 
@@ -2846,7 +3131,7 @@ function InfluencersScreen({
       </View>
       <View style={styles.influencerGrid}>
         {influencers.map((influencer) => {
-          const locked = influencer.tier === 'pro' && !hasSubscription;
+          const locked = influencer.accessLevel !== 'free' && !hasSubscription;
           return (
             <Pressable
               key={influencer.id}
@@ -2872,8 +3157,8 @@ function InfluencersScreen({
                 <Text numberOfLines={1} style={styles.influencerGame}>{influencer.game}</Text>
                 <Text numberOfLines={1} style={styles.influencerSpecialty}>{influencer.specialty}</Text>
               </View>
-              <Text style={[styles.influencerTierSmall, influencer.tier === 'pro' && styles.influencerTierPro]}>
-                {influencer.tier === 'pro' ? 'PRO' : 'FREE'}
+              <Text style={[styles.influencerTierSmall, influencer.accessLevel !== 'free' && styles.influencerTierPro]}>
+                {labelInfluencerAccess(influencer.accessLevel)}
               </Text>
             </Pressable>
           );
@@ -2883,7 +3168,21 @@ function InfluencersScreen({
   );
 }
 
-function AiSensitivityScreen({ goHome }: { goHome: () => void }) {
+function AiSensitivityScreen({
+  goHome,
+  hasPremiumAccess,
+  freeUsage,
+  freeUsageLimits,
+  consumeAiFreeGeneration,
+  openUpgradePrompt,
+}: {
+  goHome: () => void;
+  hasPremiumAccess: boolean;
+  freeUsage: FreeUsageCounters;
+  freeUsageLimits: FreeUsageLimits;
+  consumeAiFreeGeneration: () => void;
+  openUpgradePrompt: (message?: string) => void;
+}) {
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const resultAnim = useRef(new Animated.Value(0)).current;
   const [input, setInput] = useState<AiSensitivityInput>({
@@ -2894,6 +3193,8 @@ function AiSensitivityScreen({ goHome }: { goHome: () => void }) {
     dpi: '',
   });
   const [result, setResult] = useState<AiSensitivityResult | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationSource, setGenerationSource] = useState<'cache' | 'gemini' | 'local' | null>(null);
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -2938,9 +3239,36 @@ function AiSensitivityScreen({ goHome }: { goHome: () => void }) {
     setInput((current) => ({ ...current, [key]: value }));
   };
 
-  const generate = () => {
-    setResult(generateAiSensitivity(input));
+  const generate = async () => {
+    if (isGenerating) {
+      return;
+    }
+
+    if (!hasPremiumAccess && freeUsage.aiSensitivityUsed >= freeUsageLimits.aiSensitivity) {
+      openUpgradePrompt(`Você já gerou suas ${freeUsageLimits.aiSensitivity} sensibilidades grátis. Assine ou informe uma key para continuar.`);
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const remote = await generateRemoteSensitivity(input);
+      setResult(remote.result);
+      setGenerationSource(remote.source);
+    } catch {
+      setResult(generateAiSensitivity(input));
+      setGenerationSource('local');
+    } finally {
+      setIsGenerating(false);
+    }
+
+    if (!hasPremiumAccess) {
+      consumeAiFreeGeneration();
+    }
   };
+  const aiFreeRemaining = Math.max(
+    0,
+    freeUsageLimits.aiSensitivity - freeUsage.aiSensitivityUsed,
+  );
   const pulseScale = pulseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.08],
@@ -2980,6 +3308,9 @@ function AiSensitivityScreen({ goHome }: { goHome: () => void }) {
           <Text style={styles.aiHeroTitle}>Sensi inteligente para Free Fire</Text>
           <Text style={styles.aiHeroText}>
             Informe seu aparelho e estilo de jogo para gerar uma sensi manual, sem mexer na memória do jogo.
+          </Text>
+          <Text style={styles.aiFreeUsageBadge}>
+            {hasPremiumAccess ? 'NexxIa ilimitada' : `${aiFreeRemaining} de ${freeUsageLimits.aiSensitivity} gerações grátis restantes`}
           </Text>
         </View>
       </View>
@@ -3042,10 +3373,14 @@ function AiSensitivityScreen({ goHome }: { goHome: () => void }) {
           style={styles.aiInput}
         />
 
-        <Pressable style={styles.primaryButtonFull} onPress={generate}>
+        <Pressable
+          style={[styles.primaryButtonFull, isGenerating && styles.disabled]}
+          disabled={isGenerating}
+          onPress={generate}
+        >
           <AppIcon name="hardware-chip" size={16} color={colors.text} />
           <Text style={[styles.primaryButtonText, styles.primaryButtonTextBright]}>
-            Gerar NexxIa
+            {isGenerating ? 'Gerando NexxIa...' : 'Gerar NexxIa'}
           </Text>
         </Pressable>
       </View>
@@ -3064,6 +3399,15 @@ function AiSensitivityScreen({ goHome }: { goHome: () => void }) {
             <View>
               <Text style={styles.aiKicker}>RESULTADO IA</Text>
               <Text style={styles.aiResultTitle}>{result.title}</Text>
+              {generationSource && (
+                <Text style={styles.aiResultSource}>
+                  {generationSource === 'cache'
+                    ? 'Resultado reutilizado do banco'
+                    : generationSource === 'gemini'
+                      ? 'Gerado com Gemini e salvo no banco'
+                      : 'Fallback local para preview/offline'}
+                </Text>
+              )}
             </View>
             <View style={styles.aiConfidenceBadge}>
               <Text style={styles.aiConfidenceText}>{result.confidence}</Text>
@@ -3211,8 +3555,44 @@ function InfluencerSensitivityPreview({
         </View>
         {locked && <Text style={styles.influencerPreviewBadge}>PRÉVIA</Text>}
       </View>
+      {influencer.sensitivityDescription ? (
+        <Text style={styles.influencerSensitivityDescription}>
+          {influencer.sensitivityDescription}
+        </Text>
+      ) : null}
+      {influencer.sensitivityImage ? (
+        <Image
+          source={influencer.sensitivityImage}
+          resizeMode="cover"
+          style={styles.influencerSensitivityImage}
+        />
+      ) : null}
       <AiSensitivityBars items={sensitivity} />
     </View>
+  );
+}
+
+function InfluencerSetupVideo({ influencer }: { influencer: InfluencerProfile }) {
+  if (!influencer.setupVideoUrl) {
+    return null;
+  }
+
+  return (
+    <Pressable
+      style={styles.influencerVideoButton}
+      onPress={() => Linking.openURL(influencer.setupVideoUrl!).catch(() => undefined)}
+    >
+      <View style={styles.influencerVideoIcon}>
+        <AppIcon name="play" size={16} color={colors.text} />
+      </View>
+      <View style={styles.influencerVideoCopy}>
+        <Text style={styles.influencerVideoTitle}>Vídeo configurando</Text>
+        <Text numberOfLines={1} style={styles.influencerVideoText}>
+          Abrir tutorial do criador
+        </Text>
+      </View>
+      <AppIcon name="open-outline" size={16} color={colors.muted} />
+    </Pressable>
   );
 }
 
@@ -5072,23 +5452,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
   },
-  activationSecondary: {
-    alignItems: 'center',
-    borderColor: '#273147',
-    borderRadius: 13,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 8,
-    height: 46,
-    justifyContent: 'center',
-    marginTop: 10,
-    width: '100%',
-  },
-  activationSecondaryText: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '900',
-  },
   planModalBackdrop: {
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.72)',
@@ -5264,6 +5627,20 @@ const styles = StyleSheet.create({
   planContinueText: {
     color: colors.text,
     fontSize: 14,
+    fontWeight: '900',
+  },
+  planRestoreButton: {
+    alignItems: 'center',
+    borderColor: 'rgba(34,189,255,0.32)',
+    borderRadius: 13,
+    borderWidth: 1,
+    height: 42,
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  planRestoreText: {
+    color: '#7DD9FF',
+    fontSize: 12,
     fontWeight: '900',
   },
   planKeyLink: {
@@ -6837,6 +7214,20 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 6,
   },
+  aiFreeUsageBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(34, 189, 255, 0.12)',
+    borderColor: 'rgba(34, 189, 255, 0.32)',
+    borderRadius: 999,
+    borderWidth: 1,
+    color: '#22BDFF',
+    fontSize: 10,
+    fontWeight: '900',
+    marginTop: 10,
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
   aiFormCard: {
     backgroundColor: '#0B101A',
     borderColor: '#1B2638',
@@ -6947,6 +7338,12 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: '900',
     marginTop: 4,
+  },
+  aiResultSource: {
+    color: '#8FA3BB',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 5,
   },
   aiConfidenceBadge: {
     backgroundColor: 'rgba(0, 247, 161, 0.1)',
@@ -7359,6 +7756,20 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 2,
   },
+  influencerSensitivityDescription: {
+    color: '#AEB6C5',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  influencerSensitivityImage: {
+    aspectRatio: 1.73,
+    borderColor: 'rgba(34, 189, 255, 0.24)',
+    borderRadius: 13,
+    borderWidth: 1,
+    height: undefined,
+    overflow: 'hidden',
+    width: '100%',
+  },
   influencerPreviewBadge: {
     backgroundColor: '#2A2414',
     borderRadius: 999,
@@ -7460,6 +7871,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 15,
+  },
+  influencerVideoButton: {
+    alignItems: 'center',
+    backgroundColor: '#08192B',
+    borderColor: 'rgba(34, 189, 255, 0.3)',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 14,
+  },
+  influencerVideoIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.blue,
+    borderRadius: 999,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  influencerVideoCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  influencerVideoTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  influencerVideoText: {
+    color: '#8F9DB2',
+    fontSize: 11,
+    marginTop: 2,
   },
   influencerPreviewTitle: {
     color: '#00F0FF',

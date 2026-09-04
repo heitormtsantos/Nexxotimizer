@@ -38,7 +38,13 @@ export type MobilePreferences = {
   selectedProfile?: string;
   favoriteGamePackages?: string[];
   lastPerformance?: LastPerformanceReading;
+  freeUsage?: FreeUsageCounters;
   history?: MobileHistoryItem[];
+};
+
+export type FreeUsageCounters = {
+  aiSensitivityUsed: number;
+  basicOptimizationUsed: number;
 };
 
 async function getStoredValue(key: string) {

@@ -1,4 +1,5 @@
 const validationUrl = 'https://api.nexxsensi.com/api/keys/validate';
+const googlePlayActivationUrl = 'https://api.nexxsensi.com/api/mobile/google-play/activate';
 const productName = 'Otimização Android';
 
 export type ActivationState = {
@@ -54,6 +55,39 @@ export async function validateActivationKey(key: string): Promise<ActivationStat
     valid: true,
     message: 'Key validada com sucesso.',
     key: normalizedKey,
+    email: data.email,
+    product: data.product,
+    startsAt: data.starts_at,
+    expiresAt: data.expires_at,
+    lastValidatedAt: new Date().toISOString(),
+  };
+}
+
+export async function activateGooglePlaySubscription(input: {
+  purchaseToken: string;
+  productId: string;
+  basePlanId?: string;
+  email?: string;
+  fingerprint?: string;
+}): Promise<ActivationState> {
+  const response = await fetch(googlePlayActivationUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+
+  const data = (await response.json()) as ActivationResponse & { key?: string };
+  if (!response.ok || !data.valid || !data.key) {
+    return {
+      valid: false,
+      message: statusToMessage(data.status),
+    };
+  }
+
+  return {
+    valid: true,
+    message: 'Assinatura Google Play ativada.',
+    key: data.key,
     email: data.email,
     product: data.product,
     startsAt: data.starts_at,
