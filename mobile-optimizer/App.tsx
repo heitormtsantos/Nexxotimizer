@@ -3014,6 +3014,20 @@ function toRemoteImage(url?: string | null): ImageSourcePropType | undefined {
   return value ? { uri: value } : undefined;
 }
 
+function getInfluencerSetting(settings: InfluencerProfile['settings'], label: string) {
+  const normalized = label.toLowerCase();
+  return settings.find((item) => item.label.toLowerCase() === normalized)?.value;
+}
+
+function getInfluencerExtraSettings(settings: InfluencerProfile['settings']) {
+  return settings.filter((item) => !isFixedInfluencerSetting(item.label));
+}
+
+function isFixedInfluencerSetting(label: string) {
+  const normalized = label.toLowerCase();
+  return normalized === 'tipo da sensi' || normalized === 'dpi recomendado';
+}
+
 function labelInfluencerAccess(accessLevel: InfluencerProfile['accessLevel']) {
   return {
     free: 'FREE',
@@ -3038,6 +3052,14 @@ function InfluencersScreen({
   goHome: () => void;
 }) {
   const hasSubscription = isActivationUsable(activation);
+  const [previewImage, setPreviewImage] = useState<{
+    source: ImageSourcePropType;
+    title: string;
+  } | null>(null);
+
+  const openImagePreview = (source: ImageSourcePropType, title: string) => {
+    setPreviewImage({ source, title });
+  };
 
   if (selectedInfluencer) {
     const locked = selectedInfluencer.accessLevel !== 'free' && !hasSubscription;
@@ -3053,13 +3075,17 @@ function InfluencersScreen({
           onAction={goHome}
         />
         <View style={styles.influencerHero}>
-          <View style={[styles.influencerHeroPhoto, { borderColor: selectedInfluencer.accent }]}>
+          <Pressable
+            disabled={!selectedInfluencer.photo}
+            style={[styles.influencerHeroPhoto, { borderColor: selectedInfluencer.accent }]}
+            onPress={() => selectedInfluencer.photo && openImagePreview(selectedInfluencer.photo, selectedInfluencer.name)}
+          >
             {selectedInfluencer.photo ? (
               <Image source={selectedInfluencer.photo} resizeMode="cover" style={styles.influencerHeroImage} />
             ) : (
               <Text style={styles.influencerInitials}>{initials(selectedInfluencer.name)}</Text>
             )}
-          </View>
+          </Pressable>
           <View style={styles.influencerHeroCopy}>
             <Text style={styles.influencerKicker}>{selectedInfluencer.game}</Text>
             <Text style={styles.influencerHeroName}>{selectedInfluencer.name}</Text>
@@ -3080,11 +3106,6 @@ function InfluencersScreen({
                 configurações completas.
               </Text>
             </View>
-            <InfluencerSensitivityPreview influencer={selectedInfluencer} locked />
-            <InfluencerHudPreview influencer={selectedInfluencer} />
-            <InfluencerDpiBlock influencer={selectedInfluencer} />
-            <InfluencerTips tips={selectedInfluencer.tips} />
-            <InfluencerSection title="Ajustes" items={selectedInfluencer.settings} />
           </>
         ) : (
           <>
@@ -3097,12 +3118,12 @@ function InfluencersScreen({
               </View>
             )}
 
-            <InfluencerSensitivityPreview influencer={selectedInfluencer} />
-            <InfluencerHudPreview influencer={selectedInfluencer} />
+            <InfluencerSensitivityPreview influencer={selectedInfluencer} onOpenImage={openImagePreview} />
+            <InfluencerHudPreview influencer={selectedInfluencer} onOpenImage={openImagePreview} />
             <InfluencerDpiBlock influencer={selectedInfluencer} />
             <InfluencerSetupVideo influencer={selectedInfluencer} />
             <InfluencerTips tips={selectedInfluencer.tips} />
-            <InfluencerSection title="Ajustes" items={selectedInfluencer.settings} />
+            <InfluencerSection title="Ajustes" items={getInfluencerExtraSettings(selectedInfluencer.settings)} />
 
             <Pressable
               style={[styles.primaryButtonFull, freeFireSafe && styles.disabled]}
@@ -3116,6 +3137,10 @@ function InfluencersScreen({
             </Pressable>
           </>
         )}
+        <FullscreenImageModal
+          image={previewImage}
+          onClose={() => setPreviewImage(null)}
+        />
       </Screen>
     );
   }
@@ -3164,6 +3189,10 @@ function InfluencersScreen({
           );
         })}
       </View>
+      <FullscreenImageModal
+        image={previewImage}
+        onClose={() => setPreviewImage(null)}
+      />
     </Screen>
   );
 }
@@ -3537,14 +3566,17 @@ function AiOptionGrid<T extends string>({
 function InfluencerSensitivityPreview({
   influencer,
   locked,
+  onOpenImage,
 }: {
   influencer: InfluencerProfile;
   locked?: boolean;
+  onOpenImage?: (source: ImageSourcePropType, title: string) => void;
 }) {
   const sensitivity = influencer.sensitivity.map((item) => ({
     label: item.label,
     value: Number.parseInt(item.value, 10) || 0,
   }));
+  const sensitivityType = getInfluencerSetting(influencer.settings, 'Tipo da sensi') || 'Android';
 
   return (
     <View style={[styles.influencerSensitivityPanel, locked && styles.influencerSensitivityPreviewLocked]}>
@@ -3553,7 +3585,10 @@ function InfluencerSensitivityPreview({
           <Text style={styles.influencerKicker}>{influencer.game}</Text>
           <Text style={styles.influencerSensitivityTitle}>Sensibilidade</Text>
         </View>
-        {locked && <Text style={styles.influencerPreviewBadge}>PRÉVIA</Text>}
+        <View style={styles.influencerSensitivityBadges}>
+          <Text style={styles.influencerPreviewBadge}>{sensitivityType}</Text>
+          {locked && <Text style={styles.influencerPreviewBadge}>PRÉVIA</Text>}
+        </View>
       </View>
       {influencer.sensitivityDescription ? (
         <Text style={styles.influencerSensitivityDescription}>
@@ -3561,13 +3596,18 @@ function InfluencerSensitivityPreview({
         </Text>
       ) : null}
       {influencer.sensitivityImage ? (
-        <Image
-          source={influencer.sensitivityImage}
-          resizeMode="cover"
+        <Pressable
           style={styles.influencerSensitivityImage}
-        />
+          onPress={() => onOpenImage?.(influencer.sensitivityImage!, 'Sensibilidade')}
+        >
+          <Image
+            source={influencer.sensitivityImage}
+            resizeMode="cover"
+            style={styles.influencerPreviewImageFill}
+          />
+        </Pressable>
       ) : null}
-      <AiSensitivityBars items={sensitivity} />
+      {!influencer.sensitivityImage && <AiSensitivityBars items={sensitivity} />}
     </View>
   );
 }
@@ -3596,7 +3636,13 @@ function InfluencerSetupVideo({ influencer }: { influencer: InfluencerProfile })
   );
 }
 
-function InfluencerHudPreview({ influencer }: { influencer: InfluencerProfile }) {
+function InfluencerHudPreview({
+  influencer,
+  onOpenImage,
+}: {
+  influencer: InfluencerProfile;
+  onOpenImage?: (source: ImageSourcePropType, title: string) => void;
+}) {
   const [copied, setCopied] = useState(false);
 
   const copyHudCode = async () => {
@@ -3628,7 +3674,16 @@ function InfluencerHudPreview({ influencer }: { influencer: InfluencerProfile })
         </Pressable>
       </View>
       {influencer.hudImage ? (
-        <Image source={influencer.hudImage} resizeMode="cover" style={styles.influencerHudImage} />
+        <Pressable
+          style={styles.influencerHudImage}
+          onPress={() => onOpenImage?.(influencer.hudImage!, 'HUD')}
+        >
+          <Image
+            source={influencer.hudImage}
+            resizeMode="cover"
+            style={styles.influencerPreviewImageFill}
+          />
+        </Pressable>
       ) : (
         <View style={styles.influencerHudFallback}>
           <AppIcon name="game-controller" size={28} color={colors.blue} />
@@ -3646,8 +3701,39 @@ function InfluencerHudPreview({ influencer }: { influencer: InfluencerProfile })
   );
 }
 
+function FullscreenImageModal({
+  image,
+  onClose,
+}: {
+  image: { source: ImageSourcePropType; title: string } | null;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      animationType="fade"
+      transparent
+      visible={Boolean(image)}
+      onRequestClose={onClose}
+    >
+      <View style={styles.fullscreenImageBackdrop}>
+        <View style={styles.fullscreenImageHeader}>
+          <Text numberOfLines={1} style={styles.fullscreenImageTitle}>{image?.title}</Text>
+          <Pressable style={styles.fullscreenImageClose} onPress={onClose}>
+            <AppIcon name="close" size={22} color={colors.text} />
+          </Pressable>
+        </View>
+        {image && (
+          <Pressable style={styles.fullscreenImageTapArea} onPress={onClose}>
+            <Image source={image.source} resizeMode="contain" style={styles.fullscreenImage} />
+          </Pressable>
+        )}
+      </View>
+    </Modal>
+  );
+}
+
 function InfluencerDpiBlock({ influencer }: { influencer: InfluencerProfile }) {
-  const dpi = influencer.hud.find((item) => item.label.toLowerCase().includes('dpi'))?.value ?? 'Padrão';
+  const dpi = getInfluencerSetting(influencer.settings, 'DPI recomendado') ?? 'Padrão';
 
   return (
     <View style={styles.influencerDpiPanel}>
@@ -7750,6 +7836,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  influencerSensitivityBadges: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 7,
+  },
   influencerSensitivityTitle: {
     color: colors.text,
     fontSize: 19,
@@ -7768,6 +7859,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: undefined,
     overflow: 'hidden',
+    width: '100%',
+  },
+  influencerPreviewImageFill: {
+    height: '100%',
     width: '100%',
   },
   influencerPreviewBadge: {
@@ -7851,6 +7946,44 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     borderWidth: 1,
     justifyContent: 'center',
+    width: '100%',
+  },
+  fullscreenImageBackdrop: {
+    backgroundColor: 'rgba(0, 0, 0, 0.94)',
+    flex: 1,
+  },
+  fullscreenImageHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'web' ? 18 : 46,
+    paddingBottom: 12,
+  },
+  fullscreenImageTitle: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  fullscreenImageClose: {
+    alignItems: 'center',
+    backgroundColor: '#111827',
+    borderColor: '#243044',
+    borderRadius: 20,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  fullscreenImageTapArea: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 10,
+  },
+  fullscreenImage: {
+    height: '100%',
     width: '100%',
   },
   influencerPreviewMini: {
