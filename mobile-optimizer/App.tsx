@@ -29,14 +29,6 @@ import {
   validateActivationKey,
 } from './src/services/activationClient';
 import {
-  fetchGooglePlaySubscriptionOffer,
-  finishGooglePlayPurchase,
-  googlePlayPremiumBasePlanId,
-  googlePlayPremiumProductId,
-  purchaseGooglePlaySubscription,
-  restoreGooglePlaySubscription,
-} from './src/services/billingClient';
-import {
   loadMobileState,
   FreeUsageCounters,
   MobileHistoryItem,
@@ -79,6 +71,9 @@ type IconName = keyof typeof Ionicons.glyphMap;
 type TabId = 'home' | 'performance' | 'games' | 'ai' | 'influencers' | 'tools' | 'profile';
 type Tone = 'purple' | 'green' | 'red' | 'blue';
 type WebSetupPreview = 'android' | 'shizuku' | 'activation' | null;
+
+const googlePlayPremiumProductId = 'nexxsensi_premium';
+const googlePlayPremiumBasePlanId = 'm1';
 
 type QuickAction = {
   id: string;
@@ -656,21 +651,26 @@ export default function App() {
   useEffect(() => {
     refreshAll();
     refreshMobileBackendConfig();
-    refreshGooglePlayPlan();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         refreshAll();
         refreshMobileBackendConfig();
         refreshPerformanceSnapshot();
-        refreshGooglePlayPlan();
       }
     });
 
     return () => subscription.remove();
   }, []);
 
+  useEffect(() => {
+    if (upgradeVisible && Platform.OS === 'android') {
+      refreshGooglePlayPlan();
+    }
+  }, [upgradeVisible]);
+
   async function refreshGooglePlayPlan() {
     try {
+      const { fetchGooglePlaySubscriptionOffer } = await import('./src/services/billingClient');
       const offer = await fetchGooglePlaySubscriptionOffer();
       if (!offer) {
         return;
@@ -1264,6 +1264,7 @@ export default function App() {
     setIsPurchasingSubscription(true);
     setActivationMessage('Abrindo compra segura do Google Play...');
     try {
+      const { purchaseGooglePlaySubscription } = await import('./src/services/billingClient');
       const purchase = await purchaseGooglePlaySubscription({
         productId: plan.productId,
         basePlanId: plan.basePlanId,
@@ -1286,6 +1287,7 @@ export default function App() {
     setIsPurchasingSubscription(true);
     setActivationMessage('Buscando assinatura ativa no Google Play...');
     try {
+      const { restoreGooglePlaySubscription } = await import('./src/services/billingClient');
       const purchase = await restoreGooglePlaySubscription();
       if (!purchase) {
         setActivationMessage('Nenhuma assinatura ativa foi encontrada nesta conta Google Play.');
@@ -1322,6 +1324,7 @@ export default function App() {
     }
 
     await saveActivationState(result);
+    const { finishGooglePlayPurchase } = await import('./src/services/billingClient');
     await finishGooglePlayPurchase(purchase.purchase);
     setActivationKeyInput('');
     setUpgradeVisible(false);
