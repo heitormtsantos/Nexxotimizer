@@ -656,6 +656,7 @@ export default function App() {
         refreshAll();
         refreshMobileBackendConfig();
         refreshPerformanceSnapshot();
+        void revalidateStoredActivation();
       }
     });
 
@@ -722,8 +723,10 @@ export default function App() {
   }
 
   async function loadStoredActivation() {
+    let storedActivation: ActivationState | undefined;
     try {
       const state = await loadMobileState();
+      storedActivation = state.activation;
       if (isActivationUsable(state.activation)) {
         setActivation(state.activation ?? null);
         setActivationMessage('Key ativa.');
@@ -744,6 +747,39 @@ export default function App() {
       setActivationMessage('Não foi possível carregar a ativação.');
     } finally {
       setActivationLoaded(true);
+    }
+    if (storedActivation?.key) {
+      void revalidateStoredActivation(storedActivation);
+    }
+  }
+
+  async function revalidateStoredActivation(stored?: ActivationState) {
+    try {
+      const current = stored ?? (await loadMobileState()).activation;
+      if (!current?.key) return;
+
+      const validated = await validateActivationKey(current.key);
+      const nextState: ActivationState = {
+        ...current,
+        ...validated,
+        key: current.key,
+        source: validated.source ?? current.source,
+      };
+      setActivation(nextState);
+      setActivationMessage(nextState.message);
+      await saveActivationState(nextState);
+    } catch {
+      const current = stored ?? (await loadMobileState()).activation;
+      if (!current?.expiresAt || new Date(current.expiresAt).getTime() > Date.now()) return;
+
+      const expired: ActivationState = {
+        ...current,
+        valid: false,
+        message: 'Sua key expirou.',
+      };
+      setActivation(expired);
+      setActivationMessage(expired.message);
+      await saveActivationState(expired);
     }
   }
 

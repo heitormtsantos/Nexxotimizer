@@ -5,6 +5,7 @@ const productName = 'Otimização Android';
 export type ActivationState = {
   valid: boolean;
   message: string;
+  source?: 'key' | 'google_play';
   key?: string;
   email?: string;
   product?: string;
@@ -20,6 +21,7 @@ type ActivationResponse = {
   product?: string;
   starts_at?: string;
   expires_at?: string;
+  source?: 'key' | 'google_play';
 };
 
 export async function validateActivationKey(key: string): Promise<ActivationState> {
@@ -44,16 +46,27 @@ export async function validateActivationKey(key: string): Promise<ActivationStat
   });
 
   const data = (await response.json()) as ActivationResponse;
+  if (response.status >= 500) {
+    throw new Error('Não foi possível confirmar sua assinatura agora.');
+  }
   if (!response.ok || !data.valid) {
     return {
       valid: false,
       message: statusToMessage(data.status),
+      key: normalizedKey,
+      email: data.email,
+      product: data.product,
+      startsAt: data.starts_at,
+      expiresAt: data.expires_at,
+      source: data.source,
+      lastValidatedAt: new Date().toISOString(),
     };
   }
 
   return {
     valid: true,
     message: 'Key validada com sucesso.',
+    source: data.source ?? 'key',
     key: normalizedKey,
     email: data.email,
     product: data.product,
@@ -87,6 +100,7 @@ export async function activateGooglePlaySubscription(input: {
   return {
     valid: true,
     message: 'Assinatura Google Play ativada.',
+    source: 'google_play',
     key: data.key,
     email: data.email,
     product: data.product,
@@ -114,6 +128,10 @@ function statusToMessage(status?: string) {
       return 'Sua key expirou.';
     case 'inactive':
       return 'Sua key esta inativa.';
+    case 'subscription_inactive':
+      return 'Sua assinatura Google Play não está ativa.';
+    case 'subscription_invalid':
+      return 'Não foi possível validar esta assinatura Google Play.';
     case 'not_started':
       return 'Sua key ainda nao foi liberada.';
     case 'pending_activation':
