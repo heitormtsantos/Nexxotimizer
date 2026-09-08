@@ -57,8 +57,8 @@ export async function fetchGooglePlaySubscriptionOffer(
     basePlanId: offer.basePlanIdAndroid ?? basePlanId,
     offerToken: offer.offerTokenAndroid,
     displayPrice: offer.displayPrice || product.displayPrice,
-    name: product.displayName || product.title || 'Nexxsensi Premium Mensal',
-    description: product.description || 'Acesso premium ao Nexxsensi.',
+    name: product.displayName || product.title || 'NexX Sensi Premium Mensal',
+    description: product.description || 'Acesso premium ao NexX Sensi.',
   };
 }
 

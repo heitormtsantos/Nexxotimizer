@@ -1245,7 +1245,7 @@ class NexxsensiOverlayService : Service() {
 
     return builder
       .setSmallIcon(applicationInfo.icon)
-      .setContentTitle("Nexxsensi Overlay ativo")
+      .setContentTitle("NexX Sensi Overlay ativo")
       .setContentText("Toque na bolha sobre o jogo para otimizar.")
       .setOngoing(true)
       .build()

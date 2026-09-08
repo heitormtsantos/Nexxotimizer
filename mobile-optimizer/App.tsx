@@ -176,7 +176,7 @@ const subscriptionPlans: SubscriptionPlan[] = [
     id: 'monthly',
     productId: googlePlayPremiumProductId,
     basePlanId: googlePlayPremiumBasePlanId,
-    name: 'Nexxsensi Premium Mensal',
+    name: 'NexX Sensi Premium Mensal',
     price: 'R$ 25,00',
     period: '/ mês',
     description: 'Acesso completo ao NexxIa, otimizador, overlay, replay e perfis PRO.',
@@ -1865,7 +1865,7 @@ function StartupPermissionScreen({
     ? 'Instalar Shizuku'
     : !shizukuAlive
       ? 'Abrir Shizuku'
-      : 'Autorizar Nexxsensi';
+      : 'Autorizar NexX Sensi';
 
   if (!androidPermissionsReady) {
     return (
@@ -1936,7 +1936,7 @@ function StartupPermissionScreen({
         <Text style={styles.permissionGateKicker}>MODO AVANÇADO</Text>
         <Text style={styles.permissionGateTitle}>Ativar Shizuku</Text>
         <Text style={styles.permissionGateText}>
-          O Shizuku faz a depuração Wi-Fi para o Nexxsensi executar otimizações reais sem computador.
+          O Shizuku faz a depuração Wi-Fi para o NexX Sensi executar otimizações reais sem computador.
           Você configura no Shizuku uma vez e depois autoriza este app.
         </Text>
 
@@ -1944,8 +1944,8 @@ function StartupPermissionScreen({
           <Text style={styles.shizukuGuideTitle}>Como ativar</Text>
           <Text style={styles.shizukuGuideText}>1. Instale e abra o Shizuku.</Text>
           <Text style={styles.shizukuGuideText}>2. Toque em Começar pela Depuração via Wireless.</Text>
-          <Text style={styles.shizukuGuideText}>3. Faça o pareamento no próprio Shizuku e volte para o Nexxsensi.</Text>
-          <Text style={styles.shizukuGuideText}>4. Toque em Autorizar Nexxsensi.</Text>
+          <Text style={styles.shizukuGuideText}>3. Faça o pareamento no próprio Shizuku e volte para o NexX Sensi.</Text>
+          <Text style={styles.shizukuGuideText}>4. Toque em Autorizar NexX Sensi.</Text>
         </View>
 
         <View style={styles.permissionChecklist}>
@@ -1965,7 +1965,7 @@ function StartupPermissionScreen({
           />
           <PermissionGateRow
             done={shizukuPermission}
-            title="Nexxsensi autorizado"
+            title="NexX Sensi autorizado"
             text="Libera boost, DPI, cache, RAM e comandos reais."
             action="Autorizar"
             onPress={requestPermissionAndRefresh}
@@ -2070,7 +2070,7 @@ function ActivationScreen({
     <View style={styles.activationScreen}>
       <View style={styles.activationCard}>
         <Image source={banners.logo} resizeMode="contain" style={styles.activationLogo} />
-        <Text style={styles.activationTitle}>Ativar Nexxsensi</Text>
+        <Text style={styles.activationTitle}>Ativar NexX Sensi</Text>
         <Text style={styles.activationText}>
           Assine pelo Google Play ou use uma key de acesso para liberar o otimizador mobile.
         </Text>
@@ -2131,7 +2131,7 @@ function ActivationScreen({
             <View style={styles.planModalHeader}>
               <View>
                 <Text style={styles.planModalKicker}>GOOGLE PLAY</Text>
-                <Text style={styles.planModalTitle}>Nexxsensi Premium</Text>
+                <Text style={styles.planModalTitle}>NexX Sensi Premium</Text>
               </View>
               <Pressable style={styles.planModalClose} onPress={() => setPlansVisible(false)}>
                 <AppIcon name="close" size={20} color={colors.text} />

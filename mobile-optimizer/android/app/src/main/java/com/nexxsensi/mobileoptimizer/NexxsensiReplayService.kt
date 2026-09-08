@@ -432,7 +432,7 @@ class NexxsensiReplayService : Service() {
 
     return builder
       .setSmallIcon(applicationInfo.icon)
-      .setContentTitle("Nexxsensi Replay")
+      .setContentTitle("NexX Sensi Replay")
       .setContentText(text)
       .setOngoing(true)
       .addAction(applicationInfo.icon, "Salvar", saveIntent)
@@ -509,7 +509,7 @@ class NexxsensiReplayService : Service() {
     }
     val channel = NotificationChannel(
       CHANNEL_ID,
-      "Nexxsensi Replay",
+      "NexX Sensi Replay",
       NotificationManager.IMPORTANCE_LOW
     )
     getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
