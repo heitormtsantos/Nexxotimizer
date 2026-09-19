@@ -970,17 +970,17 @@ export default function App() {
     return actionId === 'game-boost';
   }
 
-  async function runAction(actionId: string) {
+  async function runAction(actionId: string): Promise<boolean> {
     if (actionId === 'more') {
       setActiveTab('tools');
-      return;
+      return false;
     }
 
     const usingFreeBasicOptimization = !hasPremiumAccess && canRunFreeBasicOptimization(actionId);
 
     if (!hasPremiumAccess && !usingFreeBasicOptimization) {
       openUpgradePrompt('Esta função faz parte do plano PRO. Assine ou informe uma key para liberar.');
-      return;
+      return false;
     }
 
     if (
@@ -988,17 +988,17 @@ export default function App() {
       freeUsage.basicOptimizationUsed >= freeUsageLimits.basicOptimization
     ) {
       openUpgradePrompt('Você já usou sua otimização grátis. Assine ou informe uma key para continuar.');
-      return;
+      return false;
     }
 
     if (!ready) {
       setNotice('Conclua o Modo Avançado antes de executar otimizações.');
-      return;
+      return false;
     }
 
     if (isSafeModeGame(selectedGame) && !isSafeModeAllowedAction(actionId)) {
       setNotice('Modo Seguro Free Fire ativo: use apenas Boost e abrir. Ajustes avançados ficam bloqueados para reduzir risco.');
-      return;
+      return false;
     }
 
     setRunningAction(actionId);
@@ -1021,20 +1021,33 @@ export default function App() {
         setAppliedActionCount((count) => count + 1);
       }
       setNotice(result.ok ? 'Otimização concluída.' : 'Algumas etapas falharam.');
-      const [nextMetrics, nextPing, nextAdvanced] = await Promise.all([
-        getDeviceMetrics(),
-        runPing(),
-        getNativeAdvancedStatus(),
-      ]);
-      setMetrics(normalizeMetrics(nextMetrics));
-      setPing(nextPing);
-      setAdvanced(nextAdvanced);
-      const nextPerformance = await getPerformanceSnapshot(selectedGame ?? undefined);
-      setPerformance(nextPerformance);
-      updateLastPerformanceReading(nextPerformance, selectedGame);
+      try {
+        const [nextMetrics, nextPing, nextAdvanced] = await Promise.all([
+          getDeviceMetrics(),
+          runPing(),
+          getNativeAdvancedStatus(),
+        ]);
+        setMetrics(normalizeMetrics(nextMetrics));
+        setPing(nextPing);
+        setAdvanced(nextAdvanced);
+        const nextPerformance = await getPerformanceSnapshot(selectedGame ?? undefined);
+        setPerformance(nextPerformance);
+        updateLastPerformanceReading(nextPerformance, selectedGame);
+      } catch {
+        setNotice(
+          result.ok
+            ? 'Otimização concluída. As métricas serão atualizadas depois.'
+            : 'Algumas etapas falharam.',
+        );
+      }
+      return result.ok;
     } catch (error) {
-      failOptimizationProgress(actionId);
-      setNotice(error instanceof Error ? error.message : 'Ative o Modo Avançado para continuar.');
+      const message = error instanceof Error
+        ? error.message
+        : 'Ative o Modo Avançado para continuar.';
+      failOptimizationProgress(actionId, message);
+      setNotice(message);
+      return false;
     } finally {
       setRunningAction(null);
     }
@@ -1123,7 +1136,7 @@ export default function App() {
     }, 1300);
   }
 
-  function failOptimizationProgress(actionId: string) {
+  function failOptimizationProgress(actionId: string, reason?: string) {
     if (optimizationTimer.current) {
       clearInterval(optimizationTimer.current);
       optimizationTimer.current = null;
@@ -1137,7 +1150,7 @@ export default function App() {
     setOptimizationProgress((current) => ({
       actionId,
       title: 'Não foi possível concluir',
-      subtitle: copy.subtitle,
+      subtitle: reason || copy.subtitle,
       percent: current?.percent ?? 0,
       currentStep: 'Não foi possível concluir',
       processedItems: current?.processedItems ?? [],
@@ -1170,7 +1183,12 @@ export default function App() {
       setNotice('Modo Seguro Free Fire: limpeza geral antes de abrir, sem comandos no jogo aberto.');
     }
 
-    await runAction('game-boost');
+    const optimized = await runAction('game-boost');
+    if (!optimized) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 900));
 
     try {
       const overlayAllowed = await canDrawOverlays();

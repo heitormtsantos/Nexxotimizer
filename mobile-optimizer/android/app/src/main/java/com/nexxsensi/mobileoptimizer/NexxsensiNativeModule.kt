@@ -670,7 +670,7 @@ class NexxsensiNativeModule(
     val freeFireSafeMode = isFreeFirePackage(safePackage)
     return when (actionId) {
       "cache" -> listOf(
-        ActionCommand("Limpeza de cache", "pm trim-caches 999G")
+        ActionCommand("Limpeza de cache", "pm trim-caches 1G >/dev/null 2>&1 || true")
       )
       "ram" -> listOf(
         ActionCommand("Finalizando processos em segundo plano", "am kill-all")
@@ -704,12 +704,14 @@ class NexxsensiNativeModule(
       "profile-balanced" -> buildBalancedProfileCommands(safePackage)
       "profile-performance" -> buildPerformanceProfileCommands(safePackage)
       "game-boost" -> buildList {
-        add(ActionCommand("Finalizando processos", "am kill-all"))
-        add(ActionCommand("Limpando cache temporario", "pm trim-caches 999G"))
         if (freeFireSafeMode) {
+          add(ActionCommand("Limpando cache temporario", "pm trim-caches 1G >/dev/null 2>&1 || true"))
+          add(ActionCommand("Aplicando perfil de desempenho", "cmd power set-fixed-performance-mode-enabled true >/dev/null 2>&1 || true"))
           add(ActionCommand("Modo seguro Free Fire ativo", "true"))
           return@buildList
         }
+        add(ActionCommand("Finalizando processos", "am kill-all"))
+        add(ActionCommand("Limpando cache temporario", "pm trim-caches 1G >/dev/null 2>&1 || true"))
         add(ActionCommand("Reduzindo animacoes", "settings put global window_animation_scale 0; settings put global transition_animation_scale 0; settings put global animator_duration_scale 0"))
         if (safePackage != null) {
           add(ActionCommand("Aplicando modo jogo", "cmd game set performance $safePackage || true"))
@@ -732,7 +734,7 @@ class NexxsensiNativeModule(
   private fun buildEconomyProfileCommands(): List<ActionCommand> {
     return listOf(
       ActionCommand("Finalizando processos ociosos", "am kill-all"),
-      ActionCommand("Limpando cache temporario", "pm trim-caches 999G"),
+      ActionCommand("Limpando cache temporario", "pm trim-caches 1G >/dev/null 2>&1 || true"),
       ActionCommand("Reduzindo animacoes", "settings put global window_animation_scale 0.5; settings put global transition_animation_scale 0.5; settings put global animator_duration_scale 0.5"),
       ActionCommand("Ativando bateria adaptativa", "settings put global adaptive_battery_management_enabled 1 || true"),
       ActionCommand("Ativando apps em espera", "settings put global app_standby_enabled 1 || true"),
@@ -754,7 +756,7 @@ class NexxsensiNativeModule(
   private fun buildBalancedProfileCommands(packageName: String?): List<ActionCommand> {
     return buildList {
       add(ActionCommand("Finalizando processos ociosos", "am kill-all"))
-      add(ActionCommand("Limpando cache temporario", "pm trim-caches 999G"))
+      add(ActionCommand("Limpando cache temporario", "pm trim-caches 1G >/dev/null 2>&1 || true"))
       add(ActionCommand("Ajustando animacoes", "settings put global window_animation_scale 0.5; settings put global transition_animation_scale 0.5; settings put global animator_duration_scale 0.5"))
       add(ActionCommand("Mantendo bateria adaptativa", "settings put global adaptive_battery_management_enabled 1 || true"))
       add(ActionCommand("Mantendo apps em espera", "settings put global app_standby_enabled 1 || true"))
@@ -769,7 +771,7 @@ class NexxsensiNativeModule(
   private fun buildPerformanceProfileCommands(packageName: String?): List<ActionCommand> {
     return buildList {
       add(ActionCommand("Finalizando processos", "am kill-all"))
-      add(ActionCommand("Limpando cache temporario", "pm trim-caches 999G"))
+      add(ActionCommand("Limpando cache temporario", "pm trim-caches 1G >/dev/null 2>&1 || true"))
       add(ActionCommand("Removendo animacoes", "settings put global window_animation_scale 0; settings put global transition_animation_scale 0; settings put global animator_duration_scale 0"))
       add(ActionCommand("Reduzindo espera de apps", "settings put global app_standby_enabled 0 || true"))
       add(ActionCommand("Reduzindo bateria adaptativa", "settings put global adaptive_battery_management_enabled 0 || true"))
